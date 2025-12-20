@@ -47,6 +47,11 @@ public sealed class ContentPlayerData
     /// </summary>
     public bool Stealthed { get; set; }
 
+    /// <summary>
+    /// If true, the player has completed a tutorial this session and cannot start another.
+    /// </summary>
+    public bool HasCompletedTutorialThisSession { get; set; }
+
     public ContentPlayerData(NetUserId userId, string name)
     {
         UserId = userId;

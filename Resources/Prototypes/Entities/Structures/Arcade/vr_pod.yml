@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+- type: entity
+  id: VRPod
+  name: vr-pod-name
+  description: vr-pod-desc
+  components:
+  - type: Transform
+    anchored: true
+  - type: Sprite
+    sprite: Structures/Storage/closet.rsi
+    state: generic
+  - type: EntityStorage
+    open: true
+    capacity: 1
+    occludesLight: true
+    showContents: false
+    openOnMove: false
+  - type: Lock
+    lockTime: 2.0
+  - type: LockVisuals
+  - type: ApcPowerReceiver
+    needsPower: true
+    powerLoad: 100
+  - type: Battery
+    maxCharge: 10000
+    currentCharge: 10000
+  - type: ApcPowerReceiverBattery
+    idleLoad: 5
+    batteryRechargeRate: 50
+    batteryRechargeEfficiency: 1
+  - type: VRPod
+  - type: UserInterface
+    interfaces:
+      enum.VRPodUiKey.Key:
+        type: VRPodBoundUserInterface
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 100
+      behaviors:
+      - !type:DoActsBehavior
+        acts: ["Destruction"]
+  - type: Construction
+    graph: ClosetSteelSecure
+    node: done
+    containers:
+    - entity_storage
+
+

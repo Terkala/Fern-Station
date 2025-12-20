@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Example tutorial prototypes
+# These are placeholder examples - actual tutorial maps will need to be created separately
+
+- type: tutorial
+  id: ExampleTutorial
+  name: "Example Tutorial"
+  description: "An example tutorial for testing the VR Pod system."
+  mapPath: Maps/example_tutorial.yml
+  spawnLocation: [10, 10]
+
+
