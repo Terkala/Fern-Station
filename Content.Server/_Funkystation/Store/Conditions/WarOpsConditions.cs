@@ -17,10 +17,8 @@ public sealed partial class WarOpsCondition : ListingCondition
 {
     public override bool Condition(ListingConditionArgs args)
     {
-        var esm = IoCManager.Resolve<IEntitySystemManager>();
-
         var ent = args.EntityManager;
-        var gameTicker = esm.GetEntitySystem<GameTicker>();
+        var gameTicker = ent.System<GameTicker>();
 
         var rules = gameTicker.GetActiveGameRules();
         foreach (var rule in rules)

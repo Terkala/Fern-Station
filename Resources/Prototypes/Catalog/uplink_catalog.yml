@@ -1160,9 +1160,9 @@
   - UplinkDisruption
   conditions:
   - !type:StoreWhitelistCondition
-     blacklist:
-       tags:
-       - NukeOpsUplink
+    blacklist:
+      tags:
+      - NukeOpsUplink
 
 - type: listing
   id: UplinkNukieAntimovCircuitBoard
@@ -1308,7 +1308,7 @@
   conditions: # funky war ops whitelisting
     - !type:WarOpsCondition
     - !type:StoreWhitelistCondition
-     whitelist:
+      whitelist:
         tags:
           - NukeOpsUplink
   saleLimit: 1 # WD EDIT
