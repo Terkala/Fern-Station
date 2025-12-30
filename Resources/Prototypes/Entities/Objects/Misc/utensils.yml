@@ -46,6 +46,9 @@
       path: /Audio/_Shitmed/Medical/Surgery/retractor1.ogg
     endSound:
       path: /Audio/_Shitmed/Medical/Surgery/hemostat1.ogg
+  - type: Tag
+    tags:
+    - ImprovisedSurgeryTool
 
 - type: entity
   parent: UtensilBase

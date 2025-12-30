@@ -27,7 +27,7 @@
   id: SentientSlimeCore
   parent: [BaseItem, OrganHumanBrain]
   name: sentient slime core
-  description: "The source of incredible, unending gooeyness."
+  description: "The source of incredible, unending gooeyness. Contains gas sacs for nitrogen collection."
   components:
     - type: Sprite
       sprite: Mobs/Species/Slime/organs.rsi
@@ -35,6 +35,8 @@
     - type: Stomach
     - type: Organ
       slotId: core
+    - type: Lung
+      alert: LowNitrogen
     - type: Metabolizer
       maxReagents: 6
       metabolizerTypes: [ Slime ]
@@ -47,6 +49,10 @@
         - id: Narcotic
         - id: Alcohol
           rateModifier: 0.25
+        - id: Gas
+          rateModifier: 100.0
+      solutionOnBody: false
+      solution: "Lung"
     - type: SolutionContainerManager
       solutions:
         stomach:
@@ -62,6 +68,9 @@
             Quantity: 10
           - ReagentId: GreyMatter # Funky - I guess it makes sense for slimes to have both
             Quantity: 10 # Funky
+        Lung:
+          maxVol: 100.0
+          canReact: false
     - type: Item
       size: Normal
       shape:

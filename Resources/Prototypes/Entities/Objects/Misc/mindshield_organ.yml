@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Mindshield Organ - Implanted into the organ layer of the head
+- type: entity
+  parent: BaseHumanOrgan
+  id: OrganMindShield
+  name: mindshield
+  description: A neural interface implant that protects against mind control and ensures loyalty to Nanotrasen.
+  components:
+  - type: Organ
+    slotId: mindshield
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: appendix  # Placeholder - using human organ sprite
+  - type: Item
+    size: Small
+    heldPrefix: mindshield
+  - type: OrganIntegrity
+    baseIntegrityCost: 0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+      - Vulpkanin
+      - Rodentia
+      - Thaven
+      - Primate
+      - Gingerbread
+      - Diona
+      - Slime
+    incompatibleCostMultiplier: 2.0
+  - type: Tag
+    tags:
+      - Organ
+      - MindShield
+

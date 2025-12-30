@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Surgery steps for cybernetics maintenance
+# These steps allow maintenance without full surgery
+
+# ===== SKIN LAYER STEPS =====
+
+# Open maintenance panel (unscrew) - Skin layer
+# No requirements - can be done immediately
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepOpenCyberneticsPanel
+  name: Open Maintenance Panel
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    duration: 2.0
+
+# Adjust bolts (can be done in any order) - Skin layer
+# Can be done after panel is open (but order with wiring doesn't matter)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepAdjustCyberneticsBolts
+  name: Adjust Bolts
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    duration: 3.0
+
+# Close maintenance panel (screw closed) - Skin layer
+# Requires bolts adjusted and wiring replaced (checked in code)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepCloseCyberneticsPanel
+  name: Close Maintenance Panel
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    duration: 2.0
+
+# ===== TISSUE LAYER STEPS =====
+
+# Replace wiring (moved to tissue layer, can be done in any order)
+# Can be done in parallel with adjust bolts
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepReplaceCyberneticsWiring
+  name: Replace Wiring
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    duration: 4.0
+

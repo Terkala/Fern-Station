@@ -16,7 +16,12 @@
 // SPDX-License-Identifier: MIT
 
 using System.Linq;
+using Content.Server.Body.Components;
+using Content.Server.Body.Systems;
+using Content.Server.Medical.Surgery;
 using Content.Server.Popups;
+using Content.Shared.Body.Organ;
+using Content.Shared.Body.Part;
 using Content.Shared.DoAfter;
 using Content.Shared.IdentityManagement;
 using Content.Shared.Implants;
@@ -32,6 +37,8 @@ public sealed partial class ImplanterSystem : SharedImplanterSystem
     [Dependency] private readonly PopupSystem _popup = default!;
     [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
     [Dependency] private readonly SharedContainerSystem _container = default!;
+    [Dependency] private readonly BodySystem _body = default!;
+    [Dependency] private readonly SurgerySystem _surgery = default!;
 
     public override void Initialize()
     {
@@ -171,5 +178,159 @@ public sealed partial class ImplanterSystem : SharedImplanterSystem
         Draw(args.Used.Value, args.User, args.Target.Value, component);
 
         args.Handled = true;
+    }
+
+    /// <summary>
+    /// Override Implant to handle StorageImplant as an organ instead of subdermal implant.
+    /// </summary>
+    public override void Implant(EntityUid user, EntityUid target, EntityUid implanter, ImplanterComponent component)
+    {
+        if (!CanImplant(user, target, implanter, component, out var implant, out var implantComp))
+            return;
+
+        // Check if this is a StorageImplant - if so, implant as organ instead
+        if (MetaData(implant.Value).EntityPrototype?.ID == "StorageImplant")
+        {
+            ImplantStorageImplantAsOrgan(user, target, implanter, component, implant.Value);
+            return;
+        }
+
+        // Check if this is a MindShieldImplant - if so, implant as organ instead
+        if (MetaData(implant.Value).EntityPrototype?.ID == "MindShieldImplant")
+        {
+            ImplantMindShieldAsOrgan(user, target, implanter, component, implant.Value);
+            return;
+        }
+
+        // Otherwise, use the base implementation for subdermal implants
+        base.Implant(user, target, implanter, component);
+    }
+
+    /// <summary>
+    /// Implants the storage implant as an organ into the tissue layer of the torso.
+    /// </summary>
+    private void ImplantStorageImplantAsOrgan(EntityUid user, EntityUid target, EntityUid implanter, ImplanterComponent component, EntityUid storageImplant)
+    {
+        // Check if target has a body
+        if (!TryComp<BodyComponent>(target, out var body))
+        {
+            _popup.PopupEntity("Target has no body.", target, user);
+            return;
+        }
+
+        // Find torso
+        var torso = _body.GetBodyChildrenOfType(target, BodyPartType.Torso, body).FirstOrDefault();
+        if (torso == default)
+        {
+            _popup.PopupEntity("Cannot find torso to implant storage implant.", target, user);
+            return;
+        }
+
+        // Remove the old subdermal implant from implanter
+        if (component.ImplanterSlot.ContainerSlot != null)
+            _container.Remove(storageImplant, component.ImplanterSlot.ContainerSlot);
+
+        // Spawn the organ version
+        var organImplant = Spawn("OrganStorageImplant", Transform(target).Coordinates);
+
+        // Transfer any items from the old implant to the new one
+        if (TryComp<StorageComponent>(storageImplant, out var oldStorage) && TryComp<StorageComponent>(organImplant, out var newStorage))
+        {
+            foreach (var item in oldStorage.Container.ContainedEntities.ToList())
+            {
+                _container.Remove(item, oldStorage.Container);
+                _container.Insert(item, newStorage.Container);
+            }
+        }
+
+        // Delete the old implant
+        Del(storageImplant);
+
+        // Create organ slot if it doesn't exist
+        if (!_body.TryCreateOrganSlot(torso.Id, "storage_implant", out _, null))
+        {
+            _popup.PopupEntity("Failed to create storage implant organ slot.", target, user);
+            Del(organImplant);
+            Dirty(implanter, component);
+            return;
+        }
+
+        // Install as organ using surgery system
+        if (_surgery.TryInstallImplant(organImplant, target, torso.Id, user, implanter, null))
+        {
+            _popup.PopupEntity("Storage implant successfully implanted into tissue layer.", target, user);
+            
+            if (component.CurrentMode == ImplanterToggleMode.Inject && !component.ImplantOnly)
+                DrawMode(implanter, component);
+            else
+                ImplantMode(implanter, component);
+        }
+        else
+        {
+            _popup.PopupEntity("Failed to implant storage implant.", target, user);
+            // Spawn the old implant back if installation failed
+            Del(organImplant);
+        }
+
+        Dirty(implanter, component);
+    }
+
+    /// <summary>
+    /// Implants the mindshield as an organ into the organ layer of the head.
+    /// </summary>
+    private void ImplantMindShieldAsOrgan(EntityUid user, EntityUid target, EntityUid implanter, ImplanterComponent component, EntityUid mindShieldImplant)
+    {
+        // Check if target has a body
+        if (!TryComp<BodyComponent>(target, out var body))
+        {
+            _popup.PopupEntity("Target has no body.", target, user);
+            return;
+        }
+
+        // Find head
+        var head = _body.GetBodyChildrenOfType(target, BodyPartType.Head, body).FirstOrDefault();
+        if (head == default)
+        {
+            _popup.PopupEntity("Cannot find head to implant mindshield.", target, user);
+            return;
+        }
+
+        // Remove the old subdermal implant from implanter
+        if (component.ImplanterSlot.ContainerSlot != null)
+            _container.Remove(mindShieldImplant, component.ImplanterSlot.ContainerSlot);
+
+        // Spawn the organ version
+        var organImplant = Spawn("OrganMindShield", Transform(target).Coordinates);
+
+        // Delete the old implant
+        Del(mindShieldImplant);
+
+        // Create organ slot if it doesn't exist
+        if (!_body.TryCreateOrganSlot(head.Id, "mindshield", out _, null))
+        {
+            _popup.PopupEntity("Failed to create mindshield organ slot.", target, user);
+            Del(organImplant);
+            Dirty(implanter, component);
+            return;
+        }
+
+        // Install as organ using surgery system
+        if (_surgery.TryInstallImplant(organImplant, target, head.Id, user, implanter, null))
+        {
+            _popup.PopupEntity("Mindshield successfully implanted into organ layer.", target, user);
+            
+            if (component.CurrentMode == ImplanterToggleMode.Inject && !component.ImplantOnly)
+                DrawMode(implanter, component);
+            else
+                ImplantMode(implanter, component);
+        }
+        else
+        {
+            _popup.PopupEntity("Failed to implant mindshield.", target, user);
+            // Spawn the old implant back if installation failed
+            Del(organImplant);
+        }
+
+        Dirty(implanter, component);
     }
 }

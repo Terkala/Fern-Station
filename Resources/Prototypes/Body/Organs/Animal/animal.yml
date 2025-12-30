@@ -108,6 +108,8 @@
     shape:
     - 0,0,1,1
     heldPrefix: lungs
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
 
 - type: entity
   id: OrganAnimalStomach
@@ -151,33 +153,13 @@
     shape:
     - 0,0,1,1
     heldPrefix: stomach
-
-- type: entity
-  id: OrganMouseStomach
-  parent: OrganAnimalStomach
-  name: stomach
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: SolutionContainerManager
-    solutions:
-      stomach:
-        maxVol: 30
-      # Funky - mouse stomachs not having an organ or a food solution is almost definitely an oversight as it makes them inconsistently inedible
-      food:
-        maxVol: 5
-        reagents:
-        - ReagentId: UncookedAnimalProteins
-          Quantity: 5
-      organ:
-        reagents:
-        - ReagentId: UncookedAnimalProteins
-          Quantity: 8
-      # Funky change ends
-  - type: Item
-    size: Normal
-    shape:
-    - 0,0,1,1
-    heldPrefix: stomach
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Vulpkanin
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganAnimalLiver
@@ -206,6 +188,13 @@
     shape:
     - 0,0,1,1
     heldPrefix: liver
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Vulpkanin
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganAnimalHeart
@@ -233,6 +222,13 @@
   - type: Item
     size: Tiny
     heldPrefix: heart
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Vulpkanin
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganAnimalKidneys
@@ -260,3 +256,5 @@
     shape:
     - 0,0,1,1
     heldPrefix: kidneys
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0

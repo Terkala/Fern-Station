@@ -1,0 +1,229 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Lathe recipes for cyber-limbs
+# Rudimentary variants are available at roundstart (no tech requirement)
+# Other variants require appropriate tech research
+
+# ============================================
+# RUDIMENTARY CYBER-LIMBS (Available at roundstart)
+# ============================================
+
+- type: latheRecipe
+  id: RudimentaryLeftArm
+  result: RudimentaryLeftArm
+  completetime: 5.0
+  materials:
+    Steel: 1500
+    Glass: 750
+
+- type: latheRecipe
+  id: RudimentaryRightArm
+  result: RudimentaryRightArm
+  completetime: 5.0
+  materials:
+    Steel: 1500
+    Glass: 750
+
+- type: latheRecipe
+  id: RudimentaryLeftLeg
+  result: RudimentaryLeftLeg
+  completetime: 5.0
+  materials:
+    Steel: 1500
+    Glass: 750
+
+- type: latheRecipe
+  id: RudimentaryRightLeg
+  result: RudimentaryRightLeg
+  completetime: 5.0
+  materials:
+    Steel: 1500
+    Glass: 750
+
+# ============================================
+# BASIC CYBER-LIMBS (Tier 1 Civilian Services)
+# ============================================
+
+- type: latheRecipe
+  id: BasicLeftArm
+  result: BasicLeftArm
+  completetime: 5.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Plasma: 250
+
+- type: latheRecipe
+  id: BasicRightArm
+  result: BasicRightArm
+  completetime: 5.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Plasma: 250
+
+- type: latheRecipe
+  id: BasicLeftLeg
+  result: BasicLeftLeg
+  completetime: 5.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Plasma: 250
+
+- type: latheRecipe
+  id: BasicRightLeg
+  result: BasicRightLeg
+  completetime: 5.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Plasma: 250
+
+# ============================================
+# ADVANCED CYBER-LIMBS (Tier 2 Civilian Services)
+# ============================================
+
+- type: latheRecipe
+  id: AdvancedLeftArm
+  result: AdvancedLeftArm
+  completetime: 6.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Silver: 250
+    Plasma: 250
+
+- type: latheRecipe
+  id: AdvancedRightArm
+  result: AdvancedRightArm
+  completetime: 6.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Silver: 250
+    Plasma: 250
+
+- type: latheRecipe
+  id: AdvancedLeftLeg
+  result: AdvancedLeftLeg
+  completetime: 6.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Silver: 250
+    Plasma: 250
+
+
+- type: latheRecipe
+  id: AdvancedRightLeg
+  result: AdvancedRightLeg
+  completetime: 6.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Silver: 250
+    Plasma: 250
+
+# ============================================
+# EXPERIMENTAL CYBER-LIMBS (Tier 3 Civilian Services)
+# ============================================
+
+- type: latheRecipe
+  id: ExperimentalLeftArm
+  result: ExperimentalLeftArm
+  completetime: 7.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Gold: 250
+    Silver: 250
+    Plasma: 250
+
+- type: latheRecipe
+  id: ExperimentalRightArm
+  result: ExperimentalRightArm
+  completetime: 7.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Gold: 250
+    Silver: 250
+    Plasma: 250
+
+- type: latheRecipe
+  id: ExperimentalLeftLeg
+  result: ExperimentalLeftLeg
+  completetime: 7.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Gold: 250
+    Silver: 250
+    Plasma: 250
+
+- type: latheRecipe
+  id: ExperimentalRightLeg
+  result: ExperimentalRightLeg
+  completetime: 7.0
+  materials:
+    Steel: 1500
+    Glass: 750
+    Gold: 250
+    Silver: 250
+    Plasma: 250
+
+# ============================================
+# MILITARY CYBER-LIMBS (Tier 2 Security Research)
+# ============================================
+
+- type: latheRecipe
+  id: MilitaryLeftArm
+  result: MilitaryLeftArm
+  completetime: 6.0
+  materials:
+    Steel: 200
+    Glass: 100
+    Steel: 1500
+    Glass: 750
+    Plasteel: 500
+    Plasma: 250
+
+- type: latheRecipe
+  id: MilitaryRightArm
+  result: MilitaryRightArm
+  completetime: 6.0
+  materials:
+    Steel: 200
+    Glass: 100
+    Steel: 1500
+    Glass: 750
+    Plasteel: 500
+    Plasma: 250
+
+- type: latheRecipe
+  id: MilitaryLeftLeg
+  result: MilitaryLeftLeg
+  completetime: 6.0
+  materials:
+    Steel: 200
+    Glass: 100
+    Steel: 1500
+    Glass: 750
+    Plasteel: 500
+    Plasma: 250
+
+- type: latheRecipe
+  id: MilitaryRightLeg
+  result: MilitaryRightLeg
+  completetime: 6.0
+  materials:
+    Steel: 200
+    Glass: 100
+    Steel: 1500
+    Glass: 750
+    Plasteel: 500
+    Plasma: 250
+

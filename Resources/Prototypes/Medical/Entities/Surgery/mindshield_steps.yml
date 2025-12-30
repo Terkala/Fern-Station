@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Surgery steps for mindshield organ
+
+# Remove mindshield organ
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRemoveMindShield
+  name: Remove Mindshield
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Organ
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+      requiresBonesSawed: true
+    duration: 3.0
+    targetOrganSlot: mindshield
+

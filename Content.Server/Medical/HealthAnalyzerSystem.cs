@@ -304,6 +304,10 @@ public sealed class HealthAnalyzerSystem : EntitySystem
         if (HasComp<UnrevivableComponent>(target))
             unrevivable = true;
 
+        // Calculate unsanitary conditions penalty when scanning (for integrity mode display)
+        var cleanlinessSystem = EntitySystem.Get<RoomCleanlinessSystem>();
+        cleanlinessSystem.UpdateUnsanitaryPenalty(target);
+
         _uiSystem.ServerSendUiMessage(healthAnalyzer, HealthAnalyzerUiKey.Key, new HealthAnalyzerScannedUserMessage(
             GetNetEntity(target),
             bodyTemperature,

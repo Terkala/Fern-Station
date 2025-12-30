@@ -164,6 +164,9 @@
     sprite: Objects/Specific/Medical/Surgery/scalpel.rsi
     storedRotation: 90
     heldPrefix: shiv
+  - type: Tag
+    tags:
+    - ImprovisedSurgeryTool
 
 - type: entity
   name: advanced scalpel
@@ -325,6 +328,9 @@
     speedModifier: 0.5
   - type: BoneSaw # Shitmed
     speed: 0.5
+  - type: Tag
+    tags:
+    - ImprovisedSurgeryTool
 
 - type: entity
   name: circular saw

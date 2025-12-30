@@ -30,11 +30,11 @@
       - left leg
       - head
       organs:
-        heart: OrganAnimalHeart
-        lungs: OrganAnimalLungs
-        stomach: OrganAnimalStomach
-        liver: OrganAnimalLiver
-        kidneys: OrganAnimalKidneys
+        heart: OrganMonkeyHeart
+        lungs: OrganMonkeyLungs
+        stomach: OrganMonkeyStomach
+        liver: OrganMonkeyLiver
+        kidneys: OrganMonkeyKidneys
     right arm:
       part: RightArmMonkey
       connections:

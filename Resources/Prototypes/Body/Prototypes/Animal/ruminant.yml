@@ -15,12 +15,12 @@
       connections:
       - legs
       organs:
-        lungs: OrganAnimalLungs
-        stomach: OrganAnimalRuminantStomach
-        stomach2: OrganAnimalRuminantStomach
-        liver: OrganAnimalLiver
-        heart: OrganAnimalHeart
-        kidneys: OrganAnimalKidneys
+        lungs: OrganCowLungs
+        stomach: OrganCowStomach
+        stomach2: OrganCowStomach
+        liver: OrganCowLiver
+        heart: OrganCowHeart
+        kidneys: OrganCowKidneys
     legs:
       part: LegsAnimal
       connections:

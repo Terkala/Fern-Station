@@ -1013,6 +1013,8 @@
     #- BorgModuleHarvesting
     #- BorgModuleDefibrillator
     - BorgModuleAdvancedChemical
+    - PlasteelBones
+    - DurathreadWovenSkin
     - RipleyHarness
     - RipleyLArm
     - RipleyRArm

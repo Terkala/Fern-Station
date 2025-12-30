@@ -86,6 +86,7 @@
   - !type:AddComponentSpecial
     components:
       - type: CommandStaff
+      - type: MedicalSurgerySkill
 
 - type: startingGear
   id: CMOGear

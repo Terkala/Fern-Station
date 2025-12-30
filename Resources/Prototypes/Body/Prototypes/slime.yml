@@ -25,7 +25,6 @@
       - head # Shitmed
       organs:
         core: SentientSlimeCore
-        lungs: OrganSlimeLungs
     right arm:
       part: RightArmSlime
       connections:

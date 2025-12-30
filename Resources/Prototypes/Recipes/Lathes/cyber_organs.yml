@@ -1,0 +1,272 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Lathe recipes for cyber-organs
+# Rudimentary variants are available at roundstart (no tech requirement)
+# Other variants require appropriate tech research
+
+# ============================================
+# RUDIMENTARY CYBER-ORGANS (Available at roundstart)
+# ============================================
+
+- type: latheRecipe
+  id: RudimentaryCyberHeart
+  result: RudimentaryCyberHeart
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+
+# ============================================
+# BASIC CYBER-ORGANS (Tier 1 Civilian Services)
+# ============================================
+
+- type: latheRecipe
+  id: BasicCyberHeart
+  result: BasicCyberHeart
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+
+# ============================================
+# ADVANCED CYBER-ORGANS (Tier 2 Civilian Services)
+# ============================================
+
+- type: latheRecipe
+  id: AdvancedCyberHeart
+  result: AdvancedCyberHeart
+  completetime: 6.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+
+# ============================================
+# EXPERIMENTAL CYBER-ORGANS (Tier 3 Civilian Services)
+# ============================================
+
+- type: latheRecipe
+  id: ExperimentalCyberHeart
+  result: ExperimentalCyberHeart
+  completetime: 7.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+    Gold: 100
+
+# ============================================
+# CYBER-EYES RECIPES
+# ============================================
+
+- type: latheRecipe
+  id: RudimentaryCyberEyes
+  result: RudimentaryCyberEyes
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+
+- type: latheRecipe
+  id: BasicCyberEyes
+  result: BasicCyberEyes
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+
+- type: latheRecipe
+  id: AdvancedCyberEyes
+  result: AdvancedCyberEyes
+  completetime: 6.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+
+- type: latheRecipe
+  id: ExperimentalCyberEyes
+  result: ExperimentalCyberEyes
+  completetime: 7.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+    Gold: 100
+
+# ============================================
+# CYBER-LUNGS RECIPES
+# ============================================
+
+- type: latheRecipe
+  id: RudimentaryCyberLungs
+  result: RudimentaryCyberLungs
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+
+- type: latheRecipe
+  id: BasicCyberLungs
+  result: BasicCyberLungs
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+
+- type: latheRecipe
+  id: AdvancedCyberLungs
+  result: AdvancedCyberLungs
+  completetime: 6.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+
+- type: latheRecipe
+  id: ExperimentalCyberLungs
+  result: ExperimentalCyberLungs
+  completetime: 7.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+    Gold: 100
+
+# ============================================
+# CYBER-STOMACH RECIPES
+# ============================================
+
+- type: latheRecipe
+  id: RudimentaryCyberStomach
+  result: RudimentaryCyberStomach
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+
+- type: latheRecipe
+  id: BasicCyberStomach
+  result: BasicCyberStomach
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+
+- type: latheRecipe
+  id: AdvancedCyberStomach
+  result: AdvancedCyberStomach
+  completetime: 6.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+
+- type: latheRecipe
+  id: ExperimentalCyberStomach
+  result: ExperimentalCyberStomach
+  completetime: 7.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+    Gold: 100
+
+# ============================================
+# CYBER-LIVER RECIPES
+# ============================================
+
+- type: latheRecipe
+  id: RudimentaryCyberLiver
+  result: RudimentaryCyberLiver
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+
+- type: latheRecipe
+  id: BasicCyberLiver
+  result: BasicCyberLiver
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+
+- type: latheRecipe
+  id: AdvancedCyberLiver
+  result: AdvancedCyberLiver
+  completetime: 6.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+
+- type: latheRecipe
+  id: ExperimentalCyberLiver
+  result: ExperimentalCyberLiver
+  completetime: 7.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+    Gold: 100
+
+# ============================================
+# CYBER-KIDNEYS RECIPES
+# ============================================
+
+- type: latheRecipe
+  id: RudimentaryCyberKidneys
+  result: RudimentaryCyberKidneys
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+
+- type: latheRecipe
+  id: BasicCyberKidneys
+  result: BasicCyberKidneys
+  completetime: 5.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+
+- type: latheRecipe
+  id: AdvancedCyberKidneys
+  result: AdvancedCyberKidneys
+  completetime: 6.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+
+- type: latheRecipe
+  id: ExperimentalCyberKidneys
+  result: ExperimentalCyberKidneys
+  completetime: 7.0
+  materials:
+    Steel: 500
+    Glass: 500
+    Plasma: 100
+    Silver: 100
+    Gold: 100
+

@@ -6,6 +6,86 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later AND MIT
 
 - type: entity
+  id: OrganCowLungs
+  parent: OrganAnimalLungs
+  name: cow lungs
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+      - Vulpkanin
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganCowHeart
+  parent: OrganAnimalHeart
+  name: cow heart
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+      - Vulpkanin
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganCowLiver
+  parent: OrganAnimalLiver
+  name: cow liver
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+      - Vulpkanin
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganCowKidneys
+  parent: OrganAnimalKidneys
+  name: cow kidneys
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+      - Vulpkanin
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganCowStomach
+  parent: OrganAnimalRuminantStomach
+  name: cow stomach
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+      - Vulpkanin
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
   id: OrganAnimalRuminantStomach
   parent: OrganAnimalStomach
   name: ruminant stomach

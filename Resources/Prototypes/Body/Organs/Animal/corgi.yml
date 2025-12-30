@@ -1,0 +1,69 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+- type: entity
+  id: OrganCorgiLungs
+  parent: OrganAnimalLungs
+  name: corgi lungs
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganCorgiHeart
+  parent: OrganAnimalHeart
+  name: corgi heart
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganCorgiLiver
+  parent: OrganAnimalLiver
+  name: corgi liver
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganCorgiKidneys
+  parent: OrganAnimalKidneys
+  name: corgi kidneys
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganCorgiStomach
+  parent: OrganAnimalStomach
+  name: corgi stomach
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+

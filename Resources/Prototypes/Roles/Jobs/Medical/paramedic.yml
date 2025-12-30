@@ -63,6 +63,10 @@
   - External # goobstation
   extendedAccess:
   - Chemistry
+  special:
+  - !type:AddComponentSpecial
+    components:
+      - type: MedicalSurgerySkill
 
 - type: startingGear
   id: ParamedicGear

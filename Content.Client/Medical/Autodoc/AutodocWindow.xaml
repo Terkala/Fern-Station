@@ -1,0 +1,23 @@
+<!--
+SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+SPDX-License-Identifier: MIT
+-->
+
+<controls:FancyWindow
+    xmlns="https://spacestation14.io"
+    xmlns:controls="clr-namespace:Content.Client.UserInterface.Controls"
+    Title="{Loc 'autodoc-window-title'}">
+    <BoxContainer Orientation="Vertical" Margin="5">
+        <Label Text="{Loc 'autodoc-window-select-mode'}" Margin="0 0 0 5"/>
+        <BoxContainer Orientation="Vertical" SeparationOverride="5">
+            <Button Name="OrganImplantButton" Text="{Loc 'autodoc-window-mode-organ-implant'}" HorizontalExpand="True"/>
+            <Button Name="MedicalCareButton" Text="{Loc 'autodoc-window-mode-medical-care'}" HorizontalExpand="True"/>
+            <Button Name="OrganRemovalButton" Text="{Loc 'autodoc-window-mode-organ-removal'}" HorizontalExpand="True"/>
+        </BoxContainer>
+        <PanelContainer StyleClasses="LowDivider" Margin="0 10 0 10"/>
+        <Label Name="StatusLabel" Text="{Loc 'autodoc-window-status-ready'}" Margin="0 0 0 5"/>
+        <ScrollContainer Name="OrganListContainer" MaxHeight="200" VerticalExpand="False" Visible="False" Margin="0 0 0 5"/>
+        <Button Name="ActivateButton" Text="{Loc 'autodoc-window-activate'}" HorizontalExpand="True" Disabled="True"/>
+    </BoxContainer>
+</controls:FancyWindow>
+

@@ -44,3 +44,18 @@ health-analyzer-window-scan-mode-inactive = Inactive
 health-analyzer-popup-scan-target = {CAPITALIZE(THE($user))} is trying to scan you!
 ## Shitmed Change
 health-analyzer-window-return-button-text = < Return
+
+## Integrity Mode
+health-analyzer-window-mode-health = Health
+health-analyzer-window-mode-integrity = Integrity
+health-analyzer-window-no-integrity-data = No integrity data available.
+health-analyzer-window-integrity-overall = Integrity {$used}/{$max}
+health-analyzer-window-integrity-item = -{$cost} {$type} {$name}
+
+health-analyzer-window-integrity-penalties-header = Ongoing Penalties:
+health-analyzer-window-integrity-penalty = +{$amount} {$description}
+health-analyzer-window-integrity-penalty-surgery = Incomplete Surgery ({$part})
+health-analyzer-window-integrity-penalty-unskilled-surgery = Unskilled Surgery ({$part})
+health-analyzer-window-integrity-penalty-unskilled-technician = Unskilled Technician Work ({$part})
+health-analyzer-window-integrity-penalty-unsanitary-conditions = Unsanitary Conditions
+health-analyzer-window-integrity-cyber-organ-penalty = Cyber Organ Penalty

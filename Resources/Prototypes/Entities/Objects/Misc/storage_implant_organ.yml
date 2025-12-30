@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Storage Implant Organ - Implanted into the tissue layer of the torso
+- type: entity
+  parent: BaseHumanOrgan
+  id: OrganStorageImplant
+  name: storage implant
+  description: A bluespace storage implant surgically implanted into the tissue layer. Can be accessed when the tissue layer is opened.
+  components:
+  - type: Organ
+    slotId: storage_implant
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: appendix  # Placeholder - using human organ sprite
+  - type: Storage
+    grid:
+    - 0,0,0,1
+    - 1,0,1,0
+    - 1,2,1,2
+    - 2,1,2,2
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: [ ]
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
+  - type: Item
+    size: Small
+    heldPrefix: storage implant
+  - type: OrganIntegrity
+    baseIntegrityCost: 0.5
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
+  - type: Tag
+    tags:
+      - Organ
+      - StorageImplant
+

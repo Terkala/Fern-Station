@@ -41,13 +41,6 @@
       part: TorsoAnimal
       connections:
       - legs
-      organs:
-        lungs: OrganAnimalLungs
-        stomach: OrganMouseStomach
-        liver: OrganAnimalLiver
-        heart: OrganAnimalHeart
-        kidneys: OrganAnimalKidneys
-        eyes: OrganHumanEyes #funkystation
     legs:
       part: LegsAnimal
       connections:

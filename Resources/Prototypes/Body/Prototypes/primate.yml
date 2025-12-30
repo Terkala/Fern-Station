@@ -24,11 +24,11 @@
       - legs
       - head # Shitmed
       organs:
-        lungs: OrganAnimalLungs
-        stomach: OrganAnimalStomach
-        liver: OrganAnimalLiver
-        heart: OrganAnimalHeart
-        kidneys: OrganAnimalKidneys
+        lungs: OrganMonkeyLungs
+        stomach: OrganMonkeyStomach
+        liver: OrganMonkeyLiver
+        heart: OrganMonkeyHeart
+        kidneys: OrganMonkeyKidneys
     hands:
       part: HandsAnimal
     legs:

@@ -105,3 +105,10 @@
   armorCoefficientPrice: 1
   armorFlatPrice: 1
 
+# Bio-rejection damage. Damage from the body rejecting cybernetic enhancements and organ replacements.
+- type: damageType
+  id: BioRejection
+  name: damage-type-bio-rejection
+  armorCoefficientPrice: 5
+  armorFlatPrice: 30
+

@@ -16,6 +16,13 @@
     metabolizerTypes: [Dwarf]
   - type: Item
     size: Tiny
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.5
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganDwarfLiver
@@ -29,6 +36,13 @@
     shape:
     - 0,0,1,1
     heldPrefix: stomach
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganDwarfStomach
@@ -63,3 +77,10 @@
     # mm very yummy
     maxReagents: 5
     metabolizerTypes: [Dwarf]
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0

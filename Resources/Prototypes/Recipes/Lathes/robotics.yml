@@ -196,3 +196,23 @@
 # Science Modules (if we add a advanced sci module that requires crafting)
 
 # Service Modules
+
+# Surgical Reinforcement Items
+
+- type: latheRecipe
+  parent: BaseRoboticsRecipe
+  id: PlasteelBones
+  result: PlasteelBones
+  materials:
+    Plasteel: 500
+    Plastic: 500
+  completetime: 3
+
+- type: latheRecipe
+  parent: BaseRoboticsRecipe
+  id: DurathreadWovenSkin
+  result: DurathreadWovenSkin
+  materials:
+    Durathread: 500
+    Plastic: 500
+  completetime: 3

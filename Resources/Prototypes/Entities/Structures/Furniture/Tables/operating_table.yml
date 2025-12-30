@@ -22,6 +22,8 @@
     sprite: Structures/Furniture/Tables/optable.rsi
     state: operating_table
   - type: OperatingTable
+  - type: SurgicalQuality
+    qualityMultiplier: 0.9 # High quality table reduces integrity cost by 10%
   # Begin Shitmed Changes
   - type: Construction
     graph: Machine

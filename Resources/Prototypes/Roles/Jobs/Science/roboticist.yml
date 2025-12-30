@@ -21,6 +21,10 @@
   - Research
   - Robotics
   - Maintenance
+  special:
+  - !type:AddComponentSpecial
+    components:
+      - type: SkilledTechnician
 
 - type: startingGear
   id: RoboticistGear

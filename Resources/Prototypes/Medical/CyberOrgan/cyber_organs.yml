@@ -1,0 +1,839 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Base cyber-organ prototype with storage
+# All cyber-organs inherit from the abstract cybernetic organ prototype
+
+# ============================================
+# RUDIMENTARY CYBER-ORGANS (Roundstart, 2x2 storage)
+# ============================================
+
+- type: entity
+  parent: OrganHumanHeart
+  id: RudimentaryCyberHeart
+  name: rudimentary cybernetic heart
+  description: A basic cybernetic heart with limited storage capacity.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: _EinsteinEngines/Mobs/Species/IPC/organs.rsi
+    state: heart
+  - type: Storage
+    grid:
+    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+# ============================================
+# BASIC CYBER-ORGANS (Tier 1 Civilian, 3x2 storage)
+# ============================================
+
+- type: entity
+  parent: OrganHumanHeart
+  id: BasicCyberHeart
+  name: basic cybernetic heart
+  description: A standard cybernetic heart with improved storage capacity. Requires Tier 1 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: _EinsteinEngines/Mobs/Species/IPC/organs.rsi
+    state: heart
+  - type: Storage
+    grid:
+    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+# ============================================
+# ADVANCED CYBER-ORGANS (Tier 2 Civilian, 4x2 storage)
+# ============================================
+
+- type: entity
+  parent: OrganHumanHeart
+  id: AdvancedCyberHeart
+  name: advanced cybernetic heart
+  description: An advanced cybernetic heart with expanded storage capacity. Requires Tier 2 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: _EinsteinEngines/Mobs/Species/IPC/organs.rsi
+    state: heart
+  - type: Storage
+    grid:
+    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+# ============================================
+# EXPERIMENTAL CYBER-ORGANS (Tier 3 Civilian, 5x2 storage)
+# ============================================
+
+- type: entity
+  parent: OrganHumanHeart
+  id: ExperimentalCyberHeart
+  name: experimental cybernetic heart
+  description: An experimental cybernetic heart with maximum storage capacity. Requires Tier 3 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: _EinsteinEngines/Mobs/Species/IPC/organs.rsi
+    state: heart
+  - type: Storage
+    grid:
+    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+# ============================================
+# CYBER-EYES
+# ============================================
+
+- type: entity
+  parent: OrganHumanEyes
+  id: RudimentaryCyberEyes
+  name: rudimentary cybernetic eyes
+  description: A basic cybernetic eyes with limited storage capacity.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: eyeball-l
+      - state: eyeball-r
+  - type: Storage
+    grid:
+    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanEyes
+  id: BasicCyberEyes
+  name: basic cybernetic eyes
+  description: A standard cybernetic eyes with improved storage capacity. Requires Tier 1 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: eyeball-l
+      - state: eyeball-r
+  - type: Storage
+    grid:
+    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanEyes
+  id: AdvancedCyberEyes
+  name: advanced cybernetic eyes
+  description: An advanced cybernetic eyes with expanded storage capacity. Requires Tier 2 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: eyeball-l
+      - state: eyeball-r
+  - type: Storage
+    grid:
+    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanEyes
+  id: ExperimentalCyberEyes
+  name: experimental cybernetic eyes
+  description: An experimental cybernetic eyes with maximum storage capacity. Requires Tier 3 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: eyeball-l
+      - state: eyeball-r
+  - type: Storage
+    grid:
+    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+# ============================================
+# CYBER-LUNGS
+# ============================================
+
+- type: entity
+  parent: OrganHumanLungs
+  id: RudimentaryCyberLungs
+  name: rudimentary cybernetic lungs
+  description: A basic cybernetic lungs with limited storage capacity.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: lung-l
+      - state: lung-r
+  - type: Storage
+    grid:
+    - 0,0,2,2  # 2x2 square for gas processing module
+    - 0,3,2,1  # First row of width 2
+    - 0,4,2,1  # Second row of width 2
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanLungs
+  id: BasicCyberLungs
+  name: basic cybernetic lungs
+  description: A standard cybernetic lungs with improved storage capacity. Requires Tier 1 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: lung-l
+      - state: lung-r
+  - type: Storage
+    grid:
+    - 0,0,2,2  # 2x2 square for gas processing module
+    - 0,3,3,1  # First row of width 3
+    - 0,4,3,1  # Second row of width 3
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanLungs
+  id: AdvancedCyberLungs
+  name: advanced cybernetic lungs
+  description: An advanced cybernetic lungs with expanded storage capacity. Requires Tier 2 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: lung-l
+      - state: lung-r
+  - type: Storage
+    grid:
+    - 0,0,2,2  # 2x2 square for gas processing module
+    - 0,3,4,1  # First row of width 4
+    - 0,4,4,1  # Second row of width 4
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanLungs
+  id: ExperimentalCyberLungs
+  name: experimental cybernetic lungs
+  description: An experimental cybernetic lungs with maximum storage capacity. Requires Tier 3 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: lung-l
+      - state: lung-r
+  - type: Storage
+    grid:
+    - 0,0,2,2  # 2x2 square for gas processing module
+    - 0,3,5,1  # First row of width 5
+    - 0,4,5,1  # Second row of width 5
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+# ============================================
+# CYBER-STOMACH
+# ============================================
+
+- type: entity
+  parent: OrganHumanStomach
+  id: RudimentaryCyberStomach
+  name: rudimentary cybernetic stomach
+  description: A basic cybernetic stomach with limited storage capacity.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: stomach
+  - type: Storage
+    grid:
+    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanStomach
+  id: BasicCyberStomach
+  name: basic cybernetic stomach
+  description: A standard cybernetic stomach with improved storage capacity. Requires Tier 1 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: stomach
+  - type: Storage
+    grid:
+    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanStomach
+  id: AdvancedCyberStomach
+  name: advanced cybernetic stomach
+  description: An advanced cybernetic stomach with expanded storage capacity. Requires Tier 2 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: stomach
+  - type: Storage
+    grid:
+    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanStomach
+  id: ExperimentalCyberStomach
+  name: experimental cybernetic stomach
+  description: An experimental cybernetic stomach with maximum storage capacity. Requires Tier 3 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: stomach
+  - type: Storage
+    grid:
+    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+# ============================================
+# CYBER-LIVER
+# ============================================
+
+- type: entity
+  parent: OrganHumanLiver
+  id: RudimentaryCyberLiver
+  name: rudimentary cybernetic liver
+  description: A basic cybernetic liver with limited storage capacity.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: liver
+  - type: Storage
+    grid:
+    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanLiver
+  id: BasicCyberLiver
+  name: basic cybernetic liver
+  description: A standard cybernetic liver with improved storage capacity. Requires Tier 1 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: liver
+  - type: Storage
+    grid:
+    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanLiver
+  id: AdvancedCyberLiver
+  name: advanced cybernetic liver
+  description: An advanced cybernetic liver with expanded storage capacity. Requires Tier 2 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: liver
+  - type: Storage
+    grid:
+    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanLiver
+  id: ExperimentalCyberLiver
+  name: experimental cybernetic liver
+  description: An experimental cybernetic liver with maximum storage capacity. Requires Tier 3 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    state: liver
+  - type: Storage
+    grid:
+    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+# ============================================
+# CYBER-KIDNEYS
+# ============================================
+
+- type: entity
+  parent: OrganHumanKidneys
+  id: RudimentaryCyberKidneys
+  name: rudimentary cybernetic kidneys
+  description: A basic cybernetic kidneys with limited storage capacity.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: kidney-l
+      - state: kidney-r
+  - type: Storage
+    grid:
+    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanKidneys
+  id: BasicCyberKidneys
+  name: basic cybernetic kidneys
+  description: A standard cybernetic kidneys with improved storage capacity. Requires Tier 1 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: kidney-l
+      - state: kidney-r
+  - type: Storage
+    grid:
+    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanKidneys
+  id: AdvancedCyberKidneys
+  name: advanced cybernetic kidneys
+  description: An advanced cybernetic kidneys with expanded storage capacity. Requires Tier 2 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: kidney-l
+      - state: kidney-r
+  - type: Storage
+    grid:
+    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+- type: entity
+  parent: OrganHumanKidneys
+  id: ExperimentalCyberKidneys
+  name: experimental cybernetic kidneys
+  description: An experimental cybernetic kidneys with maximum storage capacity. Requires Tier 3 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+    layers:
+      - state: kidney-l
+      - state: kidney-r
+  - type: Storage
+    grid:
+    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+
+# ============================================
+# CYBER-NYMPH ORGANS (Diona-specific, 2x size with disconnected grids)
+# ============================================
+
+# ============================================
+# CYBER-NYMPH LUNGS
+# ============================================
+
+- type: entity
+  parent: OrganDionaLungs
+  id: RudimentaryCyberNymphLungs
+  name: rudimentary cyber-nymph lungs
+  description: A basic cybernetic diona lungs with limited storage capacity. Larger than standard cyber-organs to compensate for Diona's unique physiology.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Diona/organs.rsi
+    state: lungs
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,2,1  # 2x1 inventory size
+    heldPrefix: lungs
+  - type: Storage
+    grid:
+    - 0,0,2,2  # First 2x2 grid
+    - 0,3,2,2  # Second 2x2 grid (disconnected, 1 row gap)
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Diona
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  parent: OrganDionaLungs
+  id: BasicCyberNymphLungs
+  name: basic cyber-nymph lungs
+  description: A standard cybernetic diona lungs with improved storage capacity. Requires Tier 1 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Diona/organs.rsi
+    state: lungs
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,2,1  # 2x1 inventory size
+    heldPrefix: lungs
+  - type: Storage
+    grid:
+    - 0,0,3,2  # First 3x2 grid
+    - 0,3,3,2  # Second 3x2 grid (disconnected, 1 row gap)
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Diona
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  parent: OrganDionaLungs
+  id: AdvancedCyberNymphLungs
+  name: advanced cyber-nymph lungs
+  description: An advanced cybernetic diona lungs with expanded storage capacity. Requires Tier 2 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Diona/organs.rsi
+    state: lungs
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,2,1  # 2x1 inventory size
+    heldPrefix: lungs
+  - type: Storage
+    grid:
+    - 0,0,4,2  # First 4x2 grid
+    - 0,3,4,2  # Second 4x2 grid (disconnected, 1 row gap)
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Diona
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  parent: OrganDionaLungs
+  id: ExperimentalCyberNymphLungs
+  name: experimental cyber-nymph lungs
+  description: An experimental cybernetic diona lungs with maximum storage capacity. Requires Tier 3 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Diona/organs.rsi
+    state: lungs
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,2,1  # 2x1 inventory size
+    heldPrefix: lungs
+  - type: Storage
+    grid:
+    - 0,0,5,2  # First 5x2 grid
+    - 0,3,5,2  # Second 5x2 grid (disconnected, 1 row gap)
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Diona
+    incompatibleCostMultiplier: 2.0
+
+# ============================================
+# CYBER-NYMPH STOMACH
+# ============================================
+
+- type: entity
+  parent: OrganDionaStomach
+  id: RudimentaryCyberNymphStomach
+  name: rudimentary cyber-nymph stomach
+  description: A basic cybernetic diona stomach with limited storage capacity. Larger than standard cyber-organs to compensate for Diona's unique physiology.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Diona/organs.rsi
+    state: stomach
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,2,1  # 2x1 inventory size
+    heldPrefix: stomach
+  - type: Storage
+    grid:
+    - 0,0,2,2  # First 2x2 grid
+    - 0,3,2,2  # Second 2x2 grid (disconnected, 1 row gap)
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Diona
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  parent: OrganDionaStomach
+  id: BasicCyberNymphStomach
+  name: basic cyber-nymph stomach
+  description: A standard cybernetic diona stomach with improved storage capacity. Requires Tier 1 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Diona/organs.rsi
+    state: stomach
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,2,1  # 2x1 inventory size
+    heldPrefix: stomach
+  - type: Storage
+    grid:
+    - 0,0,3,2  # First 3x2 grid
+    - 0,3,3,2  # Second 3x2 grid (disconnected, 1 row gap)
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Diona
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  parent: OrganDionaStomach
+  id: AdvancedCyberNymphStomach
+  name: advanced cyber-nymph stomach
+  description: An advanced cybernetic diona stomach with expanded storage capacity. Requires Tier 2 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Diona/organs.rsi
+    state: stomach
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,2,1  # 2x1 inventory size
+    heldPrefix: stomach
+  - type: Storage
+    grid:
+    - 0,0,4,2  # First 4x2 grid
+    - 0,3,4,2  # Second 4x2 grid (disconnected, 1 row gap)
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Diona
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  parent: OrganDionaStomach
+  id: ExperimentalCyberNymphStomach
+  name: experimental cyber-nymph stomach
+  description: An experimental cybernetic diona stomach with maximum storage capacity. Requires Tier 3 Civilian Services research.
+  components:
+  - type: Cybernetics
+  - type: Sprite
+    sprite: Mobs/Species/Diona/organs.rsi
+    state: stomach
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,2,1  # 2x1 inventory size
+    heldPrefix: stomach
+  - type: Storage
+    grid:
+    - 0,0,5,2  # First 5x2 grid
+    - 0,3,5,2  # Second 5x2 grid (disconnected, 1 row gap)
+    maxItemSize: Small
+  - type: CyberLimbStorage
+  - type: CyberLimbInspectable
+  - type: CyberLimbMaintenance
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
+  - type: CyberOrganEfficiency
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Diona
+    incompatibleCostMultiplier: 2.0
+

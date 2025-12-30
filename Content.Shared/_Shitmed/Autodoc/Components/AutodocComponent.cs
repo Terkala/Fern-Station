@@ -16,7 +16,6 @@ namespace Content.Shared._Shitmed.Autodoc.Components;
 /// God component for autodoc.
 /// </summary>
 [RegisterComponent, NetworkedComponent, Access(typeof(SharedAutodocSystem))]
-[AutoGenerateComponentState]
 public sealed partial class AutodocComponent : Component
 {
     [DataField]

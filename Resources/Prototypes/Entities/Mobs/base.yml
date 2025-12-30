@@ -175,6 +175,7 @@
     - Caustic
     - Asphyxiation
     - Radiation
+    - BioRejection
   - type: DamageOnHighSpeedImpact
     damage:
       types:

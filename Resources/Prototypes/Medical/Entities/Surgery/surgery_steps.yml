@@ -1,0 +1,249 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Surgery step prototypes for the new surgery system
+# Each step defines duration, required tools, and effects
+# Steps are organized by layer: Skin, Tissue, Organ
+
+- type: entity
+  id: SurgeryStepBase
+  categories: [ HideSpawnMenu ]
+
+# ===== SKIN LAYER STEPS =====
+
+# Retract skin on torso
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRetractSkinTorso
+  name: Retract Skin (Torso)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    validPartTypes:
+      - Torso
+    duration: 2.0
+
+# Retract skin on arm
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRetractSkinArm
+  name: Retract Skin (Arm)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    validPartTypes:
+      - Arm
+    duration: 2.0
+
+# Retract skin on head
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRetractSkinHead
+  name: Retract Skin (Head)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    validPartTypes:
+      - Head
+    duration: 2.0
+
+# ===== TISSUE LAYER STEPS =====
+
+# Retract tissue (requires skin retracted)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRetractTissue
+  name: Retract Tissue
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    requirements:
+      requiresSkinRetracted: true
+    duration: 2.5
+
+# Saw through bones (torso) - requires tissue retracted
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepSawBonesTorso
+  name: Saw Through Bones (Torso)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    validPartTypes:
+      - Torso
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+    duration: 4.0
+
+# Saw through skull (head) - requires tissue retracted
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepSawSkull
+  name: Saw Through Skull
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    validPartTypes:
+      - Head
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+    duration: 4.0
+
+# Treat unsanitary conditions - resets patient to current room cleanliness level
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepTreatUnsanitaryConditions
+  name: Treat Unsanitary Conditions
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+    duration: 3.0
+
+# Smash bones (torso) - crude surgery, requires tissue retracted
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepSmashBonesTorso
+  name: Smash Bones (Torso) [Crude]
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    validPartTypes:
+      - Torso
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+    duration: 4.0
+
+# Smash skull (head) - crude surgery, requires tissue retracted
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepSmashSkull
+  name: Smash Skull [Crude]
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    validPartTypes:
+      - Head
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+    duration: 4.0
+
+# ===== BONE REPAIR STEPS (For Smashed Bones) =====
+
+# Stage 1: Align bone fragments
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRepairBonesStage1
+  name: Align Bone Fragments (Stage 1/5)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    duration: 3.0
+
+# Stage 2: Set bone fragments
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRepairBonesStage2
+  name: Set Bone Fragments (Stage 2/5)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    duration: 3.5
+
+# Stage 3: Stabilize fragments
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRepairBonesStage3
+  name: Stabilize Fragments (Stage 3/5)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    duration: 4.0
+
+# Stage 4: Apply bone-gel
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRepairBonesStage4
+  name: Apply Bone-Gel (Stage 4/5)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    duration: 2.5
+
+# Stage 5: Final bone repair
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRepairBonesStage5
+  name: Complete Bone Repair (Stage 5/5)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    duration: 3.0
+
+# ===== ORGAN LAYER STEPS =====
+
+# Clamp blood vessels (requires bones sawed for torso/head)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepClampVessels
+  name: Clamp Blood Vessels
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Organ
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+      requiresBonesSawed: true
+    duration: 2.5
+
+# Sever blood vessels
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepSeverVessels
+  name: Sever Blood Vessels
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Organ
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+      requiresBonesSawed: true
+    duration: 3.0
+
+# Remove organ
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRemoveOrgan
+  name: Remove Organ
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Organ
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+      requiresBonesSawed: true
+    duration: 2.0

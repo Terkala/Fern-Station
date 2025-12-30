@@ -1,0 +1,112 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Surgery procedures for cybernetics maintenance
+# These procedures appear on the skin layer when cybernetics are present
+
+# Cyber Heart Maintenance
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryCyberHeartMaintenance
+  name: Cyber Heart Maintenance
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    priority: 10
+    steps:
+    - SurgeryStepOpenCyberneticsPanel
+    - SurgeryStepAdjustCyberneticsBolts
+    - SurgeryStepReplaceCyberneticsWiring
+    - SurgeryStepCloseCyberneticsPanel
+
+# Cyber Limb Maintenance (for all limbs)
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryCyberLimbMaintenance
+  name: Cyber Limb Maintenance
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    priority: 10
+    steps:
+    - SurgeryStepOpenCyberneticsPanel
+    - SurgeryStepAdjustCyberneticsBolts
+    - SurgeryStepReplaceCyberneticsWiring
+    - SurgeryStepCloseCyberneticsPanel
+
+# Cyber Eyes Maintenance
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryCyberEyesMaintenance
+  name: Cyber Eyes Maintenance
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    priority: 10
+    steps:
+    - SurgeryStepOpenCyberneticsPanel
+    - SurgeryStepAdjustCyberneticsBolts
+    - SurgeryStepReplaceCyberneticsWiring
+    - SurgeryStepCloseCyberneticsPanel
+
+# Cyber Lungs Maintenance
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryCyberLungsMaintenance
+  name: Cyber Lungs Maintenance
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    priority: 10
+    steps:
+    - SurgeryStepOpenCyberneticsPanel
+    - SurgeryStepAdjustCyberneticsBolts
+    - SurgeryStepReplaceCyberneticsWiring
+    - SurgeryStepCloseCyberneticsPanel
+
+# Cyber Stomach Maintenance
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryCyberStomachMaintenance
+  name: Cyber Stomach Maintenance
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    priority: 10
+    steps:
+    - SurgeryStepOpenCyberneticsPanel
+    - SurgeryStepAdjustCyberneticsBolts
+    - SurgeryStepReplaceCyberneticsWiring
+    - SurgeryStepCloseCyberneticsPanel
+
+# Cyber Liver Maintenance
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryCyberLiverMaintenance
+  name: Cyber Liver Maintenance
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    priority: 10
+    steps:
+    - SurgeryStepOpenCyberneticsPanel
+    - SurgeryStepAdjustCyberneticsBolts
+    - SurgeryStepReplaceCyberneticsWiring
+    - SurgeryStepCloseCyberneticsPanel
+
+# Cyber Kidneys Maintenance
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryCyberKidneysMaintenance
+  name: Cyber Kidneys Maintenance
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    priority: 10
+    steps:
+    - SurgeryStepOpenCyberneticsPanel
+    - SurgeryStepAdjustCyberneticsBolts
+    - SurgeryStepReplaceCyberneticsWiring
+    - SurgeryStepCloseCyberneticsPanel
+

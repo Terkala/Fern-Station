@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Surgical reinforcement items - made in robotics, used in surgery
+
+- type: entity
+  parent: BaseItem
+  id: PlasteelBones
+  name: plasteel bone reinforcements
+  description: A set of plasteel-reinforced bone structures for surgical implantation. Provides enhanced durability to skeletal structures.
+  components:
+  - type: Item
+    size: Small
+    heldPrefix: plasteel bone reinforcements
+  - type: Sprite
+    sprite: Objects/Materials/Sheets/metal.rsi
+    state: plasteel
+
+- type: entity
+  parent: BaseItem
+  id: DurathreadWovenSkin
+  name: durathread dermal weave
+  description: A sheet of durathread-reinforced synthetic skin for surgical implantation. Provides enhanced protection to dermal layers.
+  components:
+  - type: Item
+    size: Small
+    heldPrefix: durathread dermal weave
+  - type: Sprite
+    sprite: Objects/Materials/materials.rsi
+    state: durathread
+
+- type: entity
+  parent: BaseItem
+  id: PlasteelReinforcedSkin
+  name: plasteel reinforced skin
+  description: A sheet of plasteel-reinforced synthetic skin for surgical implantation. Provides enhanced protection to dermal layers.
+  components:
+  - type: Item
+    size: Small
+    heldPrefix: plasteel reinforced skin
+  - type: Sprite
+    sprite: Objects/Materials/Sheets/metal.rsi
+    state: plasteel
+

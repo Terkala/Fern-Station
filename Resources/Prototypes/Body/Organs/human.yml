@@ -124,8 +124,15 @@
   - type: Item
     size: Small
     shape:
-      - 0,0,1,1
+    - 0,0,1,1
     heldPrefix: brain
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganHumanEyes
@@ -150,6 +157,13 @@
     shape:
     - 0,0,1,0
     heldPrefix: eyeballs
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganHumanTongue
@@ -243,6 +257,13 @@
       - Meat
       - Organ
       - Lungs
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganHumanHeart
@@ -270,6 +291,13 @@
       - Meat
       - Organ
       - Heart
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.5
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
   - type: Item
     size: Tiny
     heldPrefix: heart
@@ -320,6 +348,13 @@
       - Meat
       - Organ
       - Stomach
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganHumanLiver
@@ -348,6 +383,13 @@
       - Meat
       - Organ
       - Liver
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganHumanKidneys
@@ -376,3 +418,10 @@
       - Meat
       - Organ
       - Kidneys
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0

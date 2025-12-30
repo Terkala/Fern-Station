@@ -235,6 +235,21 @@
   recipeUnlocks:
   - WeaponLaserSvalinn
   - PortableRecharger
+
+- type: technology
+  id: MilitaryCybernetics
+  name: research-technology-military-cybernetics
+  icon:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
+    state: l_arm-combined
+  discipline: Arsenal
+  tier: 2
+  cost: 15000
+  recipeUnlocks:
+  - MilitaryLeftArm
+  - MilitaryRightArm
+  - MilitaryLeftLeg
+  - MilitaryRightLeg
 # Tier 3
 
 - type: technology

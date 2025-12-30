@@ -21,6 +21,8 @@
     - Toxin
     - Airloss
     - Genetic
+  supportedTypes:
+    - BioRejection
 
 - type: damageContainer
   id: Inorganic

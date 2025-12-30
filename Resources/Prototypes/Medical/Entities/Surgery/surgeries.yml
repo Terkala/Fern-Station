@@ -1,0 +1,74 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# New surgery system prototypes
+# Surgeries are data-driven with step flowcharts
+
+- type: entity
+  id: SurgeryBase
+  categories: [ HideSpawnMenu ]
+
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryOpenIncision
+  name: Open Incision
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    steps:
+    - SurgeryStepOpenIncisionScalpel
+    - SurgeryStepRetractSkin
+    - SurgeryStepClampBleeders
+
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryCloseIncision
+  name: Close Incision
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    priority: 1
+    requirement: SurgeryOpenIncision
+    steps:
+    - SurgeryStepCloseBones
+    - SurgeryStepMendRibcage
+    - SurgeryStepCloseIncision
+
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryOpenRibcage
+  name: Open Ribcage
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    requirement: SurgeryOpenIncision
+    steps:
+    - SurgeryStepSawBones
+    - SurgeryStepPriseOpenBones
+
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryImplantOrgan
+  name: Implant Organ
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    requirement: SurgeryOpenRibcage
+    steps:
+    - SurgeryStepAccessOrgan
+    - SurgeryStepImplantOrgan
+
+- type: entity
+  parent: SurgeryBase
+  id: SurgeryRemoveOrgan
+  name: Remove Organ
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Surgery
+    requirement: SurgeryOpenRibcage
+    steps:
+    - SurgeryStepAccessOrgan
+    - SurgeryStepRemoveOrgan
+
+

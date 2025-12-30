@@ -56,6 +56,9 @@
   - !type:GiveItemOnHolidaySpecial
     holiday: DoctorDay
     prototype: WehMedipen
+  - !type:AddComponentSpecial
+    components:
+      - type: MedicalSurgerySkill
 
 
 - type: startingGear

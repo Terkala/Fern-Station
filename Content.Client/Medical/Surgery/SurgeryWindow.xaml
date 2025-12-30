@@ -1,0 +1,22 @@
+<!--
+SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+SPDX-License-Identifier: MIT
+-->
+
+<controls:FancyWindow
+    xmlns="https://spacestation14.io"
+    xmlns:controls="clr-namespace:Content.Client.UserInterface.Controls"
+    Title="{Loc 'surgery-window-title'}">
+    <BoxContainer Orientation="Vertical" Margin="5">
+        <Label Text="{Loc 'surgery-window-select-layer'}" Margin="0 0 0 5"/>
+        <BoxContainer Orientation="Horizontal" SeparationOverride="5" HorizontalExpand="True">
+            <Button Name="SkinTabButton" Text="{Loc 'surgery-window-layer-skin'}" HorizontalExpand="True"/>
+            <Button Name="TissueTabButton" Text="{Loc 'surgery-window-layer-tissue'}" HorizontalExpand="True"/>
+            <Button Name="OrganTabButton" Text="{Loc 'surgery-window-layer-organ'}" HorizontalExpand="True"/>
+        </BoxContainer>
+        <PanelContainer StyleClasses="LowDivider" Margin="0 10 0 10"/>
+        <Label Name="StatusLabel" Text="{Loc 'surgery-window-status-ready'}" Margin="0 0 0 5"/>
+        <ScrollContainer Name="StepsContainer" VerticalExpand="True" HorizontalExpand="True" Margin="0 0 0 5"/>
+    </BoxContainer>
+</controls:FancyWindow>
+

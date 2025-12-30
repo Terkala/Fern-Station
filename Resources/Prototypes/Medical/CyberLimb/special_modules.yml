@@ -1,0 +1,20 @@
+- type: entity
+  id: CyberLimbJawsOfLifeModule
+  name: Jaws of Life Module
+  description: A special module that allows cyber arms to function as Jaws of Life for prying doors.
+  components:
+    - type: Item
+      size: Tiny
+    - type: CyberLimbSpecialModule
+      moduleType: JawsOfLife
+
+- type: entity
+  id: CyberLimbBioBatteryModule
+  name: Bio-Battery Module
+  description: A special module that converts hunger to battery charge for cyber limbs.
+  components:
+    - type: Item
+      size: Tiny
+    - type: CyberLimbSpecialModule
+      moduleType: BioBattery
+

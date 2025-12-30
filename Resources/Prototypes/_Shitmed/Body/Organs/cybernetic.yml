@@ -25,6 +25,8 @@
     onAdd:
     - type: FlashImmunity
     - type: EyeProtection
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.0
 
 - type: entity
   parent: BaseCyberneticEyes
@@ -42,6 +44,8 @@
   - type: Tag
     tags:
     - SecurityCyberneticEyes
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.5
 
 - type: entity
   parent: BaseCyberneticEyes
@@ -62,3 +66,5 @@
   - type: Tag
     tags:
     - CyberneticMedicalEyes
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 1.5

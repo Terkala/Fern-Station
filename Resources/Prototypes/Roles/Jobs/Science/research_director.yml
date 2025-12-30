@@ -89,6 +89,7 @@
   - !type:AddComponentSpecial
     components:
       - type: CommandStaff
+      - type: SkilledTechnician
 
 - type: startingGear
   id: ResearchDirectorGear

@@ -99,6 +99,38 @@
   - type: FlavorProfile
     flavors:
       - thavenflesh
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+      - Thaven
+      - Vulpkanin
+      - Rodentia
+      - Vox
+      - Slime
+      - Reptilian
+      - Moth
+      - Arachnid
+      - Skeleton
+      - Rat
+      - Primate
+      - Gingerbread
+      - Diona
+      - Bot
+      - Aghost
+      - SmartCorgi
+      - Mothroach
+      - Bloodsucker
+      - AnimalHemocyanin
+      - AnimalRuminant
+      - AnimalNymphBrain
+      - AnimalNymphLungs
+      - AnimalNymphStomach
+      - Animal
+      - Mouse
+    incompatibleCostMultiplier: 2.0
 
 - type: entity
   id: OrganThavenHeart

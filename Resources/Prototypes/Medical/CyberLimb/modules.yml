@@ -1,0 +1,58 @@
+- type: entity
+  id: CyberLimbBatteryModuleSmall
+  name: Small Battery Module
+  description: A small battery module for cyber limbs. Provides 1000 joules of power.
+  components:
+    - type: Item
+      size: Tiny
+    - type: CyberLimbBatteryModule
+      maxCharge: 1000
+
+- type: entity
+  id: CyberLimbBatteryModuleMedium
+  name: Medium Battery Module
+  description: A medium battery module for cyber limbs. Provides 2000 joules of power.
+  components:
+    - type: Item
+      size: Tiny
+    - type: CyberLimbBatteryModule
+      maxCharge: 2000
+
+- type: entity
+  id: CyberLimbBatteryModuleLarge
+  name: Large Battery Module
+  description: A large battery module for cyber limbs. Provides 5000 joules of power.
+  components:
+    - type: Item
+      size: Tiny
+    - type: CyberLimbBatteryModule
+      maxCharge: 5000
+
+- type: entity
+  id: CyberLimbMatterBinModule
+  name: Matter Bin Module
+  description: A matter bin module for cyber limbs. Provides 10 minutes of service time.
+  components:
+    - type: Item
+      size: Tiny
+    - type: CyberLimbMatterBinModule
+
+- type: entity
+  id: CyberLimbManipulatorModule
+  name: Manipulator Module
+  description: A manipulator module for cyber limbs. First provides 100% efficiency, each additional provides +10%.
+  components:
+    - type: Item
+      size: Tiny
+    - type: CyberLimbManipulatorModule
+
+- type: entity
+  id: CyberLimbCapacitorModule
+  name: Capacitor Module
+  description: A capacitor module for cyber limbs. Modifies power efficiency.
+  components:
+    - type: Item
+      size: Tiny
+    - type: CyberLimbCapacitorModule
+      efficiencyModifier: 1.2
+

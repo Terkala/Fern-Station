@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Plasteel reinforcement surgery steps
+
+# Plasteel Bone Plating - Tissue layer, all limbs, head, and torso
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepPlasteelBonePlating
+  name: Apply Plasteel Bone Plating
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    validPartTypes:
+      - Arm
+      - Leg
+      - Head
+      - Torso
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+    duration: 5.0
+  - type: SurgeryPlasteelBonePlatingEffect
+
+# Dermal Reinforcement - Skin layer, all limbs, head, and torso
+# Can use either DurathreadWovenSkin or PlasteelReinforcedSkin
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepDermalReinforcement
+  name: Apply Dermal Reinforcement
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    validPartTypes:
+      - Arm
+      - Leg
+      - Head
+      - Torso
+    duration: 4.0
+  - type: SurgeryDermalPlasteelWeaveEffect
+

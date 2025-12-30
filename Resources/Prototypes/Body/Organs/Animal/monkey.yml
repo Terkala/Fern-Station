@@ -1,0 +1,69 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+- type: entity
+  id: OrganMonkeyLungs
+  parent: OrganAnimalLungs
+  name: monkey lungs
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganMonkeyHeart
+  parent: OrganAnimalHeart
+  name: monkey heart
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganMonkeyLiver
+  parent: OrganAnimalLiver
+  name: monkey liver
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganMonkeyKidneys
+  parent: OrganAnimalKidneys
+  name: monkey kidneys
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: OrganMonkeyStomach
+  parent: OrganAnimalStomach
+  name: monkey stomach
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Rodentia
+    incompatibleCostMultiplier: 2.0
+

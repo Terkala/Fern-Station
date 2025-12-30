@@ -17,11 +17,11 @@
       - left leg
       organs:
         brain: OrganHumanBrain # feels strange but it is what it is
-        lungs: OrganAnimalLungs
-        stomach: OrganAnimalStomach
-        liver: OrganAnimalLiver
-        heart: OrganAnimalHeart
-        kidneys: OrganAnimalKidneys
+        lungs: OrganCorgiLungs
+        stomach: OrganCorgiStomach
+        liver: OrganCorgiLiver
+        heart: OrganCorgiHeart
+        kidneys: OrganCorgiKidneys
     right arm:
       part: RightArmSmartCorgi
       connections:

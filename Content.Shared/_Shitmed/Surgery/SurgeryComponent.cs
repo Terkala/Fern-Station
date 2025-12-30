@@ -8,7 +8,7 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared._Shitmed.Medical.Surgery;
 
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
+[RegisterComponent, NetworkedComponent]
 [Prototype("Surgeries")]
 public sealed partial class SurgeryComponent : Component
 {

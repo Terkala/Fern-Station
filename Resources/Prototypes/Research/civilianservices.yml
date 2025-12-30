@@ -119,6 +119,27 @@
   - BiofabricatorMachineCircuitboard
   - BiomassReclaimerMachineCircuitboard
 
+- type: technology
+  id: BasicCybernetics
+  name: research-technology-basic-cybernetics
+  icon:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
+    state: l_arm-combined
+  discipline: CivilianServices
+  tier: 1
+  cost: 7500
+  recipeUnlocks:
+  - BasicLeftArm
+  - BasicRightArm
+  - BasicLeftLeg
+  - BasicRightLeg
+  - BasicCyberHeart
+  - BasicCyberEyes
+  - BasicCyberLungs
+  - BasicCyberStomach
+  - BasicCyberLiver
+  - BasicCyberKidneys
+
 # Tier 2
 
 - type: technology
@@ -228,6 +249,29 @@
   - LightImplanter
   - BikeHornImplanter
 
+- type: technology
+  id: AdvancedCybernetics
+  name: research-technology-advanced-cybernetics
+  icon:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
+    state: l_arm-combined
+  discipline: CivilianServices
+  tier: 2
+  cost: 15000
+  technologyPrerequisites:
+  - BasicCybernetics
+  recipeUnlocks:
+  - AdvancedLeftArm
+  - AdvancedRightArm
+  - AdvancedLeftLeg
+  - AdvancedRightLeg
+  - AdvancedCyberHeart
+  - AdvancedCyberEyes
+  - AdvancedCyberLungs
+  - AdvancedCyberStomach
+  - AdvancedCyberLiver
+  - AdvancedCyberKidneys
+
 # Tier 3
 
 - type: technology
@@ -254,3 +298,41 @@
   recipeUnlocks:
   - BluespaceBeaker
   - SyringeBluespace
+
+- type: technology
+  id: ExperimentalCybernetics
+  name: research-technology-experimental-cybernetics
+  icon:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
+    state: l_arm-combined
+  discipline: CivilianServices
+  tier: 3
+  cost: 15000
+  technologyPrerequisites:
+  - AdvancedCybernetics
+  recipeUnlocks:
+  - ExperimentalLeftArm
+  - ExperimentalRightArm
+  - ExperimentalLeftLeg
+  - ExperimentalRightLeg
+  - ExperimentalCyberHeart
+  - ExperimentalCyberEyes
+  - ExperimentalCyberLungs
+  - ExperimentalCyberStomach
+  - ExperimentalCyberLiver
+  - ExperimentalCyberKidneys
+
+- type: technology
+  id: SurgicalReinforcement
+  name: research-technology-surgical-reinforcement
+  icon:
+    sprite: Objects/Materials/Sheets/metal.rsi
+    state: plasteel
+  discipline: CivilianServices
+  tier: 2
+  cost: 10000
+  technologyPrerequisites:
+  - BasicCybernetics
+  recipeUnlocks:
+  - PlasteelBones
+  - DurathreadWovenSkin
