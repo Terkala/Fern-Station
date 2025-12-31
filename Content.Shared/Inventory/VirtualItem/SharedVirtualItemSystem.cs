@@ -17,6 +17,7 @@ using Content.Shared.Interaction;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Inventory.Events;
 using Content.Shared.Item;
+using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Popups;
 using Robust.Shared.Containers;
 using Robust.Shared.Network;
@@ -59,6 +60,9 @@ public abstract class SharedVirtualItemSystem : EntitySystem
         SubscribeLocalEvent<VirtualItemComponent, GettingInteractedWithAttemptEvent>(OnGettingInteractedWithAttemptEvent);
 
         SubscribeLocalEvent<VirtualItemComponent, GetUsedEntityEvent>(OnGetUsedEntity);
+        
+        // Forward GetInhandVisualsEvent to the real item so in-hand sprites display correctly
+        SubscribeLocalEvent<VirtualItemComponent, GetInhandVisualsEvent>(OnGetInhandVisuals);
     }
 
     /// <summary>
@@ -108,6 +112,35 @@ public abstract class SharedVirtualItemSystem : EntitySystem
                 args.Used = ent.Comp.BlockingEntity;
                 return;
             }
+        }
+    }
+
+    /// <summary>
+    /// Forwards GetInhandVisualsEvent to the real item so in-hand sprites display correctly.
+    /// This allows virtual items from cyber-arms to show the correct in-hand sprite.
+    /// </summary>
+    private void OnGetInhandVisuals(Entity<VirtualItemComponent> ent, ref GetInhandVisualsEvent args)
+    {
+        // Check if this virtual item belongs to a cyber arm
+        var query = AllEntityQuery<CyberArmActiveItemComponent>();
+        bool isCyberArmItem = false;
+
+        while (query.MoveNext(out var cyberArmUid, out var activeItem))
+        {
+            if (activeItem.ActiveItem != null &&
+                activeItem.VirtualItem == ent.Owner &&
+                activeItem.ActiveItem == ent.Comp.BlockingEntity)
+            {
+                isCyberArmItem = true;
+                break;
+            }
+        }
+
+        // Only forward if this is a cyber arm virtual item
+        if (isCyberArmItem && ent.Comp.BlockingEntity.IsValid())
+        {
+            // Forward the event to the real item so in-hand sprites display
+            RaiseLocalEvent(ent.Comp.BlockingEntity, args);
         }
     }
 

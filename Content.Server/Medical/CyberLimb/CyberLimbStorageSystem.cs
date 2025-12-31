@@ -10,6 +10,7 @@ using Content.Shared.Medical.CyberOrgan;
 using Content.Shared.Storage;
 using Content.Shared.Storage.EntitySystems;
 using Content.Shared.Stacks;
+using Content.Shared.UserInterface;
 using Content.Server.Stack;
 using Content.Server.Medical.CyberOrgan;
 using Content.Shared.Containers;
@@ -54,6 +55,16 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         if (TryComp<BodyPartComponent>(uid, out var part) && part.PartType == BodyPartType.Arm)
         {
             EnsureComp<CyberArmActiveItemComponent>(uid);
+            
+            // Add UI components for radial menu
+            EnsureComp<ActivatableUIComponent>(uid);
+            var activatable = EnsureComp<ActivatableUIComponent>(uid);
+            activatable.Key = CyberArmRadialMenuUiKey.Key;
+            activatable.InHandsOnly = false;
+            activatable.RequiresComplex = false;
+            
+            // Ensure UserInterface component exists
+            EnsureComp<UserInterfaceComponent>(uid);
         }
     }
 

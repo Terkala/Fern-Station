@@ -46,6 +46,7 @@ using Content.Shared.IdentityManagement;
 using Content.Shared.Input;
 using Content.Shared.Inventory;
 using Content.Shared.Inventory.VirtualItem;
+using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Strip.Components;
 using JetBrains.Annotations;
 using Robust.Client.GameObjects;
@@ -200,11 +201,32 @@ namespace Content.Client.Inventory
                 button.Blocked = true;
                 if (EntMan.TryGetComponent<CuffableComponent>(Owner, out var cuff) && _cuffable.GetAllCuffs(cuff).Contains(virt.BlockingEntity))
                     button.BlockedRect.MouseFilter = MouseFilterMode.Ignore;
+                
+                // For cyber-arm virtual items, show the real item icon but greyed out
+                // Check if this is a cyber-arm virtual item
+                var query = EntMan.AllEntityQuery<CyberArmActiveItemComponent>();
+                bool isCyberArmItem = false;
+                while (query.MoveNext(out var cyberArmUid, out var activeItem))
+                {
+                    if (activeItem.ActiveItem != null &&
+                        activeItem.VirtualItem == hand.HeldEntity &&
+                        activeItem.ActiveItem == virt.BlockingEntity)
+                    {
+                        isCyberArmItem = true;
+                        break;
+                    }
+                }
+                
+                // Show the real item icon (it will be greyed out by Blocked = true)
+                UpdateEntityIcon(button, isCyberArmItem ? virt.BlockingEntity : hand.HeldEntity);
             }
-            //Goobstation: Cards are always hidden. NO CHEATING FOR U.
-            var isCard = EntMan.HasComponent<CardComponent>(hand.HeldEntity) ||
-                         EntMan.HasComponent<CardHandComponent>(hand.HeldEntity);
-            UpdateEntityIcon(button, isCard ? _virtualHiddenEntity : hand.HeldEntity);
+            else
+            {
+                //Goobstation: Cards are always hidden. NO CHEATING FOR U.
+                var isCard = EntMan.HasComponent<CardComponent>(hand.HeldEntity) ||
+                             EntMan.HasComponent<CardHandComponent>(hand.HeldEntity);
+                UpdateEntityIcon(button, isCard ? _virtualHiddenEntity : hand.HeldEntity);
+            }
             _strippingMenu!.HandsContainer.AddChild(button);
         }
 

@@ -40,6 +40,7 @@ using Content.Shared.MedicalScanner;
 using Content.Shared.Medical.Integrity;
 using Content.Shared.Medical.Biosynthetic;
 using Content.Shared.Medical.Surgery;
+using Content.Shared.Medical.Surgery.Components;
 using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Body.Systems;
 using Content.Shared.Body.Components;
@@ -437,6 +438,44 @@ namespace Content.Client.HealthAnalyzer.UI
                         {
                             penalties.Add((unskilledTech.Penalty,
                                 Loc.GetString("health-analyzer-window-integrity-penalty-unskilled-technician",
+                                    ("part", partName))));
+                        }
+                        
+                        // Check for improvised surgery penalties (separate from general surgery penalties)
+                        if (_entityManager.TryGetComponent<ImprovisedBoneRemovalComponent>(partUid, out var improvisedBone))
+                        {
+                            penalties.Add((improvisedBone.IntegrityCost,
+                                Loc.GetString("health-analyzer-window-integrity-penalty-improvised-bone-removal",
+                                    ("part", partName))));
+                        }
+                        if (_entityManager.TryGetComponent<ImprovisedTissueCutComponent>(partUid, out var improvisedTissue))
+                        {
+                            penalties.Add((improvisedTissue.IntegrityCost,
+                                Loc.GetString("health-analyzer-window-integrity-penalty-improvised-tissue-cut",
+                                    ("part", partName))));
+                        }
+                        if (_entityManager.TryGetComponent<ImprovisedBleederClampingComponent>(partUid, out var improvisedBleeder))
+                        {
+                            penalties.Add((improvisedBleeder.IntegrityCost,
+                                Loc.GetString("health-analyzer-window-integrity-penalty-improvised-bleeder-clamping",
+                                    ("part", partName))));
+                        }
+                        if (_entityManager.TryGetComponent<ImprovisedRetractTissueComponent>(partUid, out var improvisedRetract))
+                        {
+                            penalties.Add((improvisedRetract.IntegrityCost,
+                                Loc.GetString("health-analyzer-window-integrity-penalty-improvised-retract-tissue",
+                                    ("part", partName))));
+                        }
+                        if (_entityManager.TryGetComponent<ImprovisedCauterizationComponent>(partUid, out var improvisedCauterize))
+                        {
+                            penalties.Add((improvisedCauterize.IntegrityCost,
+                                Loc.GetString("health-analyzer-window-integrity-penalty-improvised-cauterization",
+                                    ("part", partName))));
+                        }
+                        if (_entityManager.TryGetComponent<ImprovisedSeverBloodVesselsComponent>(partUid, out var improvisedSeverVessels))
+                        {
+                            penalties.Add((improvisedSeverVessels.IntegrityCost,
+                                Loc.GetString("health-analyzer-window-integrity-penalty-improvised-sever-blood-vessels",
                                     ("part", partName))));
                         }
                     }

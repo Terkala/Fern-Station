@@ -219,3 +219,17 @@
     Plasteel: 500
     Plasma: 250
 
+# ============================================
+# CYBER-LIMB MODULES
+# ============================================
+
+- type: latheRecipe
+  id: CyberLimbAutoReloadModule
+  result: CyberLimbAutoReloadModule
+  completetime: 8.0
+  materials:
+    Steel: 1000
+    Glass: 500
+    Plasteel: 500
+    Plasma: 500
+

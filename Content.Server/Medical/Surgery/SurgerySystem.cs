@@ -31,10 +31,14 @@ using Content.Shared.Weapons.Melee;
 using Content.Shared.Stacks;
 using Content.Shared._Shitmed.Medical.Surgery.Effects.Step;
 using Content.Shared._Shitmed.Medical.Surgery;
+using Content.Shared._Shitmed.Medical.Surgery.Tools;
+using Content.Shared._Shitmed.Surgery;
 using Content.Shared._Shitmed.Cybernetics;
 using ShitmedSurgerySteps = Content.Shared._Shitmed.Medical.Surgery.Steps;
 using ShitmedSurgeryUIKey = Content.Shared._Shitmed.Medical.Surgery.SurgeryUIKey;
 using Content.Shared.Medical.Surgery.Components;
+using Content.Shared.Medical.Surgery.Operations;
+using Content.Server.Medical.Surgery.Operations;
 using Content.Shared.Implants.Components;
 using Content.Shared.UserInterface;
 using Content.Shared.Prototypes;
@@ -70,6 +74,12 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     [Dependency] private readonly MobStateSystem _mobState = default!;
     [Dependency] private readonly DamageableSystem _damageable = default!;
     [Dependency] private readonly SharedContainerSystem _containers = default!;
+    
+    /// <summary>
+    /// Tracks which method (primary/improvised) was selected for each step.
+    /// Key: Step entity UID, Value: true if improvised, false if primary
+    /// </summary>
+    private readonly Dictionary<EntityUid, bool> _stepMethodSelection = new();
 
     /// <summary>
     /// Cached surgery step data to avoid spawning entities every UI update.
@@ -106,6 +116,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         Subs.BuiEvents<SurgeryLayerComponent>(Content.Shared.Medical.Surgery.SurgeryUIKey.Key, subs =>
         {
             subs.Event<SurgeryStepSelectedMessage>(OnStepSelected);
+            subs.Event<SurgeryOperationMethodSelectedMessage>(OnOperationMethodSelected);
             subs.Event<SurgeryLayerChangedMessage>(OnLayerChanged);
             subs.Event<BoundUIOpenedEvent>(OnSurgeryUIOpened);
             subs.Event<BoundUIClosedEvent>(OnSurgeryUIClosed);
@@ -178,6 +189,27 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     private void OnGetSurgeryVerb(Entity<SurgeryLayerComponent> ent, ref GetVerbsEvent<Verb> args)
     {
         if (!args.CanAccess || !args.CanInteract)
+            return;
+
+        // Only show surgery verb on body parts attached to a body with SurgeryTargetComponent (players)
+        if (!TryComp<BodyPartComponent>(ent, out var partComp) || partComp.Body == null)
+            return;
+
+        if (!HasComp<SurgeryTargetComponent>(partComp.Body.Value))
+            return;
+
+        // Only show if user has a surgical tool in hand
+        var hasSurgicalTool = false;
+        foreach (var heldItem in _hands.EnumerateHeld(args.User))
+        {
+            if (HasComp<SurgeryToolComponent>(heldItem))
+            {
+                hasSurgicalTool = true;
+                break;
+            }
+        }
+
+        if (!hasSurgicalTool)
             return;
 
         var user = args.User;
@@ -289,14 +321,14 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         if (!TryComp<SurgeryStepComponent>(stepEntity, out var step))
             return;
 
-        // Validate step can be performed
-        if (!CanPerformStep(ent, stepEntity, step))
-            return;
-
         // Get user if provided
         EntityUid? user = null;
         if (msg.User != null)
             user = GetEntity(msg.User);
+
+        // Validate step can be performed
+        if (!CanPerformStep(ent, stepEntity, step, user))
+            return;
 
         // Execute the step (with user for medical skill check)
         ExecuteStep(ent, stepEntity, step, user);
@@ -308,6 +340,13 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         UpdateUI(ent);
     }
 
+    private void OnOperationMethodSelected(Entity<SurgeryLayerComponent> ent, ref SurgeryOperationMethodSelectedMessage msg)
+    {
+        var stepEntity = GetEntity(msg.Step);
+        // Store the method selection for when the step is executed
+        _stepMethodSelection[stepEntity] = msg.IsImprovised;
+    }
+
     /// <summary>
     /// Checks if a surgery step can be performed.
     /// Requirements are now optional - steps can be skipped to allow surgeons
@@ -315,7 +354,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     /// Example: Close skin without mending bones if bone-gel is unavailable,
     /// leaving the patient with broken ribs (surgery penalty remains).
     /// </summary>
-    private bool CanPerformStep(EntityUid bodyPart, EntityUid stepEntity, SurgeryStepComponent step)
+    private bool CanPerformStep(EntityUid bodyPart, EntityUid stepEntity, SurgeryStepComponent step, EntityUid? user = null)
     {
         if (!TryComp<SurgeryLayerComponent>(bodyPart, out var layer))
             return false;
@@ -327,6 +366,31 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                 return false;
         }
 
+        // If step has an operation, check tool availability
+        if (step.OperationId != null && user != null)
+        {
+            if (!_prototypes.TryIndex(step.OperationId, out var operation))
+                return false;
+
+            // Check if this is a repair operation
+            if (operation.RepairOperationFor != null)
+            {
+                // Repair operations can only be performed if corresponding improvised component exists
+                if (!HasImprovisedComponentForOperation(bodyPart, operation.RepairOperationFor.Value))
+                    return false;
+            }
+
+            // For repair operations, we need primary tools (no secondary method)
+            if (operation.RepairOperationFor != null)
+            {
+                return HasPrimaryToolsForOperation(user.Value, operation);
+            }
+
+            // For regular operations, check if we have either primary tools OR secondary method available
+            return HasPrimaryToolsForOperation(user.Value, operation) ||
+                   (operation.SecondaryMethod != null && HasSecondaryMethodForOperation(user.Value, operation));
+        }
+
         // Layer requirements are now optional - steps can be skipped
         // This allows surgeons to work around missing tools or skip steps
         // (e.g., closing skin without mending bones if bone-gel is unavailable)
@@ -334,8 +398,247 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         return true;
     }
 
+    /// <summary>
+    /// Checks if user has any primary tools for the operation.
+    /// Medical Multitool counts as having all primary tools.
+    /// Also checks for special entity prototype IDs that should work for certain operations.
+    /// </summary>
+    private bool HasPrimaryToolsForOperation(EntityUid user, SurgeryOperationPrototype operation)
+    {
+        if (operation.PrimaryTools.Count == 0)
+            return true;
+
+        if (!TryComp<HandsComponent>(user, out var hands))
+            return false;
+
+        foreach (var heldItem in _hands.EnumerateHeld(user, hands))
+        {
+            // Check if it's a medical multitool (has all tools)
+            if (HasComp<TagComponent>(heldItem))
+            {
+                var tag = Comp<TagComponent>(heldItem);
+                if (tag.Tags.Contains("AdvancedSurgeryTool"))
+                {
+                    // Medical multitool has all primary tools
+                    return true;
+                }
+            }
+
+            // Check if item has any of the required primary tool components
+            foreach (var toolReg in operation.PrimaryTools)
+            {
+                if (HasComp(heldItem, toolReg.Component.GetType()))
+                    return true;
+            }
+
+            // Special cases: Check for specific entity prototype IDs that work for certain operations
+            var meta = MetaData(heldItem);
+            var prototypeId = meta.EntityPrototype?.ID;
+
+            // ScalpelLaser works for Cautery operations (even though it doesn't have Cautery component)
+            if (prototypeId == "ScalpelLaser")
+            {
+                // Check if this operation requires Cautery
+                foreach (var toolReg in operation.PrimaryTools)
+                {
+                    var compType = toolReg.Component.GetType();
+                    // Get component registration name (e.g., "Cautery" from CauteryComponent)
+                    if (_componentFactory.TryGetRegistration(compType, out var reg) && reg.Name == "Cautery")
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if user can use secondary method for the operation.
+    /// </summary>
+    private bool HasSecondaryMethodForOperation(EntityUid user, SurgeryOperationPrototype operation)
+    {
+        if (operation.SecondaryMethod == null)
+            return false;
+
+        var evaluator = EntitySystem.Get<SurgeryOperationEvaluatorSystem>();
+
+        // Handle MultiEvaluator type
+        if (operation.SecondaryMethod.Type == "MultiEvaluator" && operation.SecondaryMethod.Evaluators != null)
+        {
+            var result = evaluator.EvaluateMultiEvaluator(user, operation.SecondaryMethod.Evaluators);
+            return result.IsValid;
+        }
+
+        // Handle single evaluator
+        var singleResult = evaluator.EvaluateSecondaryMethod(
+            user,
+            operation.SecondaryMethod.Evaluator,
+            operation.SecondaryMethod.Tools);
+
+        return singleResult.IsValid;
+    }
+
+    /// <summary>
+    /// Checks if body part has an improvised component for the given operation.
+    /// </summary>
+    private bool HasImprovisedComponentForOperation(EntityUid bodyPart, ProtoId<SurgeryOperationPrototype> operationId)
+    {
+        // Map operation IDs to component types
+        return operationId switch
+        {
+            "BoneRemoval" => HasComp<ImprovisedBoneRemovalComponent>(bodyPart),
+            "CutTissue" => HasComp<ImprovisedTissueCutComponent>(bodyPart),
+            "ClampBloodVessels" => HasComp<ImprovisedBleederClampingComponent>(bodyPart),
+            "RetractTissue" => HasComp<ImprovisedRetractTissueComponent>(bodyPart),
+            "CauterizeWounds" => HasComp<ImprovisedCauterizationComponent>(bodyPart),
+            "SeverBloodVessels" => HasComp<ImprovisedSeverBloodVesselsComponent>(bodyPart),
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Applies integrity penalty for an improvised surgery step and adds tracking component.
+    /// The penalty remains visible until the repair operation removes it.
+    /// </summary>
+    private void ApplyImprovisedIntegrityCost(EntityUid bodyPart, SurgeryOperationPrototype operation, FixedPoint2 cost)
+    {
+        if (!TryComp<BodyPartComponent>(bodyPart, out var part) || part.Body == null)
+            return;
+
+        // Add tracking component based on operation type
+        ImprovisedSurgeryComponent? improvisedComp = operation.ID switch
+        {
+            "BoneRemoval" => EnsureComp<ImprovisedBoneRemovalComponent>(bodyPart),
+            "CutTissue" => EnsureComp<ImprovisedTissueCutComponent>(bodyPart),
+            "ClampBloodVessels" => EnsureComp<ImprovisedBleederClampingComponent>(bodyPart),
+            "RetractTissue" => EnsureComp<ImprovisedRetractTissueComponent>(bodyPart),
+            "CauterizeWounds" => EnsureComp<ImprovisedCauterizationComponent>(bodyPart),
+            "SeverBloodVessels" => EnsureComp<ImprovisedSeverBloodVesselsComponent>(bodyPart),
+            _ => null
+        };
+
+        if (improvisedComp != null)
+        {
+            improvisedComp.IntegrityCost = cost;
+            improvisedComp.OperationId = operation.ID;
+            Dirty(bodyPart, improvisedComp);
+
+            // Apply as a visible surgery penalty that can be scanned by health analyzer
+            ApplySurgeryPenalty(bodyPart, cost);
+        }
+    }
+
+    /// <summary>
+    /// Handles repair operation execution - removes the penalty by removing the improvised component.
+    /// The component removal triggers penalty removal automatically.
+    /// </summary>
+    private void HandleRepairOperation(EntityUid bodyPart, SurgeryOperationPrototype repairOperation)
+    {
+        if (repairOperation.RepairOperationFor == null)
+            return;
+
+        // Find and remove the improvised component
+        // The component stores the penalty amount, so removing it will remove the penalty
+        ImprovisedSurgeryComponent? improvisedComp = repairOperation.RepairOperationFor.Value switch
+        {
+            "BoneRemoval" => CompOrNull<ImprovisedBoneRemovalComponent>(bodyPart),
+            "CutTissue" => CompOrNull<ImprovisedTissueCutComponent>(bodyPart),
+            "ClampBloodVessels" => CompOrNull<ImprovisedBleederClampingComponent>(bodyPart),
+            "RetractTissue" => CompOrNull<ImprovisedRetractTissueComponent>(bodyPart),
+            "CauterizeWounds" => CompOrNull<ImprovisedCauterizationComponent>(bodyPart),
+            "SeverBloodVessels" => CompOrNull<ImprovisedSeverBloodVesselsComponent>(bodyPart),
+            _ => null
+        };
+
+        if (improvisedComp == null)
+            return;
+
+        // Get the penalty amount from the component
+        var penaltyAmount = improvisedComp.IntegrityCost;
+
+        // Remove the improvised component first
+        RemComp(bodyPart, improvisedComp.GetType());
+
+        // Remove the penalty that was added by this improvised surgery
+        if (penaltyAmount > FixedPoint2.Zero)
+        {
+            RemoveSurgeryPenalty(bodyPart, penaltyAmount);
+        }
+    }
+
     private void ExecuteStep(EntityUid bodyPart, EntityUid stepEntity, SurgeryStepComponent step, EntityUid? user = null)
     {
+        // Handle operation-based steps
+        bool isImprovised = false;
+        float speedModifier = 1.0f;
+        
+        if (step.OperationId != null && user != null && 
+            _prototypes.TryIndex(step.OperationId, out var operation))
+        {
+            // Check if this is a repair operation
+            if (operation.RepairOperationFor != null)
+            {
+                // Repair operation - remove integrity cost and improvised component
+                HandleRepairOperation(bodyPart, operation);
+            }
+            else
+            {
+                // Regular operation - check which method is being used
+                bool usingPrimary = HasPrimaryToolsForOperation(user.Value, operation);
+                bool usingSecondary = operation.SecondaryMethod != null && HasSecondaryMethodForOperation(user.Value, operation);
+                
+                // Check if method was explicitly selected, otherwise default to primary if available
+                if (_stepMethodSelection.TryGetValue(stepEntity, out var wasImprovised))
+                {
+                    isImprovised = wasImprovised;
+                }
+                else
+                {
+                    // Default: use primary if available, otherwise use secondary
+                    isImprovised = !usingPrimary && usingSecondary;
+                }
+                
+                // Apply operation-specific logic
+                if (isImprovised && operation.SecondaryMethod != null)
+                {
+                    // Apply integrity cost for improvised method
+                    if (operation.SecondaryMethod.IntegrityCost > FixedPoint2.Zero)
+                    {
+                        ApplyImprovisedIntegrityCost(bodyPart, operation, operation.SecondaryMethod.IntegrityCost);
+                    }
+                    
+                    // Get speed modifier from evaluator
+                    var evaluator = EntitySystem.Get<SurgeryOperationEvaluatorSystem>();
+                    SurgeryOperationEvaluationResult evalResult;
+                    
+                    if (operation.SecondaryMethod.Type == "MultiEvaluator" && operation.SecondaryMethod.Evaluators != null)
+                    {
+                        evalResult = evaluator.EvaluateMultiEvaluator(user.Value, operation.SecondaryMethod.Evaluators);
+                    }
+                    else
+                    {
+                        evalResult = evaluator.EvaluateSecondaryMethod(
+                            user.Value,
+                            operation.SecondaryMethod.Evaluator,
+                            operation.SecondaryMethod.Tools);
+                    }
+                    
+                    if (evalResult.IsValid)
+                    {
+                        speedModifier = evalResult.SpeedModifier;
+                    }
+                }
+                
+                // Clear method selection after use
+                _stepMethodSelection.Remove(stepEntity);
+            }
+        }
+        
+        // Note: Speed modifier from evaluators could be applied to step duration if needed
+        // For now, the speed is determined by the tool itself in the existing system
+        
         // Check if user has medical skill
         bool hasMedicalSkill = user != null && HasMedicalSkill(user.Value);
         
@@ -916,6 +1219,12 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             var stepEntity = Spawn(stepData.StepId);
             var stepNetEntity = GetNetEntity(stepEntity);
             
+            if (!TryComp<SurgeryStepComponent>(stepEntity, out var stepComp))
+            {
+                Del(stepEntity);
+                continue;
+            }
+            
             switch (stepData.Layer)
             {
                 case SurgeryLayer.Skin:
@@ -933,6 +1242,53 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             // Alternatively, we could store just the prototype ID and spawn on demand
         }
 
+        // Evaluate operation availability - get first user with UI open
+        var stepOperationInfo = new Dictionary<NetEntity, SurgeryStepOperationInfo>();
+        EntityUid? evalUser = null;
+        
+        if (_openSurgeryUIs.ContainsKey(uid) && TryComp<UserInterfaceComponent>(uid, out var uiComp))
+        {
+            // Get first user with UI open
+            var sessions = _ui.GetActorSessions(uid, uiComp);
+            if (sessions.Count > 0)
+            {
+                var session = sessions[0];
+                if (session.AttachedEntity != null)
+                {
+                    evalUser = session.AttachedEntity.Value;
+                }
+            }
+        }
+
+        // Evaluate operation info for all steps
+        foreach (var stepNetEntity in skinSteps.Concat(tissueSteps).Concat(organSteps))
+        {
+            var stepEntity = GetEntity(stepNetEntity);
+            if (!TryComp<SurgeryStepComponent>(stepEntity, out var stepComp))
+                continue;
+
+            if (stepComp.OperationId != null && evalUser != null &&
+                _prototypes.TryIndex(stepComp.OperationId, out var operation))
+            {
+                bool hasPrimary = HasPrimaryToolsForOperation(evalUser.Value, operation);
+                bool hasSecondary = operation.SecondaryMethod != null && HasSecondaryMethodForOperation(evalUser.Value, operation);
+                bool isRepair = operation.RepairOperationFor != null;
+                
+                // For repair operations, only show if corresponding improvised component exists
+                if (isRepair && !HasImprovisedComponentForOperation(uid, operation.RepairOperationFor!.Value))
+                {
+                    hasPrimary = false; // Don't show repair if not needed
+                }
+
+                stepOperationInfo[stepNetEntity] = new SurgeryStepOperationInfo(
+                    hasPrimary,
+                    hasSecondary,
+                    isRepair,
+                    operation.Name
+                );
+            }
+        }
+
         var state = new SurgeryBoundUserInterfaceState(
             GetNetEntity(uid),
             layer.PartType,
@@ -941,7 +1297,9 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             layer.BonesSawed,
             skinSteps,
             tissueSteps,
-            organSteps
+            organSteps,
+            layer.BonesSmashed,
+            stepOperationInfo
         );
 
         _ui.SetUiState(uid, Content.Shared.Medical.Surgery.SurgeryUIKey.Key, state);

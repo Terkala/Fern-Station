@@ -55,6 +55,13 @@ using Content.Shared.Gibbing.Events;
 using Content.Shared._Shitmed.Body.Events;
 using Content.Server.Medical.Compatibility;
 using Robust.Shared.Containers;
+using Content.Shared.Actions;
+using Content.Shared.Tag;
+using Content.Shared.Medical.CyberLimb;
+using Content.Shared._Shitmed.Cybernetics;
+using Content.Shared.Body.Events;
+using Content.Shared.Body.Organ;
+using Robust.Shared.Prototypes;
 
 namespace Content.Server.Body.Systems;
 
@@ -69,6 +76,9 @@ public sealed class BodySystem : SharedBodySystem
     [Dependency] private readonly SharedMindSystem _mindSystem = default!;
     [Dependency] private readonly DonorSpeciesSystem _donorSpecies = default!;
     [Dependency] private readonly LimbCapabilitiesSystem _limbCapabilities = default!;
+    [Dependency] private readonly SharedActionsSystem _actionsSystem = default!;
+    [Dependency] private readonly TagSystem _tagSystem = default!;
+    [Dependency] private readonly SharedContainerSystem _containerSystem = default!;
 
     public override void Initialize()
     {
@@ -76,6 +86,12 @@ public sealed class BodySystem : SharedBodySystem
 
         SubscribeLocalEvent<BodyComponent, MoveInputEvent>(OnRelayMoveInput);
         SubscribeLocalEvent<BodyComponent, ApplyMetabolicMultiplierEvent>(OnApplyMetabolicMultiplier);
+        
+        // Subscribe to events for cybernetics ability recalculation
+        SubscribeLocalEvent<OrganComponent, OrganRemovedFromBodyEvent>(OnOrganRemovedFromBody);
+        SubscribeLocalEvent<BodyPartComponent, BodyPartRemovedEvent>(OnBodyPartRemoved);
+        SubscribeLocalEvent<BodyPartComponent, BeingGibbedEvent>(OnBodyPartGibbed);
+        SubscribeLocalEvent<OrganComponent, BeingGibbedEvent>(OnOrganGibbed);
     }
 
     private void OnRelayMoveInput(Entity<BodyComponent> ent, ref MoveInputEvent args)
@@ -280,4 +296,267 @@ public sealed class BodySystem : SharedBodySystem
     }
 
     // Shitmed Change End
+
+    #region Cybernetics Ability Recalculation
+
+    /// <summary>
+    /// Event handler for when an organ is removed from a body.
+    /// Recalculates cybernetics abilities if the removed organ was a cybernetic.
+    /// </summary>
+    private void OnOrganRemovedFromBody(Entity<OrganComponent> ent, ref OrganRemovedFromBodyEvent args)
+    {
+        // Check if this is a cybernetic organ
+        if (!HasComp<CyberneticsComponent>(ent) && !HasComp<CyberLimbStorageComponent>(ent))
+            return;
+
+        // Recalculate abilities for the body
+        if (args.OldBody.IsValid() && !TerminatingOrDeleted(args.OldBody))
+        {
+            RecalculateCyberneticsAbilities(args.OldBody);
+        }
+    }
+
+    /// <summary>
+    /// Event handler for when a body part is removed from a body.
+    /// Recalculates cybernetics abilities if the removed part was a cybernetic.
+    /// </summary>
+    private void OnBodyPartRemoved(Entity<BodyPartComponent> ent, ref BodyPartRemovedEvent args)
+    {
+        // Check if this is a cybernetic limb
+        if (!HasComp<CyberneticsComponent>(ent) && !HasComp<CyberLimbStorageComponent>(ent))
+            return;
+
+        // Find the body entity
+        var bodyUid = args.Part.Comp.Body;
+        if (bodyUid.HasValue && bodyUid.Value.IsValid() && !TerminatingOrDeleted(bodyUid.Value))
+        {
+            RecalculateCyberneticsAbilities(bodyUid.Value);
+        }
+    }
+
+    /// <summary>
+    /// Event handler for when a body part is gibbed.
+    /// Recalculates cybernetics abilities if the gibbed part was a cybernetic.
+    /// </summary>
+    private void OnBodyPartGibbed(Entity<BodyPartComponent> ent, ref BeingGibbedEvent args)
+    {
+        // Check if this is a cybernetic limb
+        if (!HasComp<CyberneticsComponent>(ent) && !HasComp<CyberLimbStorageComponent>(ent))
+            return;
+
+        // Find the body entity
+        var bodyUid = ent.Comp.Body;
+        if (bodyUid.HasValue && bodyUid.Value.IsValid() && !TerminatingOrDeleted(bodyUid.Value))
+        {
+            RecalculateCyberneticsAbilities(bodyUid.Value);
+        }
+    }
+
+    /// <summary>
+    /// Event handler for when an organ is gibbed.
+    /// Recalculates cybernetics abilities if the gibbed organ was a cybernetic.
+    /// </summary>
+    private void OnOrganGibbed(Entity<OrganComponent> ent, ref BeingGibbedEvent args)
+    {
+        // Check if this is a cybernetic organ
+        if (!HasComp<CyberneticsComponent>(ent) && !HasComp<CyberLimbStorageComponent>(ent))
+            return;
+
+        // Find the body entity
+        var bodyUid = ent.Comp.Body;
+        if (bodyUid.HasValue && bodyUid.Value.IsValid() && !TerminatingOrDeleted(bodyUid.Value))
+        {
+            RecalculateCyberneticsAbilities(bodyUid.Value);
+        }
+    }
+
+    /// <summary>
+    /// Recalculates all cybernetics abilities for a body.
+    /// This ensures all abilities (storage features, hotbar actions) are properly synced
+    /// to the torso based on currently attached cyber-limbs and cyber-organs.
+    /// </summary>
+    public void RecalculateCyberneticsAbilities(EntityUid bodyUid)
+    {
+        // Safety checks
+        if (!bodyUid.IsValid() || TerminatingOrDeleted(bodyUid))
+            return;
+
+        if (!TryComp<BodyComponent>(bodyUid, out var body))
+            return;
+
+        // First, remove all existing cybernetics-provided actions
+        // We'll re-add them based on current cybernetics
+        RemoveAllCyberneticsAbilities(bodyUid);
+
+        // Get all body parts and organs
+        var allParts = GetBodyChildren(bodyUid, body).ToList();
+        var allOrgans = GetBodyOrgans(bodyUid, body).ToList();
+
+        // Process all cybernetics
+        foreach (var (partId, partComp) in allParts)
+        {
+            if (HasComp<CyberneticsComponent>(partId) || HasComp<CyberLimbStorageComponent>(partId))
+            {
+                ProcessCyberneticsAbilities(bodyUid, partId, partComp);
+            }
+        }
+
+        foreach (var (organId, organComp) in allOrgans)
+        {
+            if (HasComp<CyberneticsComponent>(organId) || HasComp<CyberLimbStorageComponent>(organId))
+            {
+                ProcessCyberneticsAbilities(bodyUid, organId, null);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Processes abilities for a single cybernetic entity (limb or organ).
+    /// </summary>
+    private void ProcessCyberneticsAbilities(EntityUid bodyUid, EntityUid cyberneticUid, BodyPartComponent? partComp)
+    {
+        if (TerminatingOrDeleted(cyberneticUid))
+            return;
+
+        // Process direct abilities from the cybernetic itself
+        ProcessDirectAbilities(bodyUid, cyberneticUid);
+
+        // Process dynamic abilities from items inside cybernetic storage
+        if (HasComp<CyberLimbStorageComponent>(cyberneticUid))
+        {
+            ProcessDynamicAbilities(bodyUid, cyberneticUid);
+        }
+    }
+
+    /// <summary>
+    /// Processes direct abilities granted by the cybernetic entity itself (via tags).
+    /// </summary>
+    private void ProcessDirectAbilities(EntityUid bodyUid, EntityUid cyberneticUid)
+    {
+        // Check for storage ability
+        if (_tagSystem.HasTag(cyberneticUid, "GrantsStorage"))
+        {
+            // Grant storage access ability if the cybernetic has storage
+            if (TryComp<StorageComponent>(cyberneticUid, out var storage))
+            {
+                // Storage is handled via verbs/UI, not actions
+                // But we could add an action here if needed in the future
+            }
+        }
+
+        // Check for action grants (format: "GrantsAction:<ActionPrototypeId>")
+        if (TryComp<TagComponent>(cyberneticUid, out var tagComp))
+        {
+            foreach (var tag in tagComp.Tags)
+            {
+                var tagString = tag.ToString();
+                if (tagString.StartsWith("GrantsAction:", StringComparison.Ordinal))
+                {
+                    var actionId = tagString.Substring("GrantsAction:".Length);
+                    if (!string.IsNullOrWhiteSpace(actionId))
+                    {
+                        _actionsSystem.AddAction(bodyUid, out _, actionId, cyberneticUid);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Processes dynamic abilities from items stored inside the cybernetic's storage.
+    /// </summary>
+    private void ProcessDynamicAbilities(EntityUid bodyUid, EntityUid cyberneticUid)
+    {
+        if (!TryComp<StorageComponent>(cyberneticUid, out var storage))
+            return;
+
+        // Check all items in the storage
+        foreach (var item in storage.Container.ContainedEntities)
+        {
+            if (TerminatingOrDeleted(item))
+                continue;
+
+            // Check if the item grants storage
+            if (_tagSystem.HasTag(item, "GrantsStorage"))
+            {
+                if (TryComp<StorageComponent>(item, out var itemStorage))
+                {
+                    // Storage from items inside cybernetics
+                    // This could be handled via verbs/UI or actions
+                }
+            }
+
+            // Check if the item grants actions
+            if (TryComp<TagComponent>(item, out var itemTagComp))
+            {
+                foreach (var tag in itemTagComp.Tags)
+                {
+                    var tagString = tag.ToString();
+                    if (tagString.StartsWith("GrantsAction:", StringComparison.Ordinal))
+                    {
+                        var actionId = tagString.Substring("GrantsAction:".Length);
+                        if (!string.IsNullOrWhiteSpace(actionId))
+                        {
+                            // Grant action to body, with the item as the container
+                            _actionsSystem.AddAction(bodyUid, out _, actionId, item);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Removes all abilities that were granted by cybernetics.
+    /// This is called before recalculating to ensure clean state.
+    /// </summary>
+    private void RemoveAllCyberneticsAbilities(EntityUid bodyUid)
+    {
+        if (!TryComp<ActionsComponent>(bodyUid, out var actions))
+            return;
+
+        // Get all body parts and organs to find cybernetics
+        if (!TryComp<BodyComponent>(bodyUid, out var body))
+            return;
+
+        var allParts = GetBodyChildren(bodyUid, body).ToList();
+        var allOrgans = GetBodyOrgans(bodyUid, body).ToList();
+
+        // Remove actions granted by cybernetics
+        foreach (var (partId, _) in allParts)
+        {
+            if (HasComp<CyberneticsComponent>(partId) || HasComp<CyberLimbStorageComponent>(partId))
+            {
+                _actionsSystem.RemoveProvidedActions(bodyUid, partId, actions);
+                
+                // Also remove actions from items inside storage
+                if (TryComp<StorageComponent>(partId, out var storage))
+                {
+                    foreach (var item in storage.Container.ContainedEntities)
+                    {
+                        _actionsSystem.RemoveProvidedActions(bodyUid, item, actions);
+                    }
+                }
+            }
+        }
+
+        foreach (var (organId, _) in allOrgans)
+        {
+            if (HasComp<CyberneticsComponent>(organId) || HasComp<CyberLimbStorageComponent>(organId))
+            {
+                _actionsSystem.RemoveProvidedActions(bodyUid, organId, actions);
+                
+                // Also remove actions from items inside storage
+                if (TryComp<StorageComponent>(organId, out var storage))
+                {
+                    foreach (var item in storage.Container.ContainedEntities)
+                    {
+                        _actionsSystem.RemoveProvidedActions(bodyUid, item, actions);
+                    }
+                }
+            }
+        }
+    }
+
+    #endregion
 }

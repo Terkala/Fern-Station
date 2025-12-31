@@ -64,6 +64,12 @@ public sealed class SurgeryBoundUserInterfaceState : BoundUserInterfaceState
     /// </summary>
     public List<NetEntity> OrganSteps = new();
 
+    /// <summary>
+    /// Operation availability info for each step.
+    /// Key: Step entity, Value: Operation info (has primary tools, has secondary method, is repair operation)
+    /// </summary>
+    public Dictionary<NetEntity, SurgeryStepOperationInfo> StepOperationInfo = new();
+
     public SurgeryBoundUserInterfaceState(
         NetEntity bodyPart,
         BodyPartType? partType,
@@ -73,7 +79,8 @@ public sealed class SurgeryBoundUserInterfaceState : BoundUserInterfaceState
         List<NetEntity> skinSteps,
         List<NetEntity> tissueSteps,
         List<NetEntity> organSteps,
-        bool bonesSmashed = false)
+        bool bonesSmashed = false,
+        Dictionary<NetEntity, SurgeryStepOperationInfo>? stepOperationInfo = null)
     {
         BodyPart = bodyPart;
         PartType = partType;
@@ -84,6 +91,7 @@ public sealed class SurgeryBoundUserInterfaceState : BoundUserInterfaceState
         SkinSteps = skinSteps;
         TissueSteps = tissueSteps;
         OrganSteps = organSteps;
+        StepOperationInfo = stepOperationInfo ?? new();
     }
 }
 
@@ -116,6 +124,57 @@ public sealed class SurgeryLayerChangedMessage : BoundUserInterfaceMessage
     public SurgeryLayerChangedMessage(SurgeryLayer layer)
     {
         Layer = layer;
+    }
+}
+
+/// <summary>
+/// Information about operation availability for a surgery step.
+/// </summary>
+[Serializable, NetSerializable]
+public sealed class SurgeryStepOperationInfo
+{
+    /// <summary>
+    /// Whether primary tools are available for this step.
+    /// </summary>
+    public bool HasPrimaryTools { get; init; }
+
+    /// <summary>
+    /// Whether secondary/improvised method is available for this step.
+    /// </summary>
+    public bool HasSecondaryMethod { get; init; }
+
+    /// <summary>
+    /// Whether this is a repair operation.
+    /// </summary>
+    public bool IsRepairOperation { get; init; }
+
+    /// <summary>
+    /// Operation name for display.
+    /// </summary>
+    public string OperationName { get; init; } = string.Empty;
+
+    public SurgeryStepOperationInfo(bool hasPrimaryTools, bool hasSecondaryMethod, bool isRepairOperation, string operationName)
+    {
+        HasPrimaryTools = hasPrimaryTools;
+        HasSecondaryMethod = hasSecondaryMethod;
+        IsRepairOperation = isRepairOperation;
+        OperationName = operationName;
+    }
+}
+
+/// <summary>
+/// Message sent when user selects primary or improvised method for a step.
+/// </summary>
+[Serializable, NetSerializable]
+public sealed class SurgeryOperationMethodSelectedMessage : BoundUserInterfaceMessage
+{
+    public NetEntity Step;
+    public bool IsImprovised;
+
+    public SurgeryOperationMethodSelectedMessage(NetEntity step, bool isImprovised)
+    {
+        Step = step;
+        IsImprovised = isImprovised;
     }
 }
 

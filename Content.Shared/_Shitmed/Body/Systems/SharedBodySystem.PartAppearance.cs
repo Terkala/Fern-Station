@@ -13,6 +13,7 @@ using Content.Shared._Shitmed.Body.Part;
 using Content.Shared.Humanoid;
 using Content.Shared.Humanoid.Markings;
 using Content.Shared.Humanoid.Prototypes;
+using Robust.Shared.GameObjects;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 
@@ -22,6 +23,7 @@ public partial class SharedBodySystem
     [Dependency] private readonly SharedHumanoidAppearanceSystem _humanoid = default!;
     [Dependency] private readonly MarkingManager _markingManager = default!;
     [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
+    [Dependency] private readonly IComponentFactory _componentFactory = default!;
     private void InitializePartAppearances()
     {
         base.Initialize();
@@ -38,9 +40,29 @@ public partial class SharedBodySystem
             || part.ToHumanoidLayers() is not { } relevantLayer)
             return;
 
-        if (part.BaseLayerId != null)
+        // Try to get baseLayerId from component first
+        string? baseLayerId = part.BaseLayerId;
+        
+        // Fallback: If baseLayerId is null or matches parent's default (Bishop), read directly from entity prototype
+        // This handles cases where component inheritance might not properly override the parent's baseLayerId
+        if (baseLayerId == null || baseLayerId.StartsWith("MobCyberneticBishop"))
         {
-            component.ID = part.BaseLayerId;
+            if (TryComp(uid, out MetaDataComponent? metaData) && metaData.EntityPrototype != null)
+            {
+                // Read BodyPart component directly from the prototype to get the YAML-defined value
+                if (metaData.EntityPrototype.TryGetComponent<BodyPartComponent>(_componentFactory, out var protoBodyPart))
+                {
+                    if (protoBodyPart.BaseLayerId != null && !protoBodyPart.BaseLayerId.StartsWith("MobCyberneticBishop"))
+                    {
+                        baseLayerId = protoBodyPart.BaseLayerId;
+                    }
+                }
+            }
+        }
+
+        if (baseLayerId != null)
+        {
+            component.ID = baseLayerId;
             component.Type = relevantLayer;
             return;
         }
@@ -97,6 +119,7 @@ public partial class SharedBodySystem
 
         return HumanoidVisualLayersExtension.GetSexMorph(part, bodyAppearance.Sex, baseSprites.Sprites[part]);
     }
+
 
     public void ModifyMarkings(EntityUid uid,
         Entity<BodyPartAppearanceComponent?> partAppearance,

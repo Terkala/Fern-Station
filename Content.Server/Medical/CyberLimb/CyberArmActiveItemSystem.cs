@@ -5,17 +5,25 @@
 using Content.Shared.Body.Components;
 using Content.Shared.Body.Part;
 using Content.Shared.Body.Systems;
+using Content.Shared.Cuffs;
+using Content.Shared.Cuffs.Components;
 using Content.Shared.Hands;
 using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
+using Content.Shared.IdentityManagement;
 using Content.Shared.Interaction;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Inventory.VirtualItem;
+using Content.Shared.Item;
 using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Medical.CyberLimb.Modules;
 using Content.Shared.Storage;
 using Content.Shared.Storage.EntitySystems;
+using Content.Shared.UserInterface;
+using Content.Shared.Wieldable;
+using Content.Shared.Wieldable.Components;
 using Robust.Shared.Containers;
+using Robust.Shared.Prototypes;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Content.Server.Medical.CyberLimb;
@@ -23,13 +31,17 @@ namespace Content.Server.Medical.CyberLimb;
 /// <summary>
 /// System that handles dynamic cyber arm item selection.
 /// When the use key is pressed on an empty hand, it checks if there's a corresponding cyber arm
-/// and cycles through items in the cyber arm's storage (excluding modules and batteries).
+/// and opens a radial menu to select items from the cyber arm's storage (excluding modules and batteries).
 /// </summary>
 public sealed class CyberArmActiveItemSystem : EntitySystem
 {
     [Dependency] private readonly SharedHandsSystem _hands = default!;
     [Dependency] private readonly SharedVirtualItemSystem _virtualItem = default!;
     [Dependency] private readonly SharedBodySystem _body = default!;
+    [Dependency] private readonly SharedUserInterfaceSystem _uiSystem = default!;
+    [Dependency] private readonly SharedCuffableSystem _cuffable = default!;
+    [Dependency] private readonly SharedWieldableSystem _wieldable = default!;
+    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
 
     public override void Initialize()
     {
@@ -38,10 +50,18 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
         // Both UseInHandEvent subscriptions need the same ordering constraints
         SubscribeLocalEvent<CyberArmActiveItemComponent, UseInHandEvent>(OnUseInHand, before: new[] { typeof(SharedHandsSystem) });
         SubscribeLocalEvent<CyberArmActiveItemComponent, ActivateInWorldEvent>(OnActivateInWorld, before: new[] { typeof(SharedInteractionSystem) });
+        
+        // Intercept UseInHandEvent on all entities to prevent self-use when used via cyber arm virtual items
+        SubscribeLocalEvent<UseInHandEvent>(OnAnyItemUseInHand, before: new[] { typeof(SharedHandsSystem) });
         SubscribeLocalEvent<CyberArmActiveItemComponent, EntRemovedFromContainerMessage>(OnItemRemovedFromStorage);
         
         // Intercept use key press when hand is empty to check for cyber arms
         SubscribeLocalEvent<HandsComponent, UseInHandEvent>(OnHandUseInHand, before: new[] { typeof(SharedHandsSystem) });
+        
+        // Handle UI messages
+        SubscribeLocalEvent<CyberArmActiveItemComponent, CyberArmSelectItemMessage>(OnSelectItemMessage);
+        SubscribeLocalEvent<CyberArmActiveItemComponent, CyberArmOpenHandMessage>(OnOpenHandMessage);
+        SubscribeLocalEvent<CyberArmActiveItemComponent, ActivatableUIOpenAttemptEvent>(OnUIOpenAttempt);
         
         // Note: GetUsedEntityEvent subscription handled by VirtualItemSystem override to avoid duplicates
         
@@ -50,6 +70,9 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
         // Handle items being removed from special module storage
         // Subscribe to CyberLimbSpecialModuleComponent instead of StorageComponent to avoid duplicate subscriptions
         SubscribeLocalEvent<CyberLimbSpecialModuleComponent, EntRemovedFromContainerMessage>(OnItemRemovedFromModuleStorage);
+        
+        // Clear active item when player is cuffed
+        SubscribeLocalEvent<CuffableComponent, EntInsertedIntoContainerMessage>(OnCuffsAdded);
     }
 
     /// <summary>
@@ -64,6 +87,10 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
         if (ent.Comp.ActiveHand == null)
             return;
 
+        // Block if player is cuffed
+        if (TryComp<CuffableComponent>(ent.Owner, out var cuffable) && _cuffable.IsCuffed((ent.Owner, cuffable)))
+            return;
+
         // Find the corresponding cyber arm for this hand
         if (!TryFindCyberArmForHand(ent.Owner, ent.Comp.ActiveHand, out var cyberArm) || cyberArm == null)
             return;
@@ -71,18 +98,10 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
         if (!TryComp<CyberArmActiveItemComponent>(cyberArm.Value, out var activeItem))
             return;
 
-        // If there's already an active item, cycle to next
-        if (activeItem.ActiveItem != null)
+        // Open the radial menu UI
+        if (_uiSystem.TryOpenUi(cyberArm.Value, CyberArmRadialMenuUiKey.Key, ent.Owner))
         {
-            CycleToNextItem((cyberArm.Value, activeItem), ent.Owner);
-            args.Handled = true;
-            return;
-        }
-
-        // Try to activate first item
-        if (TryGetFirstAvailableItem(cyberArm.Value, out var firstItem, out var firstModule))
-        {
-            SetActiveItem((cyberArm.Value, activeItem), firstItem.Value, firstModule, ent.Owner);
+            UpdateUIState(cyberArm.Value, activeItem);
             args.Handled = true;
         }
     }
@@ -144,21 +163,29 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
 
     /// <summary>
     /// Handles use key press on a cyber arm.
-    /// If the hand has a virtual item, cycles to the next item.
+    /// If the hand has a virtual item, open the radial menu to select a different item.
     /// </summary>
     private void OnUseInHand(Entity<CyberArmActiveItemComponent> ent, ref UseInHandEvent args)
     {
-        // If there's a virtual item, cycle to next item
+        // Block if player is cuffed
+        if (TryComp<CuffableComponent>(args.User, out var cuffable) && _cuffable.IsCuffed((args.User, cuffable)))
+            return;
+
+        // If there's a virtual item, open the menu to select a different item
         if (ent.Comp.VirtualItem != null)
         {
-            CycleToNextItem(ent, args.User);
-            args.Handled = true;
+            if (_uiSystem.TryOpenUi(ent.Owner, CyberArmRadialMenuUiKey.Key, args.User))
+            {
+                UpdateUIState(ent.Owner, ent.Comp);
+                args.Handled = true;
+            }
         }
     }
 
     /// <summary>
     /// Intercepts ActivateInWorldEvent to prevent normal use interactions when the item is from a cyber arm.
     /// This prevents items like bottles from being drunk when used, only when clicking on self.
+    /// Also handles UseInHandEvent by checking if the real item is being used via a cyber arm virtual item.
     /// </summary>
     private void OnActivateInWorld(Entity<CyberArmActiveItemComponent> ent, ref ActivateInWorldEvent args)
     {
@@ -177,6 +204,39 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
         // The item can still be used for interactions (clicking on things), but not self-use
         args.Handled = true;
     }
+
+    /// <summary>
+    /// Intercepts UseInHandEvent on all entities to prevent self-use when used via cyber arm virtual items.
+    /// This prevents items like food from being eaten when pressing use, but allows clicking on self.
+    /// </summary>
+    private void OnAnyItemUseInHand(ref UseInHandEvent args)
+    {
+        // Check if the user is holding a virtual item
+        if (!TryComp<HandsComponent>(args.User, out var hands) || hands.ActiveHandEntity == null)
+            return;
+
+        if (!TryComp<VirtualItemComponent>(hands.ActiveHandEntity, out var virtualItem))
+            return;
+
+        // Check if this virtual item belongs to a cyber arm
+        var query = EntityQueryEnumerator<CyberArmActiveItemComponent>();
+        while (query.MoveNext(out var cyberArmUid, out var activeItem))
+        {
+            if (activeItem.ActiveItem == virtualItem.BlockingEntity && activeItem.VirtualItem == hands.ActiveHandEntity)
+            {
+                // This is a cyber arm item being used - prevent self-use
+                // The item can still be used for interactions (clicking on things), but not self-use
+                // Note: The event is raised on the real item (via GetUsedEntityEvent resolution),
+                // so we need to check if the real item matches the blocking entity
+                // We can't directly check which entity the event is raised on in this handler,
+                // but we can check if the user is holding a cyber arm virtual item and prevent all UseInHandEvents
+                // This is safe because the virtual item system will still allow interactions via GetUsedEntityEvent
+                args.Handled = true;
+                return;
+            }
+        }
+    }
+
 
     /// <summary>
     /// When an item is removed from storage, clear the active item if it was removed.
@@ -331,8 +391,20 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
                 _hands.DoPickup(user, hand, virtualItem.Value);
                 cyberArm.Comp.VirtualItem = virtualItem.Value;
                 Dirty(cyberArm);
+                
+                // Auto-wield guns that require 2 hands
+                if (TryComp<WieldableComponent>(item, out var wieldable) && 
+                    !wieldable.Wielded && 
+                    wieldable.FreeHandsRequired > 0)
+                {
+                    // Try to wield the real item (not the virtual item)
+                    _wieldable.TryWield(item, wieldable, user);
+                }
             }
         }
+
+        // Update UI state
+        UpdateUIState(cyberArm.Owner, cyberArm.Comp);
     }
 
     /// <summary>
@@ -388,6 +460,9 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
         cyberArm.Comp.ActiveItemModule = null;
         cyberArm.Comp.VirtualItem = null;
         Dirty(cyberArm);
+
+        // Update UI state
+        UpdateUIState(cyberArm.Owner, cyberArm.Comp);
     }
 
     /// <summary>
@@ -442,8 +517,141 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
                 if (TryComp<BodyPartComponent>(cyberArmUid, out var part) && part.Body != null)
                 {
                     ClearActiveItem((cyberArmUid, activeItem), part.Body.Value);
+                    UpdateUIState(cyberArmUid, activeItem);
                 }
                 return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles UI open attempt - ensures the UI can only be opened by the owner of the cyber arm and not when cuffed.
+    /// </summary>
+    private void OnUIOpenAttempt(Entity<CyberArmActiveItemComponent> ent, ref ActivatableUIOpenAttemptEvent args)
+    {
+        // Block if player is cuffed
+        if (TryComp<CuffableComponent>(args.User, out var cuffable) && _cuffable.IsCuffed((args.User, cuffable)))
+        {
+            args.Cancelled = true;
+            return;
+        }
+
+        // Allow opening if the user owns the body that contains this cyber arm
+        if (TryComp<BodyPartComponent>(ent.Owner, out var part) && part.Body == args.User)
+            return;
+
+        args.Cancelled = true;
+    }
+
+    /// <summary>
+    /// Handles item selection message from the UI.
+    /// </summary>
+    private void OnSelectItemMessage(Entity<CyberArmActiveItemComponent> ent, ref CyberArmSelectItemMessage args)
+    {
+        // Find the user (owner of the cyber arm)
+        if (!TryComp<BodyPartComponent>(ent.Owner, out var part) || part.Body == null)
+            return;
+
+        // Block if player is cuffed
+        if (TryComp<CuffableComponent>(part.Body.Value, out var cuffable) && _cuffable.IsCuffed((part.Body.Value, cuffable)))
+            return;
+
+        var item = GetEntity(args.Item);
+        
+        // Verify the item is actually in this cyber arm's storage
+        var availableItems = GetAvailableItems(ent.Owner);
+        EntityUid? module = null;
+        bool found = false;
+        
+        foreach (var (availableItem, availableModule) in availableItems)
+        {
+            if (availableItem == item)
+            {
+                module = availableModule;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            return;
+
+        SetActiveItem(ent, item, module, part.Body.Value);
+        UpdateUIState(ent.Owner, ent.Comp);
+    }
+
+    /// <summary>
+    /// Handles "open hand" message from the UI.
+    /// </summary>
+    private void OnOpenHandMessage(Entity<CyberArmActiveItemComponent> ent, ref CyberArmOpenHandMessage args)
+    {
+        // Find the user (owner of the cyber arm)
+        if (!TryComp<BodyPartComponent>(ent.Owner, out var part) || part.Body == null)
+            return;
+
+        // Block if player is cuffed
+        if (TryComp<CuffableComponent>(part.Body.Value, out var cuffable) && _cuffable.IsCuffed((part.Body.Value, cuffable)))
+            return;
+
+        ClearActiveItem(ent, part.Body.Value);
+        UpdateUIState(ent.Owner, ent.Comp);
+    }
+
+    /// <summary>
+    /// Updates the UI state with current available items.
+    /// </summary>
+    private void UpdateUIState(EntityUid cyberArm, CyberArmActiveItemComponent component)
+    {
+        var availableItems = GetAvailableItems(cyberArm);
+        var itemDataList = new List<CyberArmItemData>();
+
+        foreach (var (item, _) in availableItems)
+        {
+            var itemName = Identity.Name(item, EntityManager);
+            string? spritePath = null;
+
+            // Try to get sprite path from ItemComponent
+            if (TryComp<ItemComponent>(item, out var itemComp) && itemComp.RsiPath != null)
+            {
+                spritePath = itemComp.RsiPath.ToString();
+            }
+
+            itemDataList.Add(new CyberArmItemData(
+                GetNetEntity(item),
+                itemName,
+                spritePath
+            ));
+        }
+
+        var activeItemNet = component.ActiveItem != null ? GetNetEntity(component.ActiveItem.Value) : null;
+        var state = new CyberArmRadialMenuState(itemDataList, activeItemNet);
+        _uiSystem.SetUiState(cyberArm, CyberArmRadialMenuUiKey.Key, state);
+    }
+
+    /// <summary>
+    /// Clears active item when player is cuffed.
+    /// </summary>
+    private void OnCuffsAdded(Entity<CuffableComponent> ent, ref EntInsertedIntoContainerMessage args)
+    {
+        // Check if this is the cuff container (all cuffs go into this container)
+        if (args.Container.ID != ent.Comp.Container.ID)
+            return;
+
+        // Check if the entity being inserted is actually a cuff (has HandcuffComponent)
+        // This covers handcuffs, zipties, improvised cuffs, etc.
+        if (!HasComp<HandcuffComponent>(args.Entity))
+            return;
+
+        // Find all cyber arms belonging to this entity and clear their active items
+        if (!TryComp<BodyComponent>(ent.Owner, out var body))
+            return;
+
+        var arms = _body.GetBodyChildrenOfType(ent.Owner, BodyPartType.Arm, body);
+        foreach (var (armUid, _) in arms)
+        {
+            if (TryComp<CyberArmActiveItemComponent>(armUid, out var activeItem) && activeItem.ActiveItem != null)
+            {
+                ClearActiveItem((armUid, activeItem), ent.Owner);
             }
         }
     }

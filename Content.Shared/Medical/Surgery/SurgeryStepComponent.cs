@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 using Content.Shared.Body.Part;
+using Content.Shared.Medical.Surgery.Operations;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 
@@ -83,6 +84,14 @@ public sealed partial class SurgeryStepComponent : Component
     /// </summary>
     [DataField]
     public string? TargetOrganSlot;
+
+    /// <summary>
+    /// Optional reference to a surgery operation prototype.
+    /// If set, this step will use operation-based tool validation with primary and secondary methods.
+    /// If null, the step uses the legacy Tool field for backward compatibility.
+    /// </summary>
+    [DataField]
+    public ProtoId<SurgeryOperationPrototype>? OperationId;
 }
 
 /// <summary>

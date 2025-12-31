@@ -333,7 +333,7 @@ public abstract class SharedImplanterSystem : EntitySystem
         ChangeOnImplantVisualizer(uid, component);
     }
 
-    private void ChangeOnImplantVisualizer(EntityUid uid, ImplanterComponent component)
+    protected void ChangeOnImplantVisualizer(EntityUid uid, ImplanterComponent component)
     {
         if (!TryComp<AppearanceComponent>(uid, out var appearance))
             return;

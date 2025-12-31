@@ -102,6 +102,7 @@
   components:
   - type: SurgeryStep
     layer: Tissue
+    operationId: RetractTissue
     requirements:
       requiresSkinRetracted: true
     duration: 2.5
@@ -115,6 +116,7 @@
   components:
   - type: SurgeryStep
     layer: Tissue
+    operationId: BoneRemoval
     validPartTypes:
       - Torso
     requirements:
@@ -126,11 +128,12 @@
 - type: entity
   parent: SurgeryStepBase
   id: SurgeryStepSawSkull
-  name: Saw Through Skull
+  name: Cut Skull Opening
   categories: [ HideSpawnMenu ]
   components:
   - type: SurgeryStep
     layer: Tissue
+    operationId: BoneRemoval
     validPartTypes:
       - Head
     requirements:
@@ -161,24 +164,9 @@
   components:
   - type: SurgeryStep
     layer: Tissue
+    operationId: BoneRemoval
     validPartTypes:
       - Torso
-    requirements:
-      requiresSkinRetracted: true
-      requiresTissueRetracted: true
-    duration: 4.0
-
-# Smash skull (head) - crude surgery, requires tissue retracted
-- type: entity
-  parent: SurgeryStepBase
-  id: SurgeryStepSmashSkull
-  name: Smash Skull [Crude]
-  categories: [ HideSpawnMenu ]
-  components:
-  - type: SurgeryStep
-    layer: Tissue
-    validPartTypes:
-      - Head
     requirements:
       requiresSkinRetracted: true
       requiresTissueRetracted: true
@@ -252,6 +240,7 @@
   components:
   - type: SurgeryStep
     layer: Organ
+    operationId: ClampBloodVessels
     requirements:
       requiresSkinRetracted: true
       requiresTissueRetracted: true
@@ -267,6 +256,7 @@
   components:
   - type: SurgeryStep
     layer: Organ
+    operationId: SeverBloodVessels
     requirements:
       requiresSkinRetracted: true
       requiresTissueRetracted: true
@@ -282,6 +272,7 @@
   components:
   - type: SurgeryStep
     layer: Organ
+    operationId: RemoveOrgan
     requirements:
       requiresSkinRetracted: true
       requiresTissueRetracted: true

@@ -35,5 +35,12 @@ public sealed partial class CyberArmActiveItemComponent : Component
     /// </summary>
     [DataField, ViewVariables, AutoNetworkedField]
     public EntityUid? VirtualItem;
+
+    /// <summary>
+    /// The last time the firearm handler checked this cyber arm's active firearm.
+    /// Used to throttle firearm operations to every 0.5 seconds.
+    /// </summary>
+    [ViewVariables]
+    public TimeSpan? LastFirearmCheckTime;
 }
 

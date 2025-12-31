@@ -56,3 +56,19 @@
     - type: CyberLimbCapacitorModule
       efficiencyModifier: 1.2
 
+- type: entity
+  id: CyberLimbAutoReloadModule
+  name: Auto Reload Cyberlimb Module
+  description: When implanted into a cybernetic, automatically reloads any implanted weapon with ammunition stored in this implant.
+  components:
+    - type: Item
+      size:
+        - 2
+        - 1
+    - type: CyberLimbAutoReloadModule
+    - type: Sprite
+      sprite: Objects/Specific/Robotics/borgmodule.rsi
+      layers:
+        - state: syndicate
+        - state: icon-syndicate
+

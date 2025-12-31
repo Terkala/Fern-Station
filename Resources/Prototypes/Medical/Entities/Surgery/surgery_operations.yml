@@ -1,0 +1,177 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Surgery Operation Prototypes
+# Define operation types with primary tools and optional secondary improvised methods
+
+- type: surgeryOperation
+  id: BoneRemoval
+  name: Bone Removal
+  primaryTools:
+    - type: BoneSaw
+    - type: CircularSaw
+    - type: Choppa
+    - type: AdvancedSurgicalSaw
+    - type: Drill
+  secondaryMethod:
+    type: Bashing
+    evaluator: CheckBluntDamage
+    integrityCost: 4
+    repairOperation: MendBones
+
+- type: surgeryOperation
+  id: MendBones
+  name: Mend Bones
+  repairOperationFor: BoneRemoval
+  primaryTools:
+    - type: BoneGel
+  repairIntegrityCost: 4
+
+- type: surgeryOperation
+  id: CutTissue
+  name: Cut Tissue
+  primaryTools:
+    - type: Scalpel
+    - type: LaserScalpel
+  secondaryMethod:
+    type: Slashing
+    evaluator: CheckSlashDamage
+    integrityCost: 0.5
+    repairOperation: RepairTissueCut
+
+- type: surgeryOperation
+  id: RepairTissueCut
+  name: Repair Tissue Damage
+  repairOperationFor: CutTissue
+  primaryTools:
+    - type: Cautery
+    - type: LaserScalpel
+  repairIntegrityCost: 0.5
+
+- type: surgeryOperation
+  id: ClampBloodVessels
+  name: Clamp Blood Vessels
+  primaryTools:
+    - type: Hemostat
+    - type: AdvancedRetractor  # Mechanical pinches also work as hemostat
+  secondaryMethod:
+    type: MultiEvaluator
+    evaluator: CheckMultiEvaluator
+    evaluators:
+      - evaluator: CheckToolList
+        tools:
+          - type: Wirecutters
+      - evaluator: CheckHeatDamage
+    integrityCost: 0.2
+    repairOperation: ProperlyClampBleeders
+
+- type: surgeryOperation
+  id: ProperlyClampBleeders
+  name: Properly Clamp Bleeders
+  repairOperationFor: ClampBloodVessels
+  primaryTools:
+    - type: Hemostat
+    - type: AdvancedRetractor  # Mechanical pinches also work as hemostat
+  repairIntegrityCost: 0.2
+
+- type: surgeryOperation
+  id: RetractTissue
+  name: Retract Tissue
+  primaryTools:
+    - type: Retractor
+    - type: AdvancedRetractor  # Mechanical pinches also work as retractor
+  secondaryMethod:
+    type: Prying
+    evaluator: CheckToolList
+    tools:
+      - type: Prying
+    integrityCost: 0.5
+    repairOperation: ProperlyRetractTissue
+
+- type: surgeryOperation
+  id: ProperlyRetractTissue
+  name: Properly Retract Tissue
+  repairOperationFor: RetractTissue
+  primaryTools:
+    - type: Retractor
+    - type: AdvancedRetractor  
+  repairIntegrityCost: 0.5
+
+- type: surgeryOperation
+  id: CauterizeWounds
+  name: Cauterize Wounds
+  primaryTools:
+    - type: Cautery
+    - type: LaserScalpel
+  secondaryMethod:
+    type: Heat
+    evaluator: CheckHeatDamage
+    integrityCost: 1
+    repairOperation: ProperlyCauterize
+
+- type: surgeryOperation
+  id: ProperlyCauterize
+  name: Properly Cauterize
+  repairOperationFor: CauterizeWounds
+  primaryTools:
+    - type: Cautery
+    - type: LaserScalpel
+  repairIntegrityCost: 1
+
+- type: surgeryOperation
+  id: RemoveOrgan
+  name: Remove Organ
+  primaryTools:
+    - type: Tweezers
+    - type: AdvancedRetractor  # Mechanical pinches also work as tweezers
+  secondaryMethod:
+    type: Prying
+    evaluator: CheckToolList
+    tools:
+      - type: Prying
+
+- type: surgeryOperation
+  id: InsertOrgan
+  name: Insert Organ
+  # Only requires the organ item itself as the tool
+  primaryTools: []
+
+- type: surgeryOperation
+  id: InsertLimb
+  name: Insert Limb
+  # Only requires the body part item itself as the tool
+  primaryTools: []
+
+- type: surgeryOperation
+  id: SeverBloodVessels
+  name: Sever Blood Vessels
+  primaryTools:
+    - type: Cautery
+    - type: LaserScalpel
+  secondaryMethod:
+    type: Slashing
+    evaluator: CheckSlashDamage
+    integrityCost: 0.5
+    repairOperation: MendBloodVessels
+
+- type: surgeryOperation
+  id: MendBloodVessels
+  name: Mend Blood Vessels
+  repairOperationFor: SeverBloodVessels
+  primaryTools:
+    - type: Tweezers
+    - type: AdvancedRetractor  # Mechanical pinches also work as tweezers
+  repairIntegrityCost: 0.5
+
+- type: surgeryOperation
+  id: RemoveLimb
+  name: Remove Limb
+  primaryTools:
+    - type: BoneSaw
+    - type: AdvancedSurgicalSaw
+    - type: CircularSaw
+    - type: Choppa
+  secondaryMethod:
+    type: Slashing
+    evaluator: CheckSlashDamage
