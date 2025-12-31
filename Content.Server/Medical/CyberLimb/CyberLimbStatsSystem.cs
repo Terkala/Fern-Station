@@ -3,11 +3,13 @@
 // SPDX-License-Identifier: MIT
 
 using Content.Shared.Body.Components;
+using Content.Shared.Body.Part;
 using Content.Shared.Body.Systems;
 using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Medical.CyberLimb.Modules;
 using Content.Shared.Medical.Integrity;
 using Content.Shared._Shitmed.Cybernetics;
+using Robust.Shared.Containers;
 using Robust.Shared.Timing;
 
 namespace Content.Server.Medical.CyberLimb;
@@ -19,8 +21,7 @@ namespace Content.Server.Medical.CyberLimb;
 /// </summary>
 public sealed class CyberLimbStatsSystem : EntitySystem
 {
-    [Dependency] private readonly BodySystem _body = default!;
-    [Dependency] private readonly CyberLimbStorageSystem _storage = default!;
+    [Dependency] private readonly SharedBodySystem _body = default!;
     [Dependency] private readonly CyberLimbLowPowerModeSystem _lowPowerMode = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
 
@@ -33,10 +34,8 @@ public sealed class CyberLimbStatsSystem : EntitySystem
     {
         base.Initialize();
 
-        SubscribeLocalEvent<CyberLimbStorageComponent, ComponentStartup>(OnCyberLimbStartup);
-        SubscribeLocalEvent<CyberLimbStorageComponent, EntInsertedIntoContainerMessage>(OnLimbStorageChanged);
-        SubscribeLocalEvent<CyberLimbStorageComponent, EntRemovedFromContainerMessage>(OnLimbStorageChanged);
-        SubscribeLocalEvent<BodyComponent, ComponentStartup>(OnBodyStartup);
+        // Note: ComponentStartup and container event subscriptions moved to CyberLimbStorageSystem to avoid duplicates
+        // BodyComponent ComponentStartup subscription removed to avoid duplicates with IntegritySystem and LimbCapabilitiesSystem
     }
 
     public override void Update(float frameTime)
@@ -97,7 +96,10 @@ public sealed class CyberLimbStatsSystem : EntitySystem
         }
     }
 
-    private void OnCyberLimbStartup(EntityUid uid, CyberLimbStorageComponent component, ComponentStartup args)
+    /// <summary>
+    /// Called by CyberLimbStorageSystem when a cyber limb storage component starts up.
+    /// </summary>
+    public void OnCyberLimbStartup(EntityUid uid, CyberLimbStorageComponent component)
     {
         // Initialize service time for this limb when component is first added
         RecalculateLimbServiceTime(uid, component);
@@ -105,38 +107,32 @@ public sealed class CyberLimbStatsSystem : EntitySystem
         // Update next expiration time when a new cyber-limb is added
         if (TryComp<BodyPartComponent>(uid, out var part) && part.Body != null)
         {
-            UpdateNextServiceTimeExpiration(part.Body.Value);
+            var body = part.Body.Value;
+            
+            // Initialize stats component on body if not present (lazy initialization)
+            if (!HasComp<CyberLimbStatsComponent>(body))
+            {
+                var stats = EnsureComp<CyberLimbStatsComponent>(body);
+                stats.NeedsRecalculation = true;
+                Dirty(body, stats);
+            }
             
             // Ensure low power mode component exists on the body
-            if (!HasComp<CyberLimbLowPowerModeComponent>(part.Body.Value))
+            if (!HasComp<CyberLimbLowPowerModeComponent>(body))
             {
-                var lowPower = EnsureComp<CyberLimbLowPowerModeComponent>(part.Body.Value);
+                var lowPower = EnsureComp<CyberLimbLowPowerModeComponent>(body);
                 lowPower.LastActivityTime = _timing.CurTime; // Start as active
-                Dirty(part.Body.Value, lowPower);
+                Dirty(body, lowPower);
             }
+            
+            UpdateNextServiceTimeExpiration(body);
         }
     }
 
-    private void OnBodyStartup(EntityUid uid, BodyComponent component, ComponentStartup args)
-    {
-        // Initialize stats component if not present
-        if (!HasComp<CyberLimbStatsComponent>(uid))
-        {
-            var stats = EnsureComp<CyberLimbStatsComponent>(uid);
-            stats.NeedsRecalculation = true;
-            Dirty(uid, stats);
-        }
-
-        // Initialize low power mode component if not present
-        if (!HasComp<CyberLimbLowPowerModeComponent>(uid))
-        {
-            var lowPower = EnsureComp<CyberLimbLowPowerModeComponent>(uid);
-            lowPower.LastActivityTime = _timing.CurTime; // Start as active
-            Dirty(uid, lowPower);
-        }
-    }
-
-    private void OnLimbStorageChanged(EntityUid uid, CyberLimbStorageComponent component, ref EntInsertedIntoContainerMessage args)
+    /// <summary>
+    /// Called by CyberLimbStorageSystem when storage changes.
+    /// </summary>
+    public void OnLimbStorageChanged(EntityUid uid, CyberLimbStorageComponent component, ref EntInsertedIntoContainerMessage args)
     {
         // When a cyber limb's storage changes:
         // 1. Recalculate body's battery stats
@@ -154,7 +150,10 @@ public sealed class CyberLimbStatsSystem : EntitySystem
         RecalculateLimbServiceTime(uid, component);
     }
 
-    private void OnLimbStorageChanged(EntityUid uid, CyberLimbStorageComponent component, ref EntRemovedFromContainerMessage args)
+    /// <summary>
+    /// Called by CyberLimbStorageSystem when storage changes.
+    /// </summary>
+    public void OnLimbStorageChanged(EntityUid uid, CyberLimbStorageComponent component, ref EntRemovedFromContainerMessage args)
     {
         // When a cyber limb's storage changes:
         // 1. Recalculate body's battery stats
@@ -172,7 +171,7 @@ public sealed class CyberLimbStatsSystem : EntitySystem
         RecalculateLimbServiceTime(uid, component);
         
         // Update next expiration time when limb storage changes
-        if (TryComp<BodyPartComponent>(uid, out var part) && part.Body != null)
+        if (part != null && part.Body != null)
         {
             UpdateNextServiceTimeExpiration(part.Body.Value);
         }
@@ -188,7 +187,7 @@ public sealed class CyberLimbStatsSystem : EntitySystem
         float totalBattery = 0f;
 
         // Find all cyber limbs
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             // Check if this is a cyber limb (has CyberneticsComponent)
@@ -342,7 +341,7 @@ public sealed class CyberLimbStatsSystem : EntitySystem
         var curTime = _timing.CurTime;
 
         // Find the earliest service time expiration from all cyber-limbs
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             // Check if this is a cyber limb
@@ -382,7 +381,7 @@ public sealed class CyberLimbStatsSystem : EntitySystem
         if (!TryComp<BodyComponent>(body, out var bodyComp))
             return;
 
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             // Check if this is a cyber limb
@@ -419,7 +418,7 @@ public sealed class CyberLimbStatsSystem : EntitySystem
         if (!TryComp<CyberLimbStatsComponent>(body, out var stats))
             return;
 
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             // Check if this is a cyber limb

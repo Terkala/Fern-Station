@@ -24,7 +24,7 @@ public sealed class SurgeryBui : BoundUserInterface
 
     private readonly SurgerySystem _system;
     [ViewVariables]
-    private SurgeryWindow? _window;
+    private ShitmedSurgeryWindow? _window;
     private EntityUid? _part;
     private bool _isBody;
     private (EntityUid Ent, EntProtoId Proto)? _surgery;
@@ -63,7 +63,7 @@ public sealed class SurgeryBui : BoundUserInterface
 
         if (_window == null)
         {
-            _window = new SurgeryWindow();
+            _window = new ShitmedSurgeryWindow();
             _window.OnClose += Close;
             _window.Title = Loc.GetString("surgery-ui-window-title");
 
@@ -216,7 +216,7 @@ public sealed class SurgeryBui : BoundUserInterface
 
             var msg = new FormattedMessage();
             var surgeryName = _entities.GetComponent<MetaDataComponent>(requirement).EntityName;
-            msg.AddMarkup($"[bold]{Loc.GetString("surgery-ui-window-require")}: {surgeryName}[/bold]");
+            msg.AddMarkupOrThrow($"[bold]{Loc.GetString("surgery-ui-window-require")}: {surgeryName}[/bold]");
             label.Set(msg, null);
 
             _window.Steps.AddChild(label);

@@ -39,7 +39,7 @@ public sealed partial class AddPrednisoneEffect : EntityEffect
         var durationSeconds = DurationPerUnit * (float)quantity;
 
         // Get or create component
-        var component = EnsureComp<PrednisoneComponent>(args.TargetEntity);
+        var component = args.EntityManager.EnsureComponent<PrednisoneComponent>(args.TargetEntity);
         
         // If component already exists, take the maximum bonus
         if (component.IntegrityBonus < integrityBonus)
@@ -51,7 +51,7 @@ public sealed partial class AddPrednisoneEffect : EntityEffect
         // Duration is stored as seconds remaining, server will convert to expiration time
         component.Duration += durationSeconds;
 
-        Dirty(args.TargetEntity, component);
+        args.EntityManager.Dirty(args.TargetEntity, component);
     }
 
     protected override string? ReagentEffectGuidebookText(IPrototypeManager prototype, IEntitySystemManager entSys)

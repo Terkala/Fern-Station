@@ -13,6 +13,7 @@ namespace Content.Shared._Shitmed.Medical.Surgery.Conditions;
 //   What components are necessary in the targeted body part for the surgery to be valid.
 // </summary>
 [RegisterComponent, NetworkedComponent]
+[ComponentProtoName("ShitmedSurgeryPartComponentCondition")]
 public sealed partial class SurgeryPartComponentConditionComponent : Component
 {
     // <summary>

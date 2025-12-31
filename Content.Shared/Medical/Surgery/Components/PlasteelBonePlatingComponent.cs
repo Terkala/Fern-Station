@@ -10,7 +10,7 @@ namespace Content.Shared.Medical.Surgery.Components;
 /// Component that tracks plasteel bone plating on a body part.
 /// Provides damage resistance when applied.
 /// </summary>
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
+[RegisterComponent, NetworkedComponent]
 public sealed partial class PlasteelBonePlatingComponent : Component
 {
 }

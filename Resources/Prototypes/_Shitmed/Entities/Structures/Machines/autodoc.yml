@@ -14,7 +14,7 @@
 
 - type: entity
   parent: [ConstructibleMachine, BaseMachinePowered]
-  id: Autodoc
+  id: ShitmedAutodoc
   name: Autodoc Mk.XIV
   description: A programmable robotic surgeon capable of automatically operating on patients.
   components:
@@ -86,7 +86,7 @@
   - type: ActivatableUI
     key: enum.AutodocUiKey.Key
   - type: ActivatableUIRequiresPower
-  - type: Autodoc
+  - type: ShitmedAutodoc
   - type: Sanitized # DeltaV
   - type: SurgerySelfDirty # DeltaV
   - type: DoAfter # Required for it to do surgery
@@ -106,7 +106,7 @@
   - type: SurgeryCleansDirt # Required for it to clean it's surgical tools.
 
 - type: entity
-  parent: Autodoc
+  parent: ShitmedAutodoc
   id: AutodocSyndie
   # TODO: make it valid
   suffix: Syndie

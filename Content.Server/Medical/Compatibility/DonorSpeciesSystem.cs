@@ -8,6 +8,7 @@ using Content.Shared.Body.Organ;
 using Content.Shared.Body.Part;
 using Content.Shared.Medical.Compatibility;
 using Content.Shared.Medical.Surgery;
+using Content.Server.Mindshield;
 
 namespace Content.Server.Medical.Compatibility;
 
@@ -18,18 +19,20 @@ namespace Content.Server.Medical.Compatibility;
 public sealed class DonorSpeciesSystem : EntitySystem
 {
     [Dependency] private readonly SharedSurgerySystem _surgery = default!;
+    [Dependency] private readonly MindShieldSystem _mindShield = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
+        // Centralized subscriptions to avoid duplicates with MindShieldSystem and SharedBodySystem
         // Subscribe to organ/limb addition events to set donor species when first added
         SubscribeLocalEvent<OrganComponent, OrganAddedToBodyEvent>(OnOrganAdded);
-        SubscribeLocalEvent<BodyComponent, BodyPartAddedEvent>(OnLimbAdded);
+        // Note: BodyPartAddedEvent subscription moved to BodySystem to avoid duplicates
         
         // Subscribe to organ/limb removal events to track donor species
         SubscribeLocalEvent<OrganComponent, OrganRemovedFromBodyEvent>(OnOrganRemoved);
-        SubscribeLocalEvent<BodyComponent, BodyPartRemovedEvent>(OnLimbRemoved);
+        // Note: BodyPartRemovedEvent subscription moved to BodySystem to avoid duplicates
     }
 
     private void OnOrganAdded(EntityUid uid, OrganComponent component, ref OrganAddedToBodyEvent args)
@@ -46,9 +49,15 @@ public sealed class DonorSpeciesSystem : EntitySystem
                 Dirty(uid, donorSpecies);
             }
         }
+
+        // Dispatch to MindShieldSystem for mindshield organ handling
+        _mindShield.OnMindShieldOrganAdded(uid, component, ref args);
     }
 
-    private void OnLimbAdded(EntityUid uid, BodyComponent component, ref BodyPartAddedEvent args)
+    /// <summary>
+    /// Called by BodySystem when a limb is added to a body.
+    /// </summary>
+    public void OnLimbAdded(EntityUid uid, BodyComponent component, ref BodyPartAddedEvent args)
     {
         // Set donor species when limb is first added to a body
         // This handles limbs spawned as part of body initialization
@@ -78,9 +87,15 @@ public sealed class DonorSpeciesSystem : EntitySystem
                 Dirty(uid, donorSpecies);
             }
         }
+
+        // Dispatch to MindShieldSystem for mindshield organ handling
+        _mindShield.OnMindShieldOrganRemoved(uid, component, ref args);
     }
 
-    private void OnLimbRemoved(EntityUid uid, BodyComponent component, ref BodyPartRemovedEvent args)
+    /// <summary>
+    /// Called by BodySystem when a limb is removed from a body.
+    /// </summary>
+    public void OnLimbRemoved(EntityUid uid, BodyComponent component, ref BodyPartRemovedEvent args)
     {
         // Set donor species on the removed limb
         var donorSpecies = EnsureComp<DonorSpeciesComponent>(args.Part);

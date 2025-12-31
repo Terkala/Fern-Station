@@ -5,8 +5,10 @@
 using Content.Server.Atmos.EntitySystems;
 using Content.Server.Chemistry.Containers.EntitySystems;
 using Content.Server.Fluids.Components;
+using Content.Shared.Atmos;
 using Content.Shared.BloodCult;
 using Content.Shared.Chemistry.Components;
+using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.FixedPoint;
 using Content.Shared.Fluids.Components;
 using Content.Shared.Forensics.Components;
@@ -29,12 +31,12 @@ public sealed class RoomCleanlinessSystem : EntitySystem
     [Dependency] private readonly AtmosphereSystem _atmosphereSystem = default!;
     [Dependency] private readonly MapSystem _mapSystem = default!;
     [Dependency] private readonly EntityLookupSystem _entityLookup = default!;
-    [Dependency] private readonly SolutionContainerSystem _solutionContainer = default!;
+    [Dependency] private readonly SharedSolutionContainerSystem _solutionContainer = default!;
     [Dependency] private readonly TransformSystem _transform = default!;
     [Dependency] private readonly SharedIntegritySystem _integrity = default!;
 
     private const float CheckRadius = 3.0f; // 3 tile radius
-    private const FixedPoint2 PatientBloodAllowance = FixedPoint2.New(20); // 20 units of patient's own blood allowed
+    private static readonly FixedPoint2 PatientBloodAllowance = FixedPoint2.New(20); // 20 units of patient's own blood allowed
 
     /// <summary>
     /// Calculates the unsanitary conditions penalty for a patient at a given location.
@@ -43,8 +45,7 @@ public sealed class RoomCleanlinessSystem : EntitySystem
     /// </summary>
     public FixedPoint2 CalculateUnsanitaryPenalty(EntityUid patient, EntityCoordinates coordinates)
     {
-        if (!TryComp<TransformComponent>(patient, out var patientXform))
-            return FixedPoint2.Zero;
+        var patientXform = Transform(patient);
 
         // Get bed quality if patient is on a bed
         float bedQualityMultiplier = 1.0f;
@@ -230,9 +231,7 @@ public sealed class RoomCleanlinessSystem : EntitySystem
     /// </summary>
     public void UpdateUnsanitaryPenalty(EntityUid patient)
     {
-        if (!TryComp<TransformComponent>(patient, out var xform))
-            return;
-
+        var xform = Transform(patient);
         var penalty = CalculateUnsanitaryPenalty(patient, xform.Coordinates);
         var unsanitary = EnsureComp<UnsanitaryConditionsComponent>(patient);
         

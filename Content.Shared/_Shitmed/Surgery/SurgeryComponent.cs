@@ -9,15 +9,16 @@ using Robust.Shared.Prototypes;
 namespace Content.Shared._Shitmed.Medical.Surgery;
 
 [RegisterComponent, NetworkedComponent]
+[ComponentProtoName("ShitmedSurgery")]
 [Prototype("Surgeries")]
 public sealed partial class SurgeryComponent : Component
 {
-    [DataField, AutoNetworkedField]
+    [DataField]
     public int Priority;
 
-    [DataField, AutoNetworkedField]
+    [DataField]
     public EntProtoId? Requirement;
 
-    [DataField(required: true), AutoNetworkedField]
+    [DataField(required: true)]
     public List<EntProtoId> Steps = new();
 }

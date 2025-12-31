@@ -15,7 +15,7 @@ namespace Content.Shared._Shitmed.Autodoc.Components;
 /// <summary>
 /// God component for autodoc.
 /// </summary>
-[RegisterComponent, NetworkedComponent, Access(typeof(SharedAutodocSystem))]
+[RegisterComponent, NetworkedComponent, ComponentProtoName("ShitmedAutodoc"), Access(typeof(SharedAutodocSystem))]
 public sealed partial class AutodocComponent : Component
 {
     [DataField]
@@ -25,17 +25,17 @@ public sealed partial class AutodocComponent : Component
     /// The linked operating table.
     /// Autodocs require a linked operating table to be used.
     /// </summary>
-    [DataField, AutoNetworkedField]
+    [DataField]
     public EntityUid? OperatingTable;
 
-    [DataField, AutoNetworkedField]
+    [DataField]
     public List<AutodocProgram> Programs = new();
 
     /// <summary>
     /// Requires that the patient be asleep for forced vulnerability.
     /// Can be disabled to operate on awake patients.
     /// </summary>
-    [DataField, AutoNetworkedField]
+    [DataField]
     public bool RequireSleeping = true;
 
     /// <summary>

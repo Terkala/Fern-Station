@@ -15,6 +15,7 @@ namespace Content.Shared._Shitmed.Medical.Surgery.Conditions;
 //   Not all components need to be present (or missing for Inverse = true). At least one component matching (or missing) can make the surgery valid.
 // </summary>
 [RegisterComponent, NetworkedComponent]
+[ComponentProtoName("ShitmedSurgeryOrganOnAddCondition")]
 public sealed partial class SurgeryOrganOnAddConditionComponent : Component
 {
     // <summary>

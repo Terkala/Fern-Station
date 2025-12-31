@@ -21,7 +21,7 @@ using Robust.Shared.Timing;
 namespace Content.Client._Shitmed.Autodoc;
 
 [GenerateTypedNameReferences]
-public sealed partial class AutodocWindow : FancyWindow
+public sealed partial class ShitmedAutodocWindow : FancyWindow
 {
     private IEntityManager _entMan;
     private IPlayerManager _player;
@@ -43,7 +43,7 @@ public sealed partial class AutodocWindow : FancyWindow
     private DialogWindow? _dialog;
     private AutodocProgramWindow? _currentProgram;
 
-    public AutodocWindow(EntityUid owner, IEntityManager entMan, IPlayerManager player)
+    public ShitmedAutodocWindow(EntityUid owner, IEntityManager entMan, IPlayerManager player)
     {
         RobustXamlLoader.Load(this);
 

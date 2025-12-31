@@ -10,7 +10,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Content.Shared._Shitmed.Medical.Surgery.Effects.Step;
 
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
+[RegisterComponent, NetworkedComponent, ComponentProtoName("ShitmedSurgeryStepSpawnEffect"), AutoGenerateComponentState]
 public sealed partial class SurgeryStepSpawnEffectComponent : Component
 {
     [DataField(required: true), AutoNetworkedField]

@@ -6,8 +6,11 @@ using Content.Server.Body.Systems;
 using Content.Shared.Body.Components;
 using Content.Shared.Body.Organ;
 using Content.Shared.Body.Part;
+using Content.Shared.Body.Systems;
 using Content.Shared.Medical.Surgery;
+using SSSharedSurgerySystem = Content.Shared.Medical.Surgery.SharedSurgerySystem;
 using Content.Shared.Medical.Integrity;
+using Content.Server.Medical.Integrity;
 using Content.Shared.Medical.Surgery.Skill;
 using Content.Shared.Medical.Surgery.Equipment;
 using Content.Shared.Medical.Compatibility;
@@ -15,21 +18,28 @@ using Content.Shared.Medical.CyberLimb;
 using Content.Server.Medical.CyberLimb;
 using Content.Shared.Tag;
 using Content.Shared.Popups;
+using Content.Server.Popups;
 using Content.Shared.FixedPoint;
 using Content.Shared.Verbs;
 using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Damage;
 using Content.Shared.Damage.Components;
+using Content.Shared.Damage.Systems;
+using Content.Shared.Mobs.Systems;
 using Content.Shared.Weapons.Melee;
 using Content.Shared.Stacks;
 using Content.Shared._Shitmed.Medical.Surgery.Effects.Step;
 using Content.Shared._Shitmed.Medical.Surgery;
+using Content.Shared._Shitmed.Cybernetics;
+using ShitmedSurgerySteps = Content.Shared._Shitmed.Medical.Surgery.Steps;
+using ShitmedSurgeryUIKey = Content.Shared._Shitmed.Medical.Surgery.SurgeryUIKey;
 using Content.Shared.Medical.Surgery.Components;
-using Content.Shared.EntityLookup;
 using Content.Shared.Implants.Components;
 using Content.Shared.UserInterface;
+using Content.Shared.Prototypes;
 using Robust.Server.GameObjects;
+using Robust.Shared.Containers;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
@@ -39,40 +49,43 @@ using System.Linq;
 namespace Content.Server.Medical.Surgery;
 
 /// <summary>
-/// Cached data for surgery steps to avoid spawning entities every UI update.
-/// </summary>
-private sealed class SurgeryStepData
-{
-    public SurgeryLayer Layer;
-    public List<BodyPartType> ValidPartTypes;
-    public string? TargetOrganSlot;
-    public EntProtoId StepId;
-}
-
-/// <summary>
 /// Server-side surgery system that handles surgery execution.
 /// </summary>
-public sealed class SurgerySystem : SharedSurgerySystem
+public sealed class SurgerySystem : SSSharedSurgerySystem
 {
     [Dependency] private readonly BodySystem _body = default!;
     [Dependency] private readonly SharedIntegritySystem _integrity = default!;
+    [Dependency] private readonly IntegritySystem _vitality = default!;
     [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly TagSystem _tags = default!;
     [Dependency] private readonly UserInterfaceSystem _ui = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
+    [Dependency] private readonly IComponentFactory _componentFactory = default!;
     [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedMeleeWeaponSystem _melee = default!;
     [Dependency] private readonly CyberLimbStatsSystem _cyberLimbStats = default!;
     [Dependency] private readonly CyberneticsUpkeepSystem _cyberneticsUpkeep = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly EntityLookupSystem _lookup = default!;
     [Dependency] private readonly SharedStackSystem _stack = default!;
     [Dependency] private readonly SharedTransformSystem _transform = default!;
+    [Dependency] private readonly MobStateSystem _mobState = default!;
+    [Dependency] private readonly DamageableSystem _damageable = default!;
+    [Dependency] private readonly SharedContainerSystem _containers = default!;
 
     /// <summary>
     /// Cached surgery step data to avoid spawning entities every UI update.
     /// </summary>
     private readonly Dictionary<string, SurgeryStepData> _cachedStepData = new();
+
+    /// <summary>
+    /// Cached data for surgery steps to avoid spawning entities every UI update.
+    /// </summary>
+    private sealed class SurgeryStepData
+    {
+        public SurgeryLayer Layer;
+        public List<BodyPartType> ValidPartTypes = new();
+        public string? TargetOrganSlot;
+        public EntProtoId StepId;
+    }
 
     /// <summary>
     /// Tracks which surgery UIs are open and need material scanning.
@@ -90,7 +103,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
         // Cache surgery step data at initialization to avoid spawning entities every UI update
         CacheSurgeryStepData();
 
-        Subs.BuiEvents<SurgeryLayerComponent>(SurgeryUIKey.Key, subs =>
+        Subs.BuiEvents<SurgeryLayerComponent>(Content.Shared.Medical.Surgery.SurgeryUIKey.Key, subs =>
         {
             subs.Event<SurgeryStepSelectedMessage>(OnStepSelected);
             subs.Event<SurgeryLayerChangedMessage>(OnLayerChanged);
@@ -100,6 +113,9 @@ public sealed class SurgerySystem : SharedSurgerySystem
 
         SubscribeLocalEvent<SurgeryPlasteelBonePlatingEffectComponent, SurgeryStepEvent>(OnPlasteelBonePlatingStep);
         SubscribeLocalEvent<SurgeryDermalPlasteelWeaveEffectComponent, SurgeryStepEvent>(OnDermalPlasteelWeaveStep);
+        
+        // Note: SurgeryTendWoundsEffectComponent subscriptions are handled by Shitmed SharedSurgerySystem
+        // to avoid duplicate subscriptions
 
         SubscribeLocalEvent<BodyPartComponent, ComponentStartup>(OnBodyPartStartup);
         SubscribeLocalEvent<SurgeryLayerComponent, ComponentStartup>(OnSurgeryLayerStartup);
@@ -114,14 +130,25 @@ public sealed class SurgerySystem : SharedSurgerySystem
     {
         foreach (var stepProto in _prototypes.EnumeratePrototypes<EntityPrototype>())
         {
-            if (!stepProto.HasComponent<SurgeryStepComponent>())
+            if (!stepProto.HasComponent<SurgeryStepComponent>(_componentFactory))
                 continue;
 
             // Spawn once, cache data, delete
-            var stepEntity = Spawn(stepProto.ID);
-            if (!TryComp<SurgeryStepComponent>(stepEntity, out var step))
+            EntityUid stepEntity;
+            try
             {
-                Del(stepEntity);
+                stepEntity = Spawn(stepProto.ID);
+            }
+            catch
+            {
+                // Skip if entity can't be spawned (e.g., during initialization)
+                continue;
+            }
+
+            if (!Exists(stepEntity) || !TryComp<SurgeryStepComponent>(stepEntity, out var step))
+            {
+                if (Exists(stepEntity))
+                    Del(stepEntity);
                 continue;
             }
 
@@ -153,11 +180,12 @@ public sealed class SurgerySystem : SharedSurgerySystem
         if (!args.CanAccess || !args.CanInteract)
             return;
 
+        var user = args.User;
         args.Verbs.Add(new Verb
         {
             Text = Loc.GetString("surgery-verb-open"),
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/settings.svg.192dpi.png")),
-            Act = () => OpenSurgeryUI(ent, args.User)
+            Act = () => OpenSurgeryUI(ent, user)
         });
     }
 
@@ -170,11 +198,12 @@ public sealed class SurgerySystem : SharedSurgerySystem
         if (!HasMedicalSkill(args.User))
             return;
 
+        var user = args.User;
         args.Verbs.Add(new Verb
         {
             Text = Loc.GetString("surgery-verb-fix-unskilled-surgery"),
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/bandage.svg.192dpi.png")),
-            Act = () => RemoveUnskilledPenalty(ent, args.User)
+            Act = () => RemoveUnskilledPenalty(ent, user)
         });
     }
 
@@ -196,11 +225,10 @@ public sealed class SurgerySystem : SharedSurgerySystem
         // Update cached surgery penalty and recalculate bio-rejection
         if (TryComp<BodyPartComponent>(ent, out var part) && part.Body != null)
         {
-            if (TryComp<VitalityComponent>(part.Body.Value, out var vitality))
+            if (TryComp<IntegrityComponent>(part.Body.Value, out var integrity))
             {
-                var serverVitality = EntitySystem.Get<VitalitySystem>();
-                serverVitality.UpdateCachedSurgeryPenalty(part.Body.Value, vitality);
-                _vitality.RecalculateTargetBioRejection(part.Body.Value, vitality);
+                _vitality.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
+                _integrity.RecalculateTargetBioRejection(part.Body.Value, integrity);
             }
             
             _popup.PopupEntity(Loc.GetString("surgery-fix-unskilled-success"), user, user);
@@ -210,24 +238,24 @@ public sealed class SurgerySystem : SharedSurgerySystem
     private void OpenSurgeryUI(Entity<SurgeryLayerComponent> ent, EntityUid user)
     {
         // Ensure UserInterfaceComponent exists
-        if (!HasComp<UserInterfaceComponent>(ent))
-        {
-            var ui = AddComp<UserInterfaceComponent>(ent);
-            _ui.SetUiState(ent, SurgeryUIKey.Key, new SurgeryBoundUserInterfaceState(
-                GetNetEntity(ent),
-                ent.Comp.PartType,
-                ent.Comp.SkinRetracted,
-                ent.Comp.TissueRetracted,
-                ent.Comp.BonesSawed,
-                new List<NetEntity>(),
-                new List<NetEntity>(),
-                new List<NetEntity>(),
-                ent.Comp.BonesSmashed
-            ));
-        }
+        if (!HasComp<SurgeryLayerComponent>(ent.Owner))
+            return;
+
+        var uiComp = EnsureComp<UserInterfaceComponent>(ent.Owner);
+        _ui.SetUiState((ent.Owner, uiComp), Content.Shared.Medical.Surgery.SurgeryUIKey.Key, new SurgeryBoundUserInterfaceState(
+            GetNetEntity(ent),
+            ent.Comp.PartType,
+            ent.Comp.SkinRetracted,
+            ent.Comp.TissueRetracted,
+            ent.Comp.BonesSawed,
+            new List<NetEntity>(),
+            new List<NetEntity>(),
+            new List<NetEntity>(),
+            ent.Comp.BonesSmashed
+        ));
 
         UpdateUI(ent);
-        _ui.TryOpenUi(ent, SurgeryUIKey.Key, user);
+        _ui.TryOpenUi((ent.Owner, uiComp), Content.Shared.Medical.Surgery.SurgeryUIKey.Key, user);
         
         // Start material scanning for this UI
         _openSurgeryUIs[ent] = _timing.CurTime + TimeSpan.FromSeconds(MaterialScanInterval);
@@ -326,8 +354,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
                 {
                     if (TryComp<IntegrityComponent>(part.Body.Value, out var integrity))
                     {
-                        var serverIntegrity = EntitySystem.Get<IntegritySystem>();
-                        serverIntegrity.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
+                        _vitality.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
                         _integrity.RecalculateTargetBioRejection(part.Body.Value, integrity);
                     }
                     
@@ -375,8 +402,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
                     {
                         if (TryComp<IntegrityComponent>(part.Body.Value, out var integrity))
                         {
-                            var serverIntegrity = EntitySystem.Get<IntegritySystem>();
-                            serverIntegrity.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
+                            _vitality.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
                             _integrity.RecalculateTargetBioRejection(part.Body.Value, integrity);
                         }
                         
@@ -396,8 +422,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
                     {
                         if (TryComp<IntegrityComponent>(part.Body.Value, out var integrity))
                         {
-                            var serverIntegrity = EntitySystem.Get<IntegritySystem>();
-                            serverIntegrity.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
+                            _vitality.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
                             _integrity.RecalculateTargetBioRejection(part.Body.Value, integrity);
                         }
                         
@@ -420,9 +445,12 @@ public sealed class SurgerySystem : SharedSurgerySystem
 
         if (step.Remove != null)
         {
-            foreach (var compType in step.Remove.Keys)
+            foreach (var (compName, _) in step.Remove)
             {
-                EntityManager.RemoveComponent(bodyPart, compType);
+                if (_componentFactory.TryGetRegistration(compName, out var registration))
+                {
+                    EntityManager.RemoveComponent(bodyPart, registration.Type);
+                }
             }
         }
 
@@ -512,7 +540,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
                             float speed = 1.0f; // Default speed (10 blunt = average)
                             if (user != null && TryComp<HandsComponent>(user, out var hands))
                             {
-                                if (_hands.TryGetActiveItem(user, out var heldItem, hands))
+                                if (_hands.TryGetActiveItem((user.Value, hands), out var heldItem))
                                 {
                                     // Check if item is a melee weapon with damage
                                     if (TryComp<MeleeWeaponComponent>(heldItem, out var melee))
@@ -569,18 +597,18 @@ public sealed class SurgerySystem : SharedSurgerySystem
                     break;
                 case SurgeryLayer.Organ:
                     var organMeta = MetaData(stepEntity);
-                    var stepId = organMeta.EntityPrototype?.ID ?? "";
+                    var organStepId = organMeta.EntityPrototype?.ID ?? "";
                     
                     // Handle organ removal steps
-                    if (stepId.Contains("RemoveOrgan") || stepId.Contains("Remove") && step.TargetOrganSlot != null)
+                    if (organStepId.Contains("RemoveOrgan") || organStepId.Contains("Remove") && step.TargetOrganSlot != null)
                     {
-                        if (!TryComp<BodyPartComponent>(bodyPart, out var partComp) || partComp.Body == null)
+                        if (!TryComp<BodyPartComponent>(bodyPart, out var organPartComp) || organPartComp.Body == null)
                             break;
                         
                         // Find the organ to remove based on TargetOrganSlot
                         if (step.TargetOrganSlot != null)
                         {
-                            var organs = _body.GetPartOrgans(bodyPart, partComp);
+                            var organs = _body.GetPartOrgans(bodyPart, organPartComp);
                             foreach (var (organUid, organ) in organs)
                             {
                                 if (organ.SlotId == step.TargetOrganSlot)
@@ -602,10 +630,11 @@ public sealed class SurgerySystem : SharedSurgerySystem
                         else
                         {
                             // Generic organ removal - remove first organ found
-                            var organs = _body.GetPartOrgans(bodyPart, partComp);
-                            if (organs.Count > 0)
+                            var organs = _body.GetPartOrgans(bodyPart, organPartComp);
+                            var firstOrgan = organs.FirstOrDefault();
+                            if (firstOrgan != default)
                             {
-                                var (organUid, organ) = organs[0];
+                                var (organUid, organ) = firstOrgan;
                                 if (_body.RemoveOrgan(organUid, organ))
                                 {
                                     if (user != null)
@@ -617,9 +646,9 @@ public sealed class SurgerySystem : SharedSurgerySystem
                         }
                     }
                     // Handle organ insertion steps
-                    else if (stepId.Contains("InsertOrgan") || stepId.Contains("Insert") && step.TargetOrganSlot != null)
+                    else if (organStepId.Contains("InsertOrgan") || organStepId.Contains("Insert") && step.TargetOrganSlot != null)
                     {
-                        if (!TryComp<BodyPartComponent>(bodyPart, out var partComp) || partComp.Body == null)
+                        if (!TryComp<BodyPartComponent>(bodyPart, out var insertPartComp) || insertPartComp.Body == null)
                             break;
                         
                         EntityUid? organToInsert = null;
@@ -643,8 +672,9 @@ public sealed class SurgerySystem : SharedSurgerySystem
                         }
                         
                         // If not found in hands, scan nearby items
-                        if (organToInsert == null && TryComp<TransformComponent>(bodyPart, out var xform))
+                        if (organToInsert == null)
                         {
+                            var xform = Transform(bodyPart);
                             var nearbyEntities = _lookup.GetEntitiesInRange(xform.Coordinates, MaterialScanRange);
                             foreach (var nearby in nearbyEntities)
                             {
@@ -664,7 +694,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
                         // which BrainSystem listens to for mind swapping
                         if (organToInsert != null)
                         {
-                            TryInstallImplant(organToInsert.Value, partComp.Body.Value, bodyPart, user);
+                            TryInstallImplant(organToInsert.Value, insertPartComp.Body.Value, bodyPart, user);
                         }
                     }
                     
@@ -722,6 +752,31 @@ public sealed class SurgerySystem : SharedSurgerySystem
             Dirty(bodyPart, layer);
         }
 
+        // Raise SurgeryStepEvent for compatibility with shitmed effect components (e.g., SurgeryTendWoundsEffectComponent)
+        if (user != null && TryComp<BodyPartComponent>(bodyPart, out var partComp) && partComp.Body != null)
+        {
+            // Get tools from user's hands
+            var tools = new List<EntityUid>();
+            var hands = _hands.EnumerateHeld(user.Value);
+            foreach (var hand in hands)
+            {
+                tools.Add(hand);
+            }
+            
+            // Raise event on step entity and user for effect components to handle
+            var stepEvent = new SurgeryStepEvent(
+                user.Value,
+                partComp.Body.Value,
+                bodyPart,
+                tools,
+                stepEntity, // Use stepEntity as surgery entity (new system doesn't have separate surgery entities)
+                stepEntity,
+                false // Complete flag - could be enhanced to check if step is actually complete
+            );
+            RaiseLocalEvent(stepEntity, ref stepEvent);
+            RaiseLocalEvent(user.Value, ref stepEvent);
+        }
+
         UpdateUI((bodyPart, layer!));
     }
 
@@ -763,8 +818,8 @@ public sealed class SurgerySystem : SharedSurgerySystem
             // For cybernetic arms/legs, only allow maintenance steps - block all other surgeries
             if (isCyberLimb)
             {
-                bool isMaintenanceStep = stepId.Contains("Cybernetics") || stepId.Contains("Maintenance");
-                if (!isMaintenanceStep)
+                bool isMaintenanceStepCheck = stepId.Contains("Cybernetics") || stepId.Contains("Maintenance");
+                if (!isMaintenanceStepCheck)
                 {
                     continue; // Block all non-maintenance steps for cybernetic limbs
                 }
@@ -800,14 +855,14 @@ public sealed class SurgerySystem : SharedSurgerySystem
             if (stepData.Layer == SurgeryLayer.Organ && stepData.TargetOrganSlot != null)
             {
                 // Check if this body part has the target organ slot
-                if (!TryComp<BodyPartComponent>(uid, out var partComp))
+                if (!TryComp<BodyPartComponent>(uid, out var organPartComp))
                 {
                     continue;
                 }
 
                 // Check if the organ slot exists on this body part
                 // If the slot doesn't exist (e.g., Diona has no heart slot), don't show the step
-                if (!partComp.Organs.ContainsKey(stepData.TargetOrganSlot))
+                if (!organPartComp.Organs.ContainsKey(stepData.TargetOrganSlot))
                 {
                     // Organ slot doesn't exist - this species doesn't have this organ
                     continue;
@@ -829,8 +884,8 @@ public sealed class SurgerySystem : SharedSurgerySystem
             if (stepData.Layer == SurgeryLayer.Organ && IsSlimeBody(uid) && stepData.TargetOrganSlot == null)
             {
                 // Check if this is a core-specific step by checking if body part has core slot
-                if (!TryComp<BodyPartComponent>(uid, out var partComp) ||
-                    !partComp.Organs.ContainsKey("core"))
+                if (!TryComp<BodyPartComponent>(uid, out var slimePartComp) ||
+                    !slimePartComp.Organs.ContainsKey("core"))
                 {
                     continue;
                 }
@@ -889,7 +944,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
             organSteps
         );
 
-        _ui.SetUiState(uid, SurgeryUIKey.Key, state);
+        _ui.SetUiState(uid, Content.Shared.Medical.Surgery.SurgeryUIKey.Key, state);
     }
 
     /// <summary>
@@ -990,14 +1045,14 @@ public sealed class SurgerySystem : SharedSurgerySystem
         else if (HasComp<BodyPartComponent>(item))
         {
             // Install limb - need to find appropriate slot on target part
-            if (!TryComp<BodyPartComponent>(targetPart, out var targetPartComp))
+            if (!TryComp<BodyPartComponent>(targetPart, out var installTargetPartComp))
                 return false;
 
             // Find an available slot for this part type
             var partType = Comp<BodyPartComponent>(item).PartType;
             string? targetSlot = null;
             
-            foreach (var (slotId, slot) in targetPartComp.Children)
+            foreach (var (slotId, slot) in installTargetPartComp.Children)
             {
                 if (slot.Type == partType)
                 {
@@ -1072,33 +1127,41 @@ public sealed class SurgerySystem : SharedSurgerySystem
         }
         else if (HasComp<BodyPartComponent>(item))
         {
-            // Remove limb - detach from body
+            // Remove limb - detach from body using container system
             if (!TryComp<BodyPartComponent>(item, out var part) || part.Body == null)
                 return false;
 
             var slot = Body.GetParentPartAndSlotOrNull(item);
             if (slot != null)
             {
-                // Remove from parent part's slot
-                Body.RemovePart(part.Body.Value, item, slot.Value.Slot);
+                // Remove from parent part's slot using container system
+                var containerSlotId = Content.Shared.Body.Systems.SharedBodySystem.GetPartSlotContainerId(slot.Value.Slot);
+                if (_containers.TryGetContainer(slot.Value.Parent, containerSlotId, out var container))
+                {
+                    _containers.Remove((item, null, null), container);
+                }
             }
             else
             {
                 // Root part - remove from body root
-                var slotId = Body.GetSlotFromBodyPart(part);
-                Body.RemovePart(part.Body.Value, item, slotId);
+                if (_containers.TryGetContainer(part.Body.Value, Content.Shared.Body.Systems.SharedBodySystem.BodyRootContainerId, out var container))
+                {
+                    _containers.Remove((item, null, null), container);
+                }
             }
         }
 
         return true;
     }
 
-    protected override ProtoId<EntityPrototype>? GetBodySpecies(EntityUid body)
+    public new ProtoId<EntityPrototype>? GetBodySpecies(EntityUid body)
     {
         // Get species from body prototype
         if (TryComp<BodyComponent>(body, out var bodyComp) && bodyComp.Prototype != null)
         {
-            return bodyComp.Prototype;
+            // Convert ProtoId<BodyPrototype> to ProtoId<EntityPrototype>
+            var prototypeId = bodyComp.Prototype.Value;
+            return new ProtoId<EntityPrototype>((string)prototypeId);
         }
         return null;
     }
@@ -1111,7 +1174,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
         // Check if it's a body directly
         if (TryComp<BodyComponent>(entity, out var body))
         {
-            return body.Prototype?.Value == "Slime";
+            return body.Prototype?.Id == "Slime";
         }
 
         // Check if it's a body part
@@ -1119,7 +1182,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
         {
             if (TryComp<BodyComponent>(part.Body.Value, out var bodyComp))
             {
-                return bodyComp.Prototype?.Value == "Slime";
+                return bodyComp.Prototype?.Id == "Slime";
             }
         }
 
@@ -1302,18 +1365,6 @@ public sealed class SurgerySystem : SharedSurgerySystem
         }
     }
 
-    private void OnSurgeryUIOpened(Entity<SurgeryLayerComponent> ent, ref BoundUIOpenedEvent args)
-    {
-        // Start material scanning when UI opens
-        _openSurgeryUIs[ent] = _timing.CurTime + TimeSpan.FromSeconds(MaterialScanInterval);
-    }
-
-    private void OnSurgeryUIClosed(Entity<SurgeryLayerComponent> ent, ref BoundUIClosedEvent args)
-    {
-        // Stop material scanning when UI closes
-        _openSurgeryUIs.Remove(ent);
-    }
-
     /// <summary>
     /// Scans for surgical items within 1.5 tiles of the body part.
     /// Returns a dictionary of item prototype ID -> count available.
@@ -1446,9 +1497,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
     /// </summary>
     private bool TryConsumeSurgicalItem(EntityUid bodyPart, string itemPrototypeId, EntityUid? user)
     {
-        if (!TryComp<TransformComponent>(bodyPart, out var xform))
-            return false;
-
+        var xform = Transform(bodyPart);
         var mapPos = _transform.GetMapCoordinates(bodyPart, xform);
         if (mapPos.MapId == MapId.Nullspace)
             return false;
@@ -1473,6 +1522,75 @@ public sealed class SurgerySystem : SharedSurgerySystem
         }
 
         return false;
+    }
+
+    // Damage type constants for wound treatment
+    private static readonly string[] BruteDamageTypes = { "Slash", "Blunt", "Piercing" };
+    private static readonly string[] BurnDamageTypes = { "Heat", "Shock", "Cold", "Caustic" };
+
+    /// <summary>
+    /// Checks if an entity has damage of a specific group.
+    /// </summary>
+    private bool HasDamageGroup(EntityUid entity, string[] group, out DamageableComponent? damageable)
+    {
+        if (!TryComp<DamageableComponent>(entity, out var damageableComp))
+        {
+            damageable = null;
+            return false;
+        }
+
+        damageable = damageableComp;
+        return group.Any(damageType => damageableComp.Damage.DamageDict.TryGetValue(damageType, out var value) && value > 0);
+    }
+
+    /// <summary>
+    /// Handles the tend wounds surgery step effect.
+    /// Heals brute or burn wounds based on the component's MainGroup.
+    /// </summary>
+    private void OnTendWoundsStep(Entity<SurgeryTendWoundsEffectComponent> ent, ref SurgeryStepEvent args)
+    {
+        var group = ent.Comp.MainGroup == "Brute" ? BruteDamageTypes : BurnDamageTypes;
+
+        if (!HasDamageGroup(args.Body, group, out var damageable)
+            && !HasDamageGroup(args.Part, group, out var _)
+            || damageable == null)
+            return;
+
+        // Calculate healing bonus based on total damage
+        var bonus = ent.Comp.HealMultiplier * damageable.DamagePerGroup[ent.Comp.MainGroup];
+
+        if (_mobState.IsDead(args.Body))
+            bonus *= 0.5f;
+
+        var adjustedDamage = new DamageSpecifier(ent.Comp.Damage);
+
+        foreach (var type in group)
+            adjustedDamage.DamageDict[type] -= bonus;
+
+        // Apply the healing damage
+        if (TryComp<BodyPartComponent>(args.Part, out var partComp))
+        {
+            _damageable.TryChangeDamage(args.Body,
+                adjustedDamage,
+                true,
+                origin: args.User,
+                canSever: false,
+                partMultiplier: 0.5f,
+                targetPart: _body.GetTargetBodyPart(partComp));
+        }
+    }
+
+    /// <summary>
+    /// Checks if the tend wounds step should be cancelled (i.e., if wounds are already healed).
+    /// </summary>
+    private void OnTendWoundsCheck(Entity<SurgeryTendWoundsEffectComponent> ent, ref ShitmedSurgerySteps.SurgeryStepCompleteCheckEvent args)
+    {
+        var group = ent.Comp.MainGroup == "Brute" ? BruteDamageTypes : BurnDamageTypes;
+
+        // If there's no damage of this type, cancel the step (wounds are already healed)
+        if (!HasDamageGroup(args.Body, group, out var _)
+            && !HasDamageGroup(args.Part, group, out var _))
+            args.Cancelled = true;
     }
 }
 

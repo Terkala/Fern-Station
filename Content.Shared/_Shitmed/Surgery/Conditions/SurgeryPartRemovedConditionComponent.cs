@@ -9,6 +9,7 @@ using Robust.Shared.GameStates;
 namespace Content.Shared._Shitmed.Medical.Surgery.Conditions;
 
 [RegisterComponent, NetworkedComponent]
+[ComponentProtoName("ShitmedSurgeryPartRemovedCondition")]
 public sealed partial class SurgeryPartRemovedConditionComponent : Component
 {
     /// <summary>

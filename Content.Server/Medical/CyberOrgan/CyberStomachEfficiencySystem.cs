@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: MIT
 
+using Content.Server.Body.Components;
+using Content.Server.Body.Systems;
+using Content.Shared.Body.Components;
 using Content.Shared.Body.Organ;
+using Content.Shared.Body.Systems;
 using Content.Shared.Medical.CyberOrgan;
 using Content.Shared.Medical.CyberOrgan.Modules;
 using Content.Shared.Storage;
-using Content.Server.Body.Systems;
-using Content.Server.Body.Components;
-using Content.Server.Nutrition.EntitySystems;
+using Robust.Shared.Containers;
 using Robust.Shared.Prototypes;
 
 namespace Content.Server.Medical.CyberOrgan;
@@ -19,36 +21,26 @@ namespace Content.Server.Medical.CyberOrgan;
 public sealed class CyberStomachEfficiencySystem : EntitySystem
 {
     [Dependency] private readonly CyberOrganEfficiencySystem _organEfficiency = default!;
-    [Dependency] private readonly SharedBodySystem _body = default!;
-    [Dependency] private readonly StomachSystem _stomach = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, ComponentStartup>(OnEfficiencyStartup);
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, EntInsertedIntoContainerMessage>(OnStorageChanged);
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, EntRemovedFromContainerMessage>(OnStorageChanged);
+        // Note: ComponentStartup and container event subscriptions moved to CyberOrganEfficiencySystem to avoid duplicates
     }
 
-    private void OnEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component, ComponentStartup args)
+    /// <summary>
+    /// Called by CyberOrganEfficiencySystem when a cyber organ with stomach starts up.
+    /// </summary>
+    public void OnStomachEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component)
     {
-        if (!HasComp<StomachComponent>(uid))
-            return;
-
         UpdateStomachEfficiency(uid, component);
     }
 
-    private void OnStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component, ref EntInsertedIntoContainerMessage args)
-    {
-        if (!HasComp<StomachComponent>(uid))
-            return;
-
-        UpdateStomachEfficiency(uid, component);
-    }
-
-    private void OnStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component, ref EntRemovedFromContainerMessage args)
+    /// <summary>
+    /// Called by CyberOrganEfficiencySystem when storage changes for a cyber organ with stomach.
+    /// </summary>
+    public void OnStomachStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component)
     {
         if (!HasComp<StomachComponent>(uid))
             return;
@@ -86,12 +78,8 @@ public sealed class CyberStomachEfficiencySystem : EntitySystem
         // For now, we'll scale the current max volume
         // The base max volume should be stored in a component or calculated from prototype
         // This is a simplified implementation
-        if (stomach.MaxVolume > 0)
-        {
-            // Scale max volume by efficiency
-            // We need to track the base volume, but for now we'll use a simple approach
-            // TODO: Store base volume in a component
-        }
+        // TODO: Access solution max volume if needed for scaling
+        // MaxVolume is stored in the solution, not the stomach component
     }
 
     /// <summary>
@@ -102,16 +90,10 @@ public sealed class CyberStomachEfficiencySystem : EntitySystem
         if (!TryComp<StorageComponent>(stomachUid, out var storage))
             return;
 
-        bool hasPoisonFilter = false;
         ProtoId<EntityPrototype>? targetSpecies = null;
 
         foreach (var item in storage.Container.ContainedEntities)
         {
-            if (HasComp<CyberStomachPoisonFilterModuleComponent>(item))
-            {
-                hasPoisonFilter = true;
-            }
-
             if (TryComp<CyberStomachSpeciesMetabolismModuleComponent>(item, out var speciesModule))
             {
                 targetSpecies = speciesModule.TargetSpecies;

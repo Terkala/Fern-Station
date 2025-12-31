@@ -32,6 +32,7 @@ using Content.Shared.Item;
 using Content.Shared._Shitmed.Body.Organ;
 using Content.Shared._Shitmed.Body.Part;
 using Content.Shared.Popups;
+using Content.Shared.Tag;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Toolshed.TypeParsers;
 using System.Linq;
@@ -42,6 +43,8 @@ public abstract partial class SharedSurgerySystem
 {
     private static readonly string[] BruteDamageTypes = { "Slash", "Blunt", "Piercing" };
     private static readonly string[] BurnDamageTypes = { "Heat", "Shock", "Cold", "Caustic" };
+    private static readonly ProtoId<DamageTypePrototype> PoisonDamageType = "Poison";
+    private static readonly ProtoId<TagPrototype> PermissibleForSurgeryTag = "PermissibleForSurgery";
     private void InitializeSteps()
     {
         SubscribeLocalEvent<SurgeryStepComponent, SurgeryStepEvent>(OnToolStep);
@@ -182,7 +185,7 @@ public abstract partial class SharedSurgerySystem
         {
             if (!HasComp<SanitizedComponent>(args.User))
             {
-                var sepsis = new DamageSpecifier(_prototypes.Index<DamageTypePrototype>("Poison"), 5);
+                var sepsis = new DamageSpecifier(_prototypes.Index(PoisonDamageType), 5);
                 var ev = new SurgeryStepDamageEvent(args.User, args.Body, args.Part, args.Surgery, sepsis, 0.5f);
                 RaiseLocalEvent(args.Body, ref ev);
             }
@@ -295,7 +298,7 @@ public abstract partial class SharedSurgerySystem
                 if (!containerSlot.ContainedEntity.HasValue)
                     continue;
 
-                if (_tagSystem.HasTag(containerSlot.ContainedEntity.Value, "PermissibleForSurgery")) // DeltaV: allow some clothing items to be operated through
+                if (_tagSystem.HasTag(containerSlot.ContainedEntity.Value, PermissibleForSurgeryTag)) // DeltaV: allow some clothing items to be operated through
                     continue;
 
                 args.Invalid = StepInvalidReason.Armor;
@@ -332,7 +335,7 @@ public abstract partial class SharedSurgerySystem
 
     private EntProtoId? GetProtoId(EntityUid entityUid)
     {
-        if (!TryComp<MetaDataComponent>(entityUid, out var metaData))
+        if (!TryComp(entityUid, out MetaDataComponent? metaData))
             return null;
 
         return metaData.EntityPrototype?.ID;

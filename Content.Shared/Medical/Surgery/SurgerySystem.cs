@@ -14,6 +14,7 @@ using Content.Shared.Medical.Biosynthetic;
 using Content.Shared.Tag;
 using Content.Shared.Popups;
 using Content.Shared.Prototypes;
+using Robust.Shared.GameObjects;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 
@@ -32,6 +33,8 @@ public abstract partial class SharedSurgerySystem : EntitySystem
     [Dependency] protected readonly SharedPopupSystem Popup = default!;
     [Dependency] protected readonly TagSystem Tags = default!;
     [Dependency] protected readonly SharedIntegritySystem Integrity = default!;
+
+    private static readonly ProtoId<TagPrototype> ImprovisedSurgeryToolTag = "ImprovisedSurgeryTool";
 
     /// <summary>
     /// Calculates the final integrity cost for an organ/limb/cybernetic installation.
@@ -77,7 +80,7 @@ public abstract partial class SharedSurgerySystem : EntitySystem
         float multiplier = 1.0f;
 
         // Apply tool quality modifier (improvised tools increase cost)
-        if (tool != null && Tags.HasTag(tool.Value, "ImprovisedSurgeryTool"))
+        if (tool != null && Tags.HasTag(tool.Value, ImprovisedSurgeryToolTag))
             multiplier *= 1.5f; // Configurable
 
         // Apply surgical quality from all items being used
@@ -112,10 +115,10 @@ public abstract partial class SharedSurgerySystem : EntitySystem
     /// </summary>
     public ProtoId<EntityPrototype>? GetBodySpecies(EntityUid body)
     {
-        // Get species from body prototype
-        if (TryComp<BodyComponent>(body, out var bodyComp) && bodyComp.Prototype != null)
+        // Get entity prototype ID from metadata
+        if (TryComp(body, out MetaDataComponent? metadata) && metadata.EntityPrototype != null)
         {
-            return bodyComp.Prototype;
+            return new ProtoId<EntityPrototype>(metadata.EntityPrototype.ID);
         }
         return null;
     }

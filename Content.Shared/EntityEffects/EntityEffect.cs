@@ -11,6 +11,7 @@ using Content.Shared.Database;
 using Content.Shared.FixedPoint;
 using Content.Shared.Localizations;
 using JetBrains.Annotations;
+using Robust.Shared.GameObjects;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Content.Shared.Chemistry.Reagent;
@@ -111,21 +112,18 @@ public record class EntityEffectBaseArgs
     }
 }
 
+[ByRefEvent]
 public record class EntityEffectReagentArgs : EntityEffectBaseArgs
 {
     public EntityUid? OrganEntity;
-
     public Solution? Source;
-
     public FixedPoint2 Quantity;
-
     public ReagentPrototype? Reagent;
-
     public ReactionMethod? Method;
-
     public FixedPoint2 Scale;
 
-    public EntityEffectReagentArgs(EntityUid targetEntity, IEntityManager entityManager, EntityUid? organEntity, Solution? source, FixedPoint2 quantity, ReagentPrototype? reagent, ReactionMethod? method, FixedPoint2 scale) : base(targetEntity, entityManager)
+    public EntityEffectReagentArgs(EntityUid targetEntity, IEntityManager entityManager, EntityUid? organEntity, Solution? source, FixedPoint2 quantity, ReagentPrototype? reagent, ReactionMethod? method, FixedPoint2 scale)
+        : base(targetEntity, entityManager)
     {
         OrganEntity = organEntity;
         Source = source;

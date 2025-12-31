@@ -8,7 +8,7 @@
   parent: [ConstructibleMachine, BaseMachinePowered]
   id: Autodoc
   name: Autodoc Mk.XV
-  description: A simplified robotic surgeon with three operation modes: organ implant, medical care, and organ removal.
+  description: "A simplified robotic surgeon with three operation modes: organ implant, medical care, and organ removal."
   components:
   - type: Sprite
     sprite: _Shitmed/Structures/Machines/autodoc.rsi

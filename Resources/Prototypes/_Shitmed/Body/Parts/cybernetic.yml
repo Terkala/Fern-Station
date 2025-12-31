@@ -81,9 +81,6 @@
   - type: BodyPart
     baseLayerId: MobCyberneticBishopLHand
   - type: Cybernetics
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
-    state: "l_hand"
 
 - type: entity
   id: RightHandCybernetic
@@ -95,9 +92,6 @@
   - type: BodyPart
     baseLayerId: MobCyberneticBishopRHand
   - type: Cybernetics
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
-    state: "r_hand"
 
 - type: entity
   id: LeftFootCybernetic
@@ -109,9 +103,6 @@
   - type: BodyPart
     baseLayerId: MobCyberneticBishopLFoot
   - type: Cybernetics
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
-    state: "l_foot"
 
 - type: entity
   id: RightFootCybernetic
@@ -123,9 +114,138 @@
   - type: BodyPart
     baseLayerId: MobCyberneticBishopRFoot
   - type: Cybernetics
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
-    state: "r_foot"
+
+# Hesphiastos variant child parts
+- type: entity
+  parent: LeftHandCybernetic
+  id: LeftHandCyberneticHesphiastos
+  name: cybernetic left hand
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticHesphiastosLHand
+
+- type: entity
+  parent: RightHandCybernetic
+  id: RightHandCyberneticHesphiastos
+  name: cybernetic right hand
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticHesphiastosRHand
+
+- type: entity
+  parent: LeftFootCybernetic
+  id: LeftFootCyberneticHesphiastos
+  name: cybernetic left foot
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticHesphiastosLFoot
+
+- type: entity
+  parent: RightFootCybernetic
+  id: RightFootCyberneticHesphiastos
+  name: cybernetic right foot
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticHesphiastosRFoot
+
+# Xion variant child parts
+- type: entity
+  parent: LeftHandCybernetic
+  id: LeftHandCyberneticXion
+  name: cybernetic left hand
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticXionLHand
+
+- type: entity
+  parent: RightHandCybernetic
+  id: RightHandCyberneticXion
+  name: cybernetic right hand
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticXionRHand
+
+- type: entity
+  parent: LeftFootCybernetic
+  id: LeftFootCyberneticXion
+  name: cybernetic left foot
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticXionLFoot
+
+- type: entity
+  parent: RightFootCybernetic
+  id: RightFootCyberneticXion
+  name: cybernetic right foot
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticXionRFoot
+
+# Shellguard variant child parts
+- type: entity
+  parent: LeftHandCybernetic
+  id: LeftHandCyberneticShellguard
+  name: cybernetic left hand
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticShellguardLHand
+
+- type: entity
+  parent: RightHandCybernetic
+  id: RightHandCyberneticShellguard
+  name: cybernetic right hand
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticShellguardRHand
+
+- type: entity
+  parent: LeftFootCybernetic
+  id: LeftFootCyberneticShellguard
+  name: cybernetic left foot
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticShellguardLFoot
+
+- type: entity
+  parent: RightFootCybernetic
+  id: RightFootCyberneticShellguard
+  name: cybernetic right foot
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticShellguardRFoot
+
+# Morpheus variant child parts
+- type: entity
+  parent: LeftHandCybernetic
+  id: LeftHandCyberneticMorpheus
+  name: cybernetic left hand
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticMorpheusLHand
+
+- type: entity
+  parent: RightHandCybernetic
+  id: RightHandCyberneticMorpheus
+  name: cybernetic right hand
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticMorpheusRHand
+
+- type: entity
+  parent: LeftFootCybernetic
+  id: LeftFootCyberneticMorpheus
+  name: cybernetic left foot
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticMorpheusLFoot
+
+- type: entity
+  parent: RightFootCybernetic
+  id: RightFootCyberneticMorpheus
+  name: cybernetic right foot
+  components:
+  - type: BodyPart
+    baseLayerId: MobCyberneticMorpheusRFoot
 
 - type: entity
   parent: LeftArmCybernetic

@@ -4,6 +4,7 @@
 
 using Content.Shared.Body.Organ;
 using Content.Shared.Damage.Components;
+using Content.Shared.Damage.Systems;
 using Content.Shared.Medical.CyberOrgan;
 using Content.Shared._Shitmed.Body.Organ;
 using Content.Server.Body.Components;
@@ -11,6 +12,7 @@ using Content.Server.Body.Systems;
 using Content.Server.EntityEffects.Effects;
 using Content.Shared.EntityEffects;
 using Content.Shared.Chemistry.Reagent;
+using Robust.Shared.Containers;
 
 namespace Content.Server.Medical.CyberOrgan;
 
@@ -20,35 +22,27 @@ namespace Content.Server.Medical.CyberOrgan;
 public sealed class CyberHeartEfficiencySystem : EntitySystem
 {
     [Dependency] private readonly CyberOrganEfficiencySystem _organEfficiency = default!;
-    [Dependency] private readonly SharedStaminaSystem _stamina = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, ComponentStartup>(OnEfficiencyStartup);
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, EntInsertedIntoContainerMessage>(OnStorageChanged);
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, EntRemovedFromContainerMessage>(OnStorageChanged);
+        // Note: ComponentStartup and container event subscriptions moved to CyberOrganEfficiencySystem to avoid duplicates
         SubscribeLocalEvent<EntityEffectReagentArgs>(OnReagentEffect, before: new[] { typeof(HealthChange) });
     }
 
-    private void OnEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component, ComponentStartup args)
+    /// <summary>
+    /// Called by CyberOrganEfficiencySystem when a cyber organ with heart starts up.
+    /// </summary>
+    public void OnHeartEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component)
     {
-        if (!HasComp<HeartComponent>(uid))
-            return;
-
         UpdateHeartEfficiency(uid, component);
     }
 
-    private void OnStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component, ref EntInsertedIntoContainerMessage args)
-    {
-        if (!HasComp<HeartComponent>(uid))
-            return;
-
-        UpdateHeartEfficiency(uid, component);
-    }
-
-    private void OnStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component, ref EntRemovedFromContainerMessage args)
+    /// <summary>
+    /// Called by CyberOrganEfficiencySystem when storage changes for a cyber organ with heart.
+    /// </summary>
+    public void OnHeartStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component)
     {
         if (!HasComp<HeartComponent>(uid))
             return;
@@ -94,28 +88,28 @@ public sealed class CyberHeartEfficiencySystem : EntitySystem
     /// <summary>
     /// Intercepts reagent effects to apply efficiency multipliers for healing/damage.
     /// </summary>
-    private void OnReagentEffect(Entity<EntityEffectReagentArgs> args)
+    private void OnReagentEffect(ref EntityEffectReagentArgs args)
     {
         // Find the heart organ processing this reagent
-        var target = args.Comp.TargetEntity;
-        if (target == null)
+        var target = args.TargetEntity;
+        if (!target.IsValid())
             return;
 
         // Check if this is being processed by a heart
-        if (!TryComp<MetabolizerComponent>(args.Comp.Metabolizer, out var metabolizer))
+        if (args.OrganEntity == null || !TryComp<MetabolizerComponent>(args.OrganEntity, out var metabolizer))
             return;
 
-        if (!HasComp<HeartComponent>(args.Comp.Metabolizer))
+        if (!HasComp<HeartComponent>(args.OrganEntity))
             return;
 
         // Get heart efficiency
-        if (!TryComp<CyberOrganEfficiencyComponent>(args.Comp.Metabolizer, out var efficiency))
+        if (!TryComp<CyberOrganEfficiencyComponent>(args.OrganEntity, out var efficiency))
             return;
 
-        var finalEfficiency = _organEfficiency.GetFinalEfficiency(args.Comp.Metabolizer, efficiency);
+        var finalEfficiency = _organEfficiency.GetFinalEfficiency(args.OrganEntity.Value, efficiency);
 
         // Check if this is a healing or damaging effect
-        var reagent = args.Comp.Reagent;
+        var reagent = args.Reagent;
         if (reagent == null)
             return;
 
@@ -128,13 +122,13 @@ public sealed class CyberHeartEfficiencySystem : EntitySystem
         if (isMedicine && finalEfficiency > 1.0f)
         {
             // Positive healing multiplier: efficiency > 100% increases healing
-            args.Comp.Scale *= finalEfficiency;
+            args.Scale *= finalEfficiency;
         }
         else if ((isPoison || isNarcotic) && finalEfficiency < 1.0f)
         {
             // Negative healing multiplier: efficiency < 100% increases damage
             var damageMultiplier = 1.0f + (1.0f - finalEfficiency);
-            args.Comp.Scale *= damageMultiplier;
+            args.Scale *= damageMultiplier;
         }
     }
 }

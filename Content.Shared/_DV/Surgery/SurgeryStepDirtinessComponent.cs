@@ -12,7 +12,7 @@ namespace Content.Shared._DV.Surgery;
 /// <summary>
 ///     Component that allows a step to increase tools and gloves' dirtiness
 /// </summary>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, ComponentProtoName("ShitmedSurgeryStepDirtiness")]
 public sealed partial class SurgeryStepDirtinessComponent : Component
 {
     /// <summary>

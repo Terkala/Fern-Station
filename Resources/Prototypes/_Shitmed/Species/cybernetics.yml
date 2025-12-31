@@ -52,3 +52,199 @@
   baseSprite:
     sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
     state: "r_foot"
+
+# Hesphiastos cybernetic base sprites (Basic tier)
+- type: humanoidBaseSprite
+  id: MobCyberneticHesphiastosLArm
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "l_arm-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticHesphiastosRArm
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "r_arm-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticHesphiastosLLeg
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "l_leg-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticHesphiastosRLeg
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "r_leg-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticHesphiastosLHand
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "l_hand-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticHesphiastosRHand
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "r_hand-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticHesphiastosLFoot
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "l_foot-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticHesphiastosRFoot
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "r_foot-1"
+
+# Xion cybernetic base sprites (Advanced tier)
+- type: humanoidBaseSprite
+  id: MobCyberneticXionLArm
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
+    state: "l_arm-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticXionRArm
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
+    state: "r_arm-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticXionLLeg
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
+    state: "l_leg-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticXionRLeg
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
+    state: "r_leg-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticXionLHand
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
+    state: "l_hand-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticXionRHand
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
+    state: "r_hand-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticXionLFoot
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
+    state: "l_foot-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticXionRFoot
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
+    state: "r_foot-1"
+
+# Shellguard cybernetic base sprites (Experimental tier)
+- type: humanoidBaseSprite
+  id: MobCyberneticShellguardLArm
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
+    state: "l_arm-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticShellguardRArm
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
+    state: "r_arm-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticShellguardLLeg
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
+    state: "l_leg-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticShellguardRLeg
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
+    state: "r_leg-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticShellguardLHand
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
+    state: "l_hand-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticShellguardRHand
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
+    state: "r_hand-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticShellguardLFoot
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
+    state: "l_foot-1"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticShellguardRFoot
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
+    state: "r_foot-1"
+
+# Morpheus cybernetic base sprites (Military tier)
+- type: humanoidBaseSprite
+  id: MobCyberneticMorpheusLArm
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
+    state: "l_arm"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticMorpheusRArm
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
+    state: "r_arm"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticMorpheusLLeg
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
+    state: "l_leg"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticMorpheusRLeg
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
+    state: "r_leg"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticMorpheusLHand
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
+    state: "l_hand"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticMorpheusRHand
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
+    state: "r_hand"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticMorpheusLFoot
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
+    state: "l_foot"
+
+- type: humanoidBaseSprite
+  id: MobCyberneticMorpheusRFoot
+  baseSprite:
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
+    state: "r_foot"

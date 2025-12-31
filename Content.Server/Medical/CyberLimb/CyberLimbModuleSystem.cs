@@ -16,18 +16,19 @@ namespace Content.Server.Medical.CyberLimb;
 /// </summary>
 public sealed class CyberLimbModuleSystem : EntitySystem
 {
-    [Dependency] private readonly CyberLimbStorageSystem _storage = default!;
     [Dependency] private readonly LimbCapabilitiesSystem _limbCapabilities = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
-        SubscribeLocalEvent<CyberLimbStorageComponent, EntInsertedIntoContainerMessage>(OnModuleInserted);
-        SubscribeLocalEvent<CyberLimbStorageComponent, EntRemovedFromContainerMessage>(OnModuleRemoved);
+        // Note: Container event subscriptions moved to CyberLimbStorageSystem to avoid duplicates
     }
 
-    private void OnModuleInserted(EntityUid uid, CyberLimbStorageComponent component, ref EntInsertedIntoContainerMessage args)
+    /// <summary>
+    /// Called by CyberLimbStorageSystem when items are inserted.
+    /// </summary>
+    public void OnModuleInserted(EntityUid uid, CyberLimbStorageComponent component, ref EntInsertedIntoContainerMessage args)
     {
         // Check if this is the storage container
         if (!TryComp<StorageComponent>(uid, out var storage) || args.Container.ID != storage.Container.ID)
@@ -40,7 +41,10 @@ public sealed class CyberLimbModuleSystem : EntitySystem
         ApplySpecialModule(uid, args.Entity, specialModule.ModuleType);
     }
 
-    private void OnModuleRemoved(EntityUid uid, CyberLimbStorageComponent component, ref EntRemovedFromContainerMessage args)
+    /// <summary>
+    /// Called by CyberLimbStorageSystem when items are removed.
+    /// </summary>
+    public void OnModuleRemoved(EntityUid uid, CyberLimbStorageComponent component, ref EntRemovedFromContainerMessage args)
     {
         // Check if this is the storage container
         if (!TryComp<StorageComponent>(uid, out var storage) || args.Container.ID != storage.Container.ID)

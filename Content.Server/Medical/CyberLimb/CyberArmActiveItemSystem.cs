@@ -28,7 +28,6 @@ namespace Content.Server.Medical.CyberLimb;
 public sealed class CyberArmActiveItemSystem : EntitySystem
 {
     [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedStorageSystem _storage = default!;
     [Dependency] private readonly SharedVirtualItemSystem _virtualItem = default!;
     [Dependency] private readonly SharedBodySystem _body = default!;
 
@@ -36,21 +35,21 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
     {
         base.Initialize();
 
-        SubscribeLocalEvent<CyberArmActiveItemComponent, UseInHandEvent>(OnUseInHand);
+        // Both UseInHandEvent subscriptions need the same ordering constraints
+        SubscribeLocalEvent<CyberArmActiveItemComponent, UseInHandEvent>(OnUseInHand, before: new[] { typeof(SharedHandsSystem) });
         SubscribeLocalEvent<CyberArmActiveItemComponent, ActivateInWorldEvent>(OnActivateInWorld, before: new[] { typeof(SharedInteractionSystem) });
         SubscribeLocalEvent<CyberArmActiveItemComponent, EntRemovedFromContainerMessage>(OnItemRemovedFromStorage);
         
         // Intercept use key press when hand is empty to check for cyber arms
         SubscribeLocalEvent<HandsComponent, UseInHandEvent>(OnHandUseInHand, before: new[] { typeof(SharedHandsSystem) });
         
-        // Handle GetUsedEntityEvent to resolve virtual items to real items in cyber arm storage
-        SubscribeLocalEvent<VirtualItemComponent, GetUsedEntityEvent>(OnVirtualItemGetUsedEntity);
+        // Note: GetUsedEntityEvent subscription handled by VirtualItemSystem override to avoid duplicates
         
-        // Automatically add component to cyber arms with storage
-        SubscribeLocalEvent<CyberLimbStorageComponent, ComponentStartup>(OnCyberLimbStorageStartup);
+        // Note: ComponentStartup subscription moved to CyberLimbStorageSystem to avoid duplicates
         
         // Handle items being removed from special module storage
-        SubscribeLocalEvent<StorageComponent, EntRemovedFromContainerMessage>(OnItemRemovedFromModuleStorage);
+        // Subscribe to CyberLimbSpecialModuleComponent instead of StorageComponent to avoid duplicate subscriptions
+        SubscribeLocalEvent<CyberLimbSpecialModuleComponent, EntRemovedFromContainerMessage>(OnItemRemovedFromModuleStorage);
     }
 
     /// <summary>
@@ -66,24 +65,24 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
             return;
 
         // Find the corresponding cyber arm for this hand
-        if (!TryFindCyberArmForHand(ent.Owner, ent.Comp.ActiveHand, out var cyberArm))
+        if (!TryFindCyberArmForHand(ent.Owner, ent.Comp.ActiveHand, out var cyberArm) || cyberArm == null)
             return;
 
-        if (!TryComp<CyberArmActiveItemComponent>(cyberArm, out var activeItem))
+        if (!TryComp<CyberArmActiveItemComponent>(cyberArm.Value, out var activeItem))
             return;
 
         // If there's already an active item, cycle to next
         if (activeItem.ActiveItem != null)
         {
-            CycleToNextItem((cyberArm, activeItem), ent.Owner);
+            CycleToNextItem((cyberArm.Value, activeItem), ent.Owner);
             args.Handled = true;
             return;
         }
 
         // Try to activate first item
-        if (TryGetFirstAvailableItem(cyberArm, out var firstItem, out var firstModule))
+        if (TryGetFirstAvailableItem(cyberArm.Value, out var firstItem, out var firstModule))
         {
-            SetActiveItem((cyberArm, activeItem), firstItem.Value, firstModule, ent.Owner);
+            SetActiveItem((cyberArm.Value, activeItem), firstItem.Value, firstModule, ent.Owner);
             args.Handled = true;
         }
     }
@@ -186,7 +185,8 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
     {
         if (ent.Comp.ActiveItem == args.Entity)
         {
-            ClearActiveItem(ent, args.User);
+            // Clear active item when it's removed - use the cyber arm owner as user
+            ClearActiveItem(ent, ent.Owner);
         }
     }
 
@@ -194,7 +194,7 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
     /// Gets the first available item from cyber arm storage (excluding modules and batteries).
     /// Special modules are included if they contain items inside them.
     /// </summary>
-    private bool TryGetFirstAvailableItem(EntityUid cyberArm, [NotNullWhen(true)] out EntityUid? item, [NotNullWhen(true)] out EntityUid? module)
+    private bool TryGetFirstAvailableItem(EntityUid cyberArm, [NotNullWhen(true)] out EntityUid? item, out EntityUid? module)
     {
         item = null;
         module = null;
@@ -244,9 +244,9 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
             // Check if this is a special module with items inside
             if (HasComp<CyberLimbSpecialModuleComponent>(storedItem))
             {
-                if (TryGetItemFromSpecialModule(storedItem, out var moduleItem))
+                if (TryGetItemFromSpecialModule(storedItem, out var moduleItem) && moduleItem != null)
                 {
-                    items.Add((moduleItem, storedItem));
+                    items.Add((moduleItem.Value, storedItem));
                 }
                 continue; // Skip special modules without items inside
             }
@@ -393,8 +393,9 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
     /// <summary>
     /// Handles GetUsedEntityEvent for virtual items from cyber arms.
     /// Resolves the virtual item to the real item in cyber arm storage.
+    /// Called by VirtualItemSystem.
     /// </summary>
-    private void OnVirtualItemGetUsedEntity(Entity<VirtualItemComponent> ent, ref GetUsedEntityEvent args)
+    public void OnVirtualItemGetUsedEntity(Entity<VirtualItemComponent> ent, ref GetUsedEntityEvent args)
     {
         if (args.Handled)
             return;
@@ -413,37 +414,22 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
                 // This virtual item belongs to this cyber arm - use the real item
                 // The real item might be inside a special module, but we use the item itself
                 args.Used = blockingEntity;
-                args.Handled = true;
+                // Handled is automatically true when Used is set (computed property)
                 return;
             }
         }
     }
 
-    /// <summary>
-    /// Automatically adds CyberArmActiveItemComponent to cyber arms with storage.
-    /// </summary>
-    private void OnCyberLimbStorageStartup(Entity<CyberLimbStorageComponent> ent, ref ComponentStartup args)
-    {
-        // Only add to arms (not legs or other body parts)
-        if (!TryComp<BodyPartComponent>(ent, out var part) || part.PartType != BodyPartType.Arm)
-            return;
-
-        // Add the component if it doesn't exist
-        EnsureComp<CyberArmActiveItemComponent>(ent);
-    }
 
     /// <summary>
     /// Handles items being removed from special module storage.
     /// If the removed item was the active item, clear it.
     /// </summary>
-    private void OnItemRemovedFromModuleStorage(Entity<StorageComponent> ent, ref EntRemovedFromContainerMessage args)
+    private void OnItemRemovedFromModuleStorage(Entity<CyberLimbSpecialModuleComponent> ent, ref EntRemovedFromContainerMessage args)
     {
-        // Check if this storage belongs to a special module
-        if (!HasComp<CyberLimbSpecialModuleComponent>(ent))
+        // Verify this special module has storage (it should, but check to be safe)
+        if (!HasComp<StorageComponent>(ent))
             return;
-
-        // Check if this special module is in a cyber arm by checking if it's in a storage container
-        // We'll find the cyber arm by checking all cyber arms' storage
 
         // Find the cyber arm that contains this module
         var query = EntityQueryEnumerator<CyberArmActiveItemComponent>();

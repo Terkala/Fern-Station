@@ -38,7 +38,6 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 using System.Linq;
 using Content.Shared.Verbs;
-using Content.Shared.Forensics.Components;
 
 namespace Content.Server._Shitmed.Medical.Surgery;
 
@@ -53,7 +52,6 @@ public sealed class SurgerySystem : SharedSurgerySystem
     [Dependency] private readonly SurgeryCleanSystem _clean = default!; // DeltaV
     [Dependency] private readonly UserInterfaceSystem _ui = default!;
     [Dependency] private readonly RottingSystem _rot = default!;
-    [Dependency] private readonly BlindableSystem _blindableSystem = default!;
     [Dependency] private readonly InventorySystem _inventory = default!; // DeltaV - surgery cross contamination
 
     private readonly HashSet<string> _dirtyDnas = new(); // DeltaV

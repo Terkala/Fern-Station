@@ -31,7 +31,6 @@ public sealed class MalfAiRuleSystem : GameRuleSystem<MalfAiRuleComponent>
     [Dependency] private readonly ActionsSystem _actions = default!;
     [Dependency] private readonly AlertsSystem _alerts = default!;
     [Dependency] private readonly SiliconLawSystem _siliconLaws = default!;
-    [Dependency] private readonly MindSystem _mindSystem = default!;
     [Dependency] private readonly SharedRoleSystem _sharedRoleSystem = default!;
     [Dependency] private readonly ObjectivesSystem _objectives = default!;
     [Dependency] private readonly IRobustRandom _random = default!;

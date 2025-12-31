@@ -8,14 +8,15 @@ using Content.Shared.Body.Part;
 using Content.Shared.Body.Systems;
 using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Medical.CyberLimb;
-using Content.Shared.Medical.CyberLimb.Components;
 using Content.Shared.Medical.CyberLimb.Modules;
 using Content.Shared.Storage;
 using Content.Shared.Storage.Components;
+using Content.Shared.Storage.EntitySystems;
 using Content.Shared.Verbs;
 using Content.Shared._Shitmed.Cybernetics;
 using Robust.Shared.Containers;
 using Robust.Shared.Timing;
+using Robust.Shared.Utility;
 
 namespace Content.Server.Medical.CyberLimb;
 
@@ -35,9 +36,8 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
 
         SubscribeLocalEvent<CyberneticsUpkeepComponent, ComponentStartup>(OnUpkeepStartup);
         SubscribeLocalEvent<CyberneticsUpkeepComponent, GetVerbsEvent<ExamineVerb>>(OnGetExamineVerbs);
-        SubscribeLocalEvent<BodyComponent, GetVerbsEvent<Verb>>(OnGetBodyVerbs);
-        SubscribeLocalEvent<CyberLimbStorageComponent, EntInsertedIntoContainerMessage>(OnBatteryChanged);
-        SubscribeLocalEvent<CyberLimbStorageComponent, EntRemovedFromContainerMessage>(OnBatteryChanged);
+        // Note: BodyComponent GetVerbsEvent subscription moved to StorageImplantOrganSystem to avoid duplicates
+        // Note: Container event subscriptions moved to CyberLimbStorageSystem to avoid duplicates
     }
 
     private void OnUpkeepStartup(EntityUid uid, CyberneticsUpkeepComponent component, ComponentStartup args)
@@ -75,14 +75,15 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
 
     /// <summary>
     /// Adds verbs to the body entity to access cybernetics storage when panels are unscrewed.
+    /// Called by StorageImplantOrganSystem.
     /// </summary>
-    private void OnGetBodyVerbs(EntityUid uid, BodyComponent component, GetVerbsEvent<Verb> args)
+    public void OnGetBodyVerbs(EntityUid uid, BodyComponent component, GetVerbsEvent<Verb> args)
     {
         if (!args.CanAccess || !args.CanInteract)
             return;
 
         // Find all cyber parts with unscrewed panels
-        var allParts = _body.GetBodyPartChildren(uid, component);
+        var allParts = _body.GetBodyChildren(uid, component);
         foreach (var (partUid, _) in allParts)
         {
             // Check if this is a cyber part with unscrewed panel
@@ -118,8 +119,9 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
     /// <summary>
     /// Called when batteries are added or removed from cybernetics storage.
     /// Recalculates wattage if panel is open, or updates prediction if closed.
+    /// Called by CyberLimbStorageSystem.
     /// </summary>
-    private void OnBatteryChanged(EntityUid uid, CyberLimbStorageComponent component, ref EntInsertedIntoContainerMessage args)
+    public void OnBatteryChanged(EntityUid uid, CyberLimbStorageComponent component, ref EntInsertedIntoContainerMessage args)
     {
         if (!HasComp<CyberneticsComponent>(uid))
             return;
@@ -147,7 +149,10 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         }
     }
 
-    private void OnBatteryChanged(EntityUid uid, CyberLimbStorageComponent component, ref EntRemovedFromContainerMessage args)
+    /// <summary>
+    /// Called by CyberLimbStorageSystem when batteries are removed.
+    /// </summary>
+    public void OnBatteryChanged(EntityUid uid, CyberLimbStorageComponent component, ref EntRemovedFromContainerMessage args)
     {
         if (!HasComp<CyberneticsComponent>(uid))
             return;
@@ -211,7 +216,7 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
 
         // Check if any cyber part has panel open
         bool anyPanelOpen = false;
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             if (!HasComp<CyberneticsComponent>(partUid))
@@ -252,7 +257,7 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         float totalMaxWattage = 0f;
         int cyberneticsCount = 0;
 
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             if (!HasComp<CyberneticsComponent>(partUid))
@@ -330,7 +335,7 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         float oldTotalMax = 0f;
         if (!TryComp<BodyComponent>(body, out var bodyComp))
             return;
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             if (!HasComp<CyberneticsComponent>(partUid))
@@ -386,7 +391,7 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         float oldTotalMax = 0f;
         if (!TryComp<BodyComponent>(body, out var bodyComp))
             return;
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             if (!HasComp<CyberneticsComponent>(partUid))
@@ -434,7 +439,7 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         int cyberneticsCount = 0;
         float totalMaxWattage = 0f;
 
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             if (!HasComp<CyberneticsComponent>(partUid))

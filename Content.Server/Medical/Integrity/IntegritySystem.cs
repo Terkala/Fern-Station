@@ -5,6 +5,8 @@
 using Content.Server.Body.Systems;
 using Content.Server.Medical.CyberLimb;
 using Content.Shared.Body.Components;
+using Content.Shared.Body.Part;
+using Content.Shared.FixedPoint;
 using Content.Shared.Medical.Integrity;
 using Content.Shared.Medical.Surgery;
 using Content.Server.Medical.Surgery;
@@ -33,7 +35,7 @@ public sealed class IntegritySystem : SharedIntegritySystem
     public override void Initialize()
     {
         base.Initialize();
-        SubscribeLocalEvent<BodyComponent, ComponentStartup>(OnBodyStartup);
+        // Note: BodyComponent, ComponentStartup subscription moved to LimbCapabilitiesSystem to avoid duplicates
         SubscribeLocalEvent<IntegrityComponent, IntegrityUsageChangedEvent>(OnIntegrityUsageChanged);
     }
 
@@ -76,7 +78,10 @@ public sealed class IntegritySystem : SharedIntegritySystem
         }
     }
 
-    private void OnBodyStartup(EntityUid uid, BodyComponent component, ComponentStartup args)
+    /// <summary>
+    /// Called by LimbCapabilitiesSystem when a body component starts up.
+    /// </summary>
+    public void OnBodyStartup(EntityUid uid, BodyComponent component, ComponentStartup args)
     {
         // Initialize integrity component if not present
         if (!HasComp<IntegrityComponent>(uid))
@@ -215,7 +220,7 @@ public sealed class IntegritySystem : SharedIntegritySystem
     /// Gets the total surgery penalty from all body parts.
     /// Uses cached value if available, otherwise calculates and caches.
     /// </summary>
-    protected override FixedPoint2 GetTotalSurgeryPenalty(EntityUid body)
+    public new FixedPoint2 GetTotalSurgeryPenalty(EntityUid body)
     {
         if (!TryComp<IntegrityComponent>(body, out var integrity))
             return FixedPoint2.Zero;

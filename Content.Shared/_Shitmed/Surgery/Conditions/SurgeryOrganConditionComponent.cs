@@ -10,6 +10,7 @@ using Robust.Shared.Prototypes;
 namespace Content.Shared._Shitmed.Medical.Surgery.Conditions;
 
 [RegisterComponent, NetworkedComponent]
+[ComponentProtoName("ShitmedSurgeryOrganCondition")]
 public sealed partial class SurgeryOrganConditionComponent : Component
 {
     [DataField]

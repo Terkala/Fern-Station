@@ -20,13 +20,13 @@ public abstract class SharedPrednisoneSystem : EntitySystem
         SubscribeLocalEvent<PrednisoneComponent, ComponentShutdown>(OnPrednisoneShutdown);
     }
 
-    protected void OnPrednisoneStartup(EntityUid uid, PrednisoneComponent component, ComponentStartup args)
+    protected virtual void OnPrednisoneStartup(EntityUid uid, PrednisoneComponent component, ComponentStartup args)
     {
         // Integrity bonus is handled by server system's Update method
         // which recalculates total bonus from all active components
     }
 
-    protected void OnPrednisoneShutdown(EntityUid uid, PrednisoneComponent component, ComponentShutdown args)
+    protected virtual void OnPrednisoneShutdown(EntityUid uid, PrednisoneComponent component, ComponentShutdown args)
     {
         // Integrity bonus is handled by server system's Update method
         // which recalculates total bonus from all active components

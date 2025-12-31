@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+using Content.Server.Body.Components;
 using Content.Server.Body.Systems;
 using Content.Shared.Chemistry.Components;
 using Content.Shared.Chemistry.EntitySystems;
@@ -19,21 +20,20 @@ namespace Content.Server.Medical.Chemistry;
 /// </summary>
 public sealed class PrednisoneSystem : SharedPrednisoneSystem
 {
-    [Dependency] private readonly BloodstreamSystem _bloodstream = default!;
     [Dependency] private readonly IPrototypeManager _prototypes = default!;
     [Dependency] private readonly SharedIntegritySystem _integrity = default!;
     [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
     [Dependency] private readonly IGameTiming _gameTiming = default!;
 
     private const string PrednisoneReagentId = "Immunosuppressant";
-    private const FixedPoint2 OverdoseThreshold = FixedPoint2.New(20);
+    private static readonly FixedPoint2 OverdoseThreshold = FixedPoint2.New(20);
 
     public override void Initialize()
     {
         base.Initialize();
         
-        SubscribeLocalEvent<PrednisoneComponent, ComponentStartup>(OnPrednisoneStartup);
-        SubscribeLocalEvent<PrednisoneComponent, ComponentShutdown>(OnPrednisoneShutdown);
+        // Note: ComponentStartup and ComponentShutdown subscriptions are handled by base class (SharedPrednisoneSystem)
+        // We override the handlers instead
     }
 
     public override void Update(float frameTime)
@@ -101,7 +101,7 @@ public sealed class PrednisoneSystem : SharedPrednisoneSystem
         }
     }
 
-    private void OnPrednisoneStartup(EntityUid uid, PrednisoneComponent component, ComponentStartup args)
+    protected override void OnPrednisoneStartup(EntityUid uid, PrednisoneComponent component, ComponentStartup args)
     {
         // Convert duration from seconds remaining to expiration time
         if (component.Duration > 0)
@@ -113,7 +113,7 @@ public sealed class PrednisoneSystem : SharedPrednisoneSystem
         CheckOverdose(uid);
     }
 
-    private void OnPrednisoneShutdown(EntityUid uid, PrednisoneComponent component, ComponentShutdown args)
+    protected override void OnPrednisoneShutdown(EntityUid uid, PrednisoneComponent component, ComponentShutdown args)
     {
         // Component removed, integrity bonus already handled by base system
     }

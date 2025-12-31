@@ -10,7 +10,7 @@ namespace Content.Shared.Medical.Surgery.Components;
 /// Component that tracks dermal plasteel weave on a body part.
 /// Provides damage resistance when applied.
 /// </summary>
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
+[RegisterComponent, NetworkedComponent]
 public sealed partial class DermalPlasteelWeaveComponent : Component
 {
 }

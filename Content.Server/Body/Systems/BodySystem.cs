@@ -52,6 +52,9 @@ using System.Numerics;
 using System.Linq;
 using Content.Shared.Damage;
 using Content.Shared.Gibbing.Events;
+using Content.Shared._Shitmed.Body.Events;
+using Content.Server.Medical.Compatibility;
+using Robust.Shared.Containers;
 
 namespace Content.Server.Body.Systems;
 
@@ -64,6 +67,8 @@ public sealed class BodySystem : SharedBodySystem
     [Dependency] private readonly SharedAppearanceSystem _appearance = default!; // Shitmed Change
     [Dependency] private readonly MobStateSystem _mobState = default!;
     [Dependency] private readonly SharedMindSystem _mindSystem = default!;
+    [Dependency] private readonly DonorSpeciesSystem _donorSpecies = default!;
+    [Dependency] private readonly LimbCapabilitiesSystem _limbCapabilities = default!;
 
     public override void Initialize()
     {
@@ -216,6 +221,24 @@ public sealed class BodySystem : SharedBodySystem
         return base.BurnPart(partId, part);
     }
 
+    protected override void OnPartAttachedToBody(EntityUid uid, BodyComponent component, ref BodyPartAddedEvent args)
+    {
+        // Call base implementation for appearance handling
+        base.OnPartAttachedToBody(uid, component, ref args);
+        
+        // Dispatch to DonorSpeciesSystem for donor species tracking
+        _donorSpecies.OnLimbAdded(uid, component, ref args);
+    }
+
+    protected override void OnPartDroppedFromBody(EntityUid uid, BodyComponent component, ref BodyPartRemovedEvent args)
+    {
+        // Call base implementation for appearance handling
+        base.OnPartDroppedFromBody(uid, component, ref args);
+        
+        // Dispatch to DonorSpeciesSystem for donor species tracking
+        _donorSpecies.OnLimbRemoved(uid, component, ref args);
+    }
+
     protected override void ApplyPartMarkings(EntityUid target, BodyPartAppearanceComponent component)
     {
         return;
@@ -236,6 +259,24 @@ public sealed class BodySystem : SharedBodySystem
         if (partEnt.Comp.IsVital)
             bleeding *= 2f;
         _bloodstream.TryModifyBleedAmount(bodyEnt, bleeding);
+    }
+
+    protected override void OnBodyInserted(Entity<BodyComponent> ent, ref EntInsertedIntoContainerMessage args)
+    {
+        // Call base implementation for core body part handling
+        base.OnBodyInserted(ent, ref args);
+        
+        // Dispatch to LimbCapabilitiesSystem for capability recalculation
+        _limbCapabilities.OnBodyPartInserted(ent, ent.Comp, ref args);
+    }
+
+    protected override void OnBodyRemoved(Entity<BodyComponent> ent, ref EntRemovedFromContainerMessage args)
+    {
+        // Call base implementation for core body part handling
+        base.OnBodyRemoved(ent, ref args);
+        
+        // Dispatch to LimbCapabilitiesSystem for capability recalculation
+        _limbCapabilities.OnBodyPartRemoved(ent, ent.Comp, ref args);
     }
 
     // Shitmed Change End

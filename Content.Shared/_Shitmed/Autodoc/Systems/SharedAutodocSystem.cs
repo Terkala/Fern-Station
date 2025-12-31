@@ -47,6 +47,7 @@ public abstract class SharedAutodocSystem : EntitySystem
     [Dependency] private readonly SharedSurgerySystem _surgery = default!;
     [Dependency] private readonly SurgeryCleanSystem _clean = default!;
     [Dependency] private readonly SleepingSystem _sleeping = default!;
+    [Dependency] private readonly IPrototypeManager _prototypeManager = default!;
 
     public override void Initialize()
     {
@@ -401,7 +402,7 @@ public abstract class SharedAutodocSystem : EntitySystem
         program.Steps.Insert(index, step);
         Dirty(ent);
 
-        _adminLogger.Add(LogType.InteractActivate, LogImpact.Low, $"{ToPrettyString(user):user} added step '{step.Title}' to autodoc program '{program.Title}'");
+        _adminLogger.Add(LogType.InteractActivate, LogImpact.Low, $"{ToPrettyString(user):user} added step '{step.GetTitle(_prototypeManager)}' to autodoc program '{program.Title}'");
         return true;
     }
 

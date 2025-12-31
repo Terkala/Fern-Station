@@ -17,11 +17,11 @@ public sealed class AutodocBoundUserInterface : BoundUserInterface
     [Dependency] private readonly IPlayerManager _player = default!;
 
     [ViewVariables]
-    private AutodocWindow? _window;
+    private ShitmedAutodocWindow? _window;
 
     public AutodocBoundUserInterface(EntityUid owner, Enum uiKey) : base(owner, uiKey)
     {
-        _window = new AutodocWindow(owner, _entMan, _player);
+        _window = new ShitmedAutodocWindow(owner, _entMan, _player);
 
         _window.OnCreateProgram += title => SendMessage(new AutodocCreateProgramMessage(title));
         _window.OnToggleProgramSafety += program => SendMessage(new AutodocToggleProgramSafetyMessage(program));

@@ -184,8 +184,6 @@
   result: MilitaryLeftArm
   completetime: 6.0
   materials:
-    Steel: 200
-    Glass: 100
     Steel: 1500
     Glass: 750
     Plasteel: 500
@@ -196,8 +194,6 @@
   result: MilitaryRightArm
   completetime: 6.0
   materials:
-    Steel: 200
-    Glass: 100
     Steel: 1500
     Glass: 750
     Plasteel: 500
@@ -208,8 +204,6 @@
   result: MilitaryLeftLeg
   completetime: 6.0
   materials:
-    Steel: 200
-    Glass: 100
     Steel: 1500
     Glass: 750
     Plasteel: 500
@@ -220,8 +214,6 @@
   result: MilitaryRightLeg
   completetime: 6.0
   materials:
-    Steel: 200
-    Glass: 100
     Steel: 1500
     Glass: 750
     Plasteel: 500

@@ -2,16 +2,18 @@
 //
 // SPDX-License-Identifier: MIT
 
+using Content.Server.Body.Components;
+using Content.Server.Body.Systems;
 using Content.Shared.Body.Organ;
 using Content.Shared.Medical.CyberOrgan;
 using Content.Shared.Medical.CyberOrgan.Modules;
 using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Storage;
 using Content.Shared.Atmos;
-using Content.Server.Body.Systems;
-using Content.Server.Atmos.EntitySystems;
-using Content.Server.Tools.Systems;
+using Content.Shared.Body.Systems;
+using Content.Shared.Interaction;
 using Robust.Shared.Containers;
+using System.Linq;
 
 namespace Content.Server.Medical.CyberOrgan;
 
@@ -22,22 +24,20 @@ public sealed class CyberLungEfficiencySystem : EntitySystem
 {
     [Dependency] private readonly CyberOrganEfficiencySystem _organEfficiency = default!;
     [Dependency] private readonly SharedBodySystem _body = default!;
-    [Dependency] private readonly AtmosphereSystem _atmosphere = default!;
-    [Dependency] private readonly MultitoolSystem _multitool = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, ComponentStartup>(OnEfficiencyStartup);
-        SubscribeLocalEvent<CyberLungGasProcessingModuleComponent, MultitoolActivatedEvent>(OnGasModuleActivated);
+        // Note: ComponentStartup subscription moved to CyberOrganEfficiencySystem to avoid duplicates
+        SubscribeLocalEvent<CyberLungGasProcessingModuleComponent, ActivateInWorldEvent>(OnGasModuleActivated);
     }
 
-    private void OnEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component, ComponentStartup args)
+    /// <summary>
+    /// Called by CyberOrganEfficiencySystem when a cyber organ with lungs starts up.
+    /// </summary>
+    public void OnLungEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component)
     {
-        if (!HasComp<LungComponent>(uid))
-            return;
-
         // Initialize gas processing module if present
         InitializeGasProcessing(uid);
     }
@@ -77,7 +77,7 @@ public sealed class CyberLungEfficiencySystem : EntitySystem
     /// <summary>
     /// Handles multitool activation on gas processing module to select gas type.
     /// </summary>
-    private void OnGasModuleActivated(EntityUid uid, CyberLungGasProcessingModuleComponent component, MultitoolActivatedEvent args)
+    private void OnGasModuleActivated(EntityUid uid, CyberLungGasProcessingModuleComponent component, ActivateInWorldEvent args)
     {
         // Find the lung that contains this module
         if (!TryComp<ContainerManagerComponent>(uid, out var container))
@@ -89,7 +89,7 @@ public sealed class CyberLungEfficiencySystem : EntitySystem
         var query = EntityQueryEnumerator<LungComponent, CyberLungDataComponent, StorageComponent>();
         while (query.MoveNext(out var lungUid, out _, out var lungData, out var storage))
         {
-            if (storage.Container.ContainedEntities.Contains(uid))
+            if (storage.Container.ContainedEntities.Any(e => e == uid))
             {
                 // Open UI to select gas type
                 // TODO: Implement gas selection UI

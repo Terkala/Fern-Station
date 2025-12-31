@@ -8,10 +8,13 @@ using Content.Shared.Body.Organ;
 using Content.Shared.Body.Part;
 using Content.Shared.Body.Systems;
 using Content.Shared.Medical.Surgery;
+using Robust.Shared.Utility;
 using Content.Shared.Storage;
 using Content.Shared.Storage.Components;
+using Content.Shared.Storage.EntitySystems;
 using Content.Shared.Verbs;
 using Robust.Shared.Containers;
+using Content.Server.Medical.CyberLimb;
 
 namespace Content.Server.Implants;
 
@@ -25,11 +28,13 @@ public sealed class StorageImplantOrganSystem : EntitySystem
     [Dependency] private readonly SharedBodySystem _body = default!;
     [Dependency] private readonly SharedStorageSystem _storage = default!;
     [Dependency] private readonly SharedContainerSystem _container = default!;
+    [Dependency] private readonly CyberneticsUpkeepSystem _cyberneticsUpkeep = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
+        // Centralized subscription to avoid duplicates with CyberneticsUpkeepSystem
         SubscribeLocalEvent<BodyComponent, GetVerbsEvent<Verb>>(OnGetBodyVerbs);
     }
 
@@ -87,6 +92,9 @@ public sealed class StorageImplantOrganSystem : EntitySystem
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/inventory.svg.192dpi.png")),
             Priority = 1
         });
+
+        // Dispatch to CyberneticsUpkeepSystem for cybernetics storage verbs
+        _cyberneticsUpkeep.OnGetBodyVerbs(uid, component, args);
     }
 }
 

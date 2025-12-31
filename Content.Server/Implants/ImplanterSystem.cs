@@ -20,6 +20,7 @@ using Content.Server.Body.Components;
 using Content.Server.Body.Systems;
 using Content.Server.Medical.Surgery;
 using Content.Server.Popups;
+using Content.Shared.Body.Components;
 using Content.Shared.Body.Organ;
 using Content.Shared.Body.Part;
 using Content.Shared.DoAfter;
@@ -28,7 +29,10 @@ using Content.Shared.Implants;
 using Content.Shared.Implants.Components;
 using Content.Shared.Interaction;
 using Content.Shared.Popups;
+using Content.Shared.Storage;
+using Content.Shared.Storage.Components;
 using Robust.Shared.Containers;
+using Robust.Shared.GameObjects;
 
 namespace Content.Server.Implants;
 
@@ -39,6 +43,7 @@ public sealed partial class ImplanterSystem : SharedImplanterSystem
     [Dependency] private readonly SharedContainerSystem _container = default!;
     [Dependency] private readonly BodySystem _body = default!;
     [Dependency] private readonly SurgerySystem _surgery = default!;
+    [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
 
     public override void Initialize()
     {
@@ -181,9 +186,9 @@ public sealed partial class ImplanterSystem : SharedImplanterSystem
     }
 
     /// <summary>
-    /// Override Implant to handle StorageImplant as an organ instead of subdermal implant.
+    /// Handle StorageImplant as an organ instead of subdermal implant.
     /// </summary>
-    public override void Implant(EntityUid user, EntityUid target, EntityUid implanter, ImplanterComponent component)
+    public new void Implant(EntityUid user, EntityUid target, EntityUid implanter, ImplanterComponent component)
     {
         if (!CanImplant(user, target, implanter, component, out var implant, out var implantComp))
             return;
@@ -261,9 +266,15 @@ public sealed partial class ImplanterSystem : SharedImplanterSystem
             _popup.PopupEntity("Storage implant successfully implanted into tissue layer.", target, user);
             
             if (component.CurrentMode == ImplanterToggleMode.Inject && !component.ImplantOnly)
-                DrawMode(implanter, component);
+            {
+                component.CurrentMode = ImplanterToggleMode.Draw;
+                ChangeOnImplantVisualizer(implanter, component);
+            }
             else
-                ImplantMode(implanter, component);
+            {
+                component.CurrentMode = ImplanterToggleMode.Inject;
+                ChangeOnImplantVisualizer(implanter, component);
+            }
         }
         else
         {
@@ -320,9 +331,15 @@ public sealed partial class ImplanterSystem : SharedImplanterSystem
             _popup.PopupEntity("Mindshield successfully implanted into organ layer.", target, user);
             
             if (component.CurrentMode == ImplanterToggleMode.Inject && !component.ImplantOnly)
-                DrawMode(implanter, component);
+            {
+                component.CurrentMode = ImplanterToggleMode.Draw;
+                ChangeOnImplantVisualizer(implanter, component);
+            }
             else
-                ImplantMode(implanter, component);
+            {
+                component.CurrentMode = ImplanterToggleMode.Inject;
+                ChangeOnImplantVisualizer(implanter, component);
+            }
         }
         else
         {
@@ -332,5 +349,26 @@ public sealed partial class ImplanterSystem : SharedImplanterSystem
         }
 
         Dirty(implanter, component);
+    }
+
+    /// <summary>
+    /// Updates the visual appearance of the implanter based on its mode and contents.
+    /// </summary>
+    private void ChangeOnImplantVisualizer(EntityUid uid, ImplanterComponent component)
+    {
+        if (!TryComp<AppearanceComponent>(uid, out var appearance))
+            return;
+
+        bool implantFound = component.ImplanterSlot.HasItem;
+
+        if (component.CurrentMode == ImplanterToggleMode.Inject && !component.ImplantOnly)
+            _appearance.SetData(uid, ImplanterVisuals.Full, implantFound, appearance);
+        else if (component.CurrentMode == ImplanterToggleMode.Inject && component.ImplantOnly)
+        {
+            _appearance.SetData(uid, ImplanterVisuals.Full, implantFound, appearance);
+            _appearance.SetData(uid, ImplanterImplantOnlyVisuals.ImplantOnly, component.ImplantOnly, appearance);
+        }
+        else
+            _appearance.SetData(uid, ImplanterVisuals.Full, implantFound, appearance);
     }
 }

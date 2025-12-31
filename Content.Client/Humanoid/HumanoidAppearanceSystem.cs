@@ -55,7 +55,15 @@ public sealed class HumanoidAppearanceSystem : SharedHumanoidAppearanceSystem
         var oldLayers = new HashSet<HumanoidVisualLayers>(component.BaseLayers.Keys);
         component.BaseLayers.Clear();
 
-        // add default species layers
+        // add custom layers FIRST (so they take precedence over default species layers)
+        foreach (var (key, info) in component.CustomBaseLayers)
+        {
+            oldLayers.Remove(key);
+            // Shitmed Change: For whatever reason these weren't actually ignoring the skin color as advertised.
+            SetLayerData(component, sprite, key, info.Id, sexMorph: false, color: info.Color, overrideSkin: true);
+        }
+
+        // add default species layers (only for layers not in CustomBaseLayers)
         var speciesProto = _prototypeManager.Index(component.Species);
         var baseSprites = _prototypeManager.Index<HumanoidSpeciesBaseSpritesPrototype>(speciesProto.SpriteSet);
         foreach (var (key, id) in baseSprites.Sprites)
@@ -63,14 +71,6 @@ public sealed class HumanoidAppearanceSystem : SharedHumanoidAppearanceSystem
             oldLayers.Remove(key);
             if (!component.CustomBaseLayers.ContainsKey(key))
                 SetLayerData(component, sprite, key, id, sexMorph: true);
-        }
-
-        // add custom layers
-        foreach (var (key, info) in component.CustomBaseLayers)
-        {
-            oldLayers.Remove(key);
-            // Shitmed Change: For whatever reason these weren't actually ignoring the skin color as advertised.
-            SetLayerData(component, sprite, key, info.Id, sexMorph: false, color: info.Color, overrideSkin: true);
         }
 
         // hide old layers

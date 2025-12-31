@@ -2,14 +2,19 @@
 //
 // SPDX-License-Identifier: MIT
 
+using System;
+using Robust.Shared.GameObjects;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Serialization;
 
 namespace Content.Shared.Medical.Slime;
 
 /// <summary>
 /// Data for a single pending regeneration.
 /// </summary>
+[Serializable]
+[NetSerializable]
 [DataRecord]
 public sealed record SlimeRegenerationData
 {
@@ -35,7 +40,7 @@ public sealed record SlimeRegenerationData
     /// The parent part this part was attached to (null if attached directly to body).
     /// </summary>
     [DataField]
-    public EntityUid? ParentPart;
+    public NetEntity? ParentPart;
 
     /// <summary>
     /// Whether the part has started regenerating (1 minute passed and new part spawned).
@@ -47,7 +52,7 @@ public sealed record SlimeRegenerationData
     /// The entity ID of the newly spawned regenerated part (set after regeneration).
     /// </summary>
     [DataField]
-    public EntityUid? RegeneratedPart;
+    public NetEntity? RegeneratedPart;
 }
 
 /// <summary>

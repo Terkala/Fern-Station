@@ -39,23 +39,23 @@ public sealed class CyberLiverEfficiencySystem : EntitySystem
     /// <summary>
     /// Intercepts reagent effects to apply inverse alcohol multiplier.
     /// </summary>
-    private void OnReagentEffect(Entity<EntityEffectReagentArgs> args)
+    private void OnReagentEffect(ref EntityEffectReagentArgs args)
     {
         // Check if this is being processed by a liver
-        if (!TryComp<MetabolizerComponent>(args.Comp.Metabolizer, out var metabolizer))
+        if (args.OrganEntity == null || !TryComp<MetabolizerComponent>(args.OrganEntity, out var metabolizer))
             return;
 
-        if (!HasComp<LiverComponent>(args.Comp.Metabolizer))
+        if (!HasComp<LiverComponent>(args.OrganEntity))
             return;
 
         // Get liver efficiency
-        if (!TryComp<CyberOrganEfficiencyComponent>(args.Comp.Metabolizer, out var efficiency))
+        if (!TryComp<CyberOrganEfficiencyComponent>(args.OrganEntity, out var efficiency))
             return;
 
-        var finalEfficiency = _organEfficiency.GetFinalEfficiency(args.Comp.Metabolizer, efficiency);
+        var finalEfficiency = _organEfficiency.GetFinalEfficiency(args.OrganEntity.Value, efficiency);
 
         // Check if this is alcohol
-        var reagent = args.Comp.Reagent;
+        var reagent = args.Reagent;
         if (reagent == null)
             return;
 
@@ -65,7 +65,7 @@ public sealed class CyberLiverEfficiencySystem : EntitySystem
         {
             // Inverse multiplier: higher efficiency = less alcohol added
             // Example: 150% efficiency, 5u ethanol → 2.5u added (5 / 1.5)
-            args.Comp.Scale /= finalEfficiency;
+            args.Scale /= finalEfficiency;
         }
     }
 
@@ -80,7 +80,7 @@ public sealed class CyberLiverEfficiencySystem : EntitySystem
         if (liverOrgans.Count == 0)
             return;
 
-        var liver = liverOrgans[0].Id;
+        var liver = liverOrgans[0].Owner;
         if (!TryComp<CyberOrganEfficiencyComponent>(liver, out var efficiency))
             return;
 
@@ -103,7 +103,7 @@ public sealed class CyberLiverEfficiencySystem : EntitySystem
         if (liverOrgans.Count == 0)
             return 1.0f;
 
-        var liver = liverOrgans[0].Id;
+        var liver = liverOrgans[0].Owner;
         if (!TryComp<CyberOrganEfficiencyComponent>(liver, out var efficiency))
             return 1.0f;
 

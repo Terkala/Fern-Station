@@ -12,4 +12,5 @@ namespace Content.Shared._Shitmed.Medical.Surgery.Conditions;
 /// Requires that this part is attached to a body for the surgery to be done.
 /// </summary>
 [RegisterComponent, NetworkedComponent]
+[ComponentProtoName("ShitmedSurgeryHasBodyCondition")]
 public sealed partial class SurgeryHasBodyConditionComponent : Component;

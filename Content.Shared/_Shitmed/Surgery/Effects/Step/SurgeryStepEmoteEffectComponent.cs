@@ -9,7 +9,7 @@ using Robust.Shared.Prototypes;
 
 namespace Content.Shared._Shitmed.Medical.Surgery.Effects.Step;
 
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
+[RegisterComponent, NetworkedComponent, ComponentProtoName("ShitmedSurgeryStepEmoteEffect"), AutoGenerateComponentState]
 public sealed partial class SurgeryStepEmoteEffectComponent : Component
 {
     [DataField, AutoNetworkedField]

@@ -5,10 +5,12 @@
 using Content.Server.Body.Systems;
 using Content.Shared.Body.Components;
 using Content.Shared.Body.Part;
+using Content.Shared.Body.Systems;
 using Content.Shared._Shitmed.Body.Events;
 using Content.Shared.Damage;
 using Content.Shared.Damage.Components;
 using Content.Shared.Damage.Systems;
+using Content.Shared.FixedPoint;
 using Content.Shared.Medical.Slime;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
@@ -50,7 +52,7 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
             for (var i = regenComp.Regenerations.Count - 1; i >= 0; i--)
             {
                 var regen = regenComp.Regenerations[i];
-                UpdateRegeneration(uid, regen, regenComp, body);
+                UpdateRegeneration(uid, regen, regenComp, body, frameTime);
             }
         }
     }
@@ -63,13 +65,13 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
     private void OnBodyPartDropped(EntityUid body, BodyComponent bodyComp, ref BodyPartDroppedEvent args)
     {
         // Check if this is a slime body
-        if (bodyComp.Prototype?.Value != "Slime")
+        if (bodyComp.Prototype == null || bodyComp.Prototype != "Slime")
             return;
 
         var part = args.Part;
         
         // Only regenerate limbs and head (not torso or core organs)
-        if (!TryComp<BodyPartComponent>(part.Id, out var partComp))
+        if (!TryComp<BodyPartComponent>(part, out var partComp))
             return;
 
         // Skip torso - only limbs and head can regenerate
@@ -82,16 +84,19 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
         
         // Find parent part from body using slot ID
         EntityUid? parentPart = null;
-        if (slotId != null && TryComp<BodyComponent>(body, out var bodyComp))
+        if (slotId != null)
         {
             // Find the parent part that has this slot
-            var allParts = _body.GetBodyPartChildren(body, bodyComp);
-            foreach (var (partUid, partComponent) in allParts)
+            if (bodyComp.RootContainer.ContainedEntity != null)
             {
-                if (partComponent.Children.ContainsKey(slotId))
-                {
-                    parentPart = partUid;
-                    break;
+                var allParts = _body.GetBodyPartChildren(bodyComp.RootContainer.ContainedEntity.Value);
+                foreach (var (partUid, partComponent) in allParts)
+            {
+                    if (partComponent.Children.ContainsKey(slotId))
+                    {
+                        parentPart = partUid;
+                        break;
+                    }
                 }
             }
             
@@ -100,7 +105,7 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
         }
 
         // Get the prototype ID of the severed part before it's destroyed
-        var meta = MetaData(part.Id);
+        var meta = MetaData(part);
         var partPrototypeId = meta.EntityPrototype?.ID;
 
         if (partPrototypeId == null)
@@ -114,7 +119,8 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
         EntityUid body,
         SlimeRegenerationData regen,
         SlimeLimbRegenerationComponent regenComp,
-        BodyComponent bodyComp)
+        BodyComponent bodyComp,
+        float frameTime)
     {
         var elapsed = (_timing.CurTime - regen.SeveredTime).TotalSeconds;
 
@@ -129,7 +135,7 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
             if (newPart != null)
             {
                 regen.HasRegenerated = true;
-                regen.RegeneratedPart = newPart;
+                regen.RegeneratedPart = GetNetEntity(newPart.Value);
                 Dirty(body, regenComp);
             }
             else
@@ -149,11 +155,12 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
         }
 
         // After regeneration, slowly heal the regenerated part to full health over 4 minutes
-        if (regen.RegeneratedPart != null && regen.RegeneratedPart.Value.IsValid())
+        if (regen.RegeneratedPart != null)
         {
-            if (TryComp<DamageableComponent>(regen.RegeneratedPart.Value, out var damageable))
+            var regeneratedPartUid = GetEntity(regen.RegeneratedPart.Value);
+            if (regeneratedPartUid.IsValid() && TryComp<DamageableComponent>(regeneratedPartUid, out var damageable))
             {
-                var fullyHealed = HealRegeneratingLimb(regen.RegeneratedPart.Value, regen, damageable);
+                var fullyHealed = HealRegeneratingLimb(regeneratedPartUid, regen, damageable, frameTime);
                 if (fullyHealed)
                 {
                     // Fully healed, remove this regeneration
@@ -200,7 +207,8 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
     private bool HealRegeneratingLimb(
         EntityUid uid,
         SlimeRegenerationData regen,
-        DamageableComponent damageable)
+        DamageableComponent damageable,
+        float frameTime)
     {
         var elapsed = (_timing.CurTime - regen.SeveredTime).TotalSeconds;
         var regenerationElapsed = elapsed - RegenerationDelaySeconds;
@@ -227,7 +235,7 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
         {
             var healAmount = currentHealth - targetHealth;
             // Heal gradually (about 1% per second)
-            var healThisTick = Math.Min(healAmount, maxHealth * 0.01f * frameTime);
+            var healThisTick = FixedPoint2.Min(healAmount, FixedPoint2.New((float)maxHealth * 0.01f * frameTime));
             
             if (healThisTick > 0 && currentHealth > 0)
             {
@@ -264,13 +272,16 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
         bool attached = false;
 
         // Spawn the part directly into the container to avoid it appearing on the ground
-        if (regen.ParentPart != null && regen.ParentPart.Value.IsValid() && regen.SlotId != null)
+        if (regen.ParentPart != null && regen.SlotId != null)
         {
-            // Attach to parent part - spawn directly into the parent part's container
-            if (TryComp<BodyPartComponent>(regen.ParentPart.Value, out var parentPartComp))
+            var parentPartUid = GetEntity(regen.ParentPart.Value);
+            if (parentPartUid.IsValid())
             {
-                var containerId = SharedBodySystem.GetPartSlotContainerId(regen.SlotId);
-                if (TrySpawnInContainer(regen.PartPrototypeId, regen.ParentPart.Value, containerId, out newPart))
+                // Attach to parent part - spawn directly into the parent part's container
+                if (TryComp<BodyPartComponent>(parentPartUid, out var parentPartComp))
+            {
+                    var containerId = SharedBodySystem.GetPartSlotContainerId(regen.SlotId);
+                    if (TrySpawnInContainer(regen.PartPrototypeId, parentPartUid, containerId, out newPart))
                 {
                     if (TryComp<BodyPartComponent>(newPart.Value, out var partComp))
                     {
@@ -284,6 +295,7 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
                         attached = true;
                     }
                 }
+            }
             }
         }
         else if (regen.SlotId != null)
@@ -368,7 +380,7 @@ public sealed class SlimeLimbRegenerationSystem : EntitySystem
             SeveredTime = _timing.CurTime,
             PartPrototypeId = partPrototypeId,
             SlotId = slotId,
-            ParentPart = parentPart,
+            ParentPart = parentPart != null ? GetNetEntity(parentPart.Value) : null,
             HasRegenerated = false,
             RegeneratedPart = null
         };

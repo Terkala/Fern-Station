@@ -3,11 +3,14 @@
 // SPDX-License-Identifier: MIT
 
 using Content.Shared.Body.Components;
+using Content.Shared.Body.Part;
 using Content.Shared.Body.Systems;
 using Content.Shared.Damage;
+using Content.Shared.FixedPoint;
 using Content.Shared.Prying.Components;
 using Content.Shared.Weapons.Melee;
 using Robust.Shared.Containers;
+using Content.Server.Medical.Integrity;
 
 namespace Content.Server.Body.Systems;
 
@@ -18,14 +21,14 @@ namespace Content.Server.Body.Systems;
 public sealed class LimbCapabilitiesSystem : EntitySystem
 {
     [Dependency] private readonly SharedBodySystem _body = default!;
+    [Dependency] private readonly IntegritySystem _integrity = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
         SubscribeLocalEvent<BodyComponent, ComponentStartup>(OnBodyStartup);
-        SubscribeLocalEvent<BodyComponent, EntInsertedIntoContainerMessage>(OnBodyPartInserted);
-        SubscribeLocalEvent<BodyComponent, EntRemovedFromContainerMessage>(OnBodyPartRemoved);
+        // Note: BodyComponent, EntInsertedIntoContainerMessage and EntRemovedFromContainerMessage subscriptions moved to BodySystem to avoid duplicates
         SubscribeLocalEvent<LimbCapabilitiesComponent, ComponentStartup>(OnLimbCapabilitiesStartup);
         SubscribeLocalEvent<LimbCapabilitiesComponent, ComponentShutdown>(OnLimbCapabilitiesShutdown);
     }
@@ -35,22 +38,31 @@ public sealed class LimbCapabilitiesSystem : EntitySystem
         // Initialize aggregated capabilities on body startup
         EnsureComp<AggregatedLimbCapabilitiesComponent>(uid);
         RecalculateCapabilities(uid, component);
+        
+        // Dispatch to IntegritySystem for integrity component initialization
+        _integrity.OnBodyStartup(uid, component, args);
     }
 
-    private void OnBodyPartInserted(EntityUid uid, BodyComponent component, ref EntInsertedIntoContainerMessage args)
+    /// <summary>
+    /// Called by BodySystem when a body part is inserted into a body.
+    /// </summary>
+    public void OnBodyPartInserted(EntityUid uid, BodyComponent component, ref EntInsertedIntoContainerMessage args)
     {
         // Only handle root container (body parts being added)
-        if (args.Container.ID != BodyComponent.BodyRootContainerId)
+        if (args.Container.ID != SharedBodySystem.BodyRootContainerId)
             return;
 
         // Recalculate capabilities when a body part is added
         RecalculateCapabilities(uid, component);
     }
 
-    private void OnBodyPartRemoved(EntityUid uid, BodyComponent component, ref EntRemovedFromContainerMessage args)
+    /// <summary>
+    /// Called by BodySystem when a body part is removed from a body.
+    /// </summary>
+    public void OnBodyPartRemoved(EntityUid uid, BodyComponent component, ref EntRemovedFromContainerMessage args)
     {
         // Only handle root container (body parts being removed)
-        if (args.Container.ID != BodyComponent.BodyRootContainerId)
+        if (args.Container.ID != SharedBodySystem.BodyRootContainerId)
             return;
 
         // Recalculate capabilities when a body part is removed
@@ -123,7 +135,9 @@ public sealed class LimbCapabilitiesSystem : EntitySystem
         float bestArmAttackRate = 1.0f;
 
         // Aggregate capabilities from all body parts
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        if (bodyComp.RootContainer.ContainedEntity == null)
+            return;
+        var allParts = _body.GetBodyPartChildren(bodyComp.RootContainer.ContainedEntity.Value);
         foreach (var (partUid, partComp) in allParts)
         {
             if (!TryComp<LimbCapabilitiesComponent>(partUid, out var limbCaps))
@@ -213,7 +227,7 @@ public sealed class LimbCapabilitiesSystem : EntitySystem
         }
 
         // Calculate final damage: base + limb damage
-        var finalDamage = DamageSpecifier.Combine(aggregated.BaseMeleeDamage, aggregated.TotalMeleeDamage);
+        var finalDamage = aggregated.BaseMeleeDamage + aggregated.TotalMeleeDamage;
         var finalAttackRate = aggregated.BaseAttackRate * aggregated.CombinedAttackRateModifier;
 
         // Only create/update MeleeWeaponComponent if we have damage or if it already exists

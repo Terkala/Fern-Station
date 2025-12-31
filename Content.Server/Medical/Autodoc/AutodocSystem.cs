@@ -7,6 +7,7 @@ using Content.Server.Medical.Surgery;
 using Content.Shared.Body.Components;
 using Content.Shared.Body.Organ;
 using Content.Shared.Body.Part;
+using Content.Shared.Body.Systems;
 using Content.Shared.Buckle.Components;
 using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Damage;
@@ -204,7 +205,8 @@ public sealed class AutodocSystem : SharedAutodocSystem
             availableOrgans
         );
 
-        _ui.SetUiState(ent, AutodocUIKey.Key, state);
+        if (TryComp<UserInterfaceComponent>(ent, out var uiComp))
+            _ui.SetUiState((ent, uiComp), AutodocUIKey.Key, state);
     }
 }
 

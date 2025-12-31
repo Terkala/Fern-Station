@@ -75,9 +75,10 @@
   name: basic cybernetic left arm
   description: A standard cybernetic left arm with improved storage capacity. Requires Tier 1 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
-    state: "l_arm-1"
+  - type: BodyPart
+    baseLayerId: MobCyberneticHesphiastosLArm
+  - type: GenerateChildPart
+    id: LeftHandCyberneticHesphiastos
   - type: Storage
     grid:
     - 0,0,3,3  # 3 rows x 3 columns = 9 slots
@@ -92,9 +93,10 @@
   name: basic cybernetic right arm
   description: A standard cybernetic right arm with improved storage capacity. Requires Tier 1 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
-    state: "r_arm-1"
+  - type: BodyPart
+    baseLayerId: MobCyberneticHesphiastosRArm
+  - type: GenerateChildPart
+    id: RightHandCyberneticHesphiastos
   - type: Storage
     grid:
     - 0,0,3,3  # 3 rows x 3 columns = 9 slots
@@ -109,9 +111,10 @@
   name: basic cybernetic left leg
   description: A standard cybernetic left leg with improved storage capacity. Requires Tier 1 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
-    state: "l_leg-1"
+  - type: BodyPart
+    baseLayerId: MobCyberneticHesphiastosLLeg
+  - type: GenerateChildPart
+    id: LeftFootCyberneticHesphiastos
   - type: Storage
     grid:
     - 0,0,3,2  # 2 rows x 3 columns = 6 slots
@@ -126,9 +129,10 @@
   name: basic cybernetic right leg
   description: A standard cybernetic right leg with improved storage capacity. Requires Tier 1 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
-    state: "r_leg-1"
+  - type: BodyPart
+    baseLayerId: MobCyberneticHesphiastosRLeg
+  - type: GenerateChildPart
+    id: RightFootCyberneticHesphiastos
   - type: Storage
     grid:
     - 0,0,3,2  # 2 rows x 3 columns = 6 slots
@@ -147,9 +151,10 @@
   name: advanced cybernetic left arm
   description: An advanced cybernetic left arm with expanded storage capacity. Requires Tier 2 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
-    state: "l_arm-1"
+  - type: BodyPart
+    baseLayerId: MobCyberneticXionLArm
+  - type: GenerateChildPart
+    id: LeftHandCyberneticXion
   - type: Storage
     grid:
     - 0,0,4,3  # 3 rows x 4 columns = 12 slots
@@ -164,9 +169,10 @@
   name: advanced cybernetic right arm
   description: An advanced cybernetic right arm with expanded storage capacity. Requires Tier 2 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
-    state: "r_arm-1"
+  - type: BodyPart
+    baseLayerId: MobCyberneticXionRArm
+  - type: GenerateChildPart
+    id: RightHandCyberneticXion
   - type: Storage
     grid:
     - 0,0,4,3  # 3 rows x 4 columns = 12 slots
@@ -181,9 +187,10 @@
   name: advanced cybernetic left leg
   description: An advanced cybernetic left leg with expanded storage capacity. Requires Tier 2 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
-    state: "l_leg-1"
+  - type: BodyPart
+    baseLayerId: MobCyberneticXionLLeg
+  - type: GenerateChildPart
+    id: LeftFootCyberneticXion
   - type: Storage
     grid:
     - 0,0,4,2  # 2 rows x 4 columns = 8 slots
@@ -198,9 +205,10 @@
   name: advanced cybernetic right leg
   description: An advanced cybernetic right leg with expanded storage capacity. Requires Tier 2 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/xion/xion_main.rsi
-    state: "r_leg-1"
+  - type: BodyPart
+    baseLayerId: MobCyberneticXionRLeg
+  - type: GenerateChildPart
+    id: RightFootCyberneticXion
   - type: Storage
     grid:
     - 0,0,4,2  # 2 rows x 4 columns = 8 slots
@@ -219,9 +227,10 @@
   name: experimental cybernetic left arm
   description: An experimental cybernetic left arm with maximum storage capacity. Requires Tier 3 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
-    state: "l_arm"
+  - type: BodyPart
+    baseLayerId: MobCyberneticShellguardLArm
+  - type: GenerateChildPart
+    id: LeftHandCyberneticShellguard
   - type: Storage
     grid:
     - 0,0,5,3  # 3 rows x 5 columns = 15 slots
@@ -236,9 +245,10 @@
   name: experimental cybernetic right arm
   description: An experimental cybernetic right arm with maximum storage capacity. Requires Tier 3 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
-    state: "r_arm"
+  - type: BodyPart
+    baseLayerId: MobCyberneticShellguardRArm
+  - type: GenerateChildPart
+    id: RightHandCyberneticShellguard
   - type: Storage
     grid:
     - 0,0,5,3  # 3 rows x 5 columns = 15 slots
@@ -253,9 +263,10 @@
   name: experimental cybernetic left leg
   description: An experimental cybernetic left leg with maximum storage capacity. Requires Tier 3 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
-    state: "l_leg"
+  - type: BodyPart
+    baseLayerId: MobCyberneticShellguardLLeg
+  - type: GenerateChildPart
+    id: LeftFootCyberneticShellguard
   - type: Storage
     grid:
     - 0,0,5,2  # 2 rows x 5 columns = 10 slots
@@ -270,9 +281,10 @@
   name: experimental cybernetic right leg
   description: An experimental cybernetic right leg with maximum storage capacity. Requires Tier 3 Civilian Services research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/shellguard/shellguard_main.rsi
-    state: "r_leg"
+  - type: BodyPart
+    baseLayerId: MobCyberneticShellguardRLeg
+  - type: GenerateChildPart
+    id: RightFootCyberneticShellguard
   - type: Storage
     grid:
     - 0,0,5,2  # 2 rows x 5 columns = 10 slots
@@ -291,9 +303,10 @@
   name: military cybernetic left arm
   description: A military-grade cybernetic left arm with reinforced plating providing 10% damage resistance. Requires Tier 2 Security Research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
-    state: "l_arm"
+  - type: BodyPart
+    baseLayerId: MobCyberneticMorpheusLArm
+  - type: GenerateChildPart
+    id: LeftHandCyberneticMorpheus
   - type: Storage
     grid:
     - 0,0,3,3  # 3 rows x 3 columns = 9 slots
@@ -310,9 +323,10 @@
   name: military cybernetic right arm
   description: A military-grade cybernetic right arm with reinforced plating providing 10% damage resistance. Requires Tier 2 Security Research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
-    state: "r_arm"
+  - type: BodyPart
+    baseLayerId: MobCyberneticMorpheusRArm
+  - type: GenerateChildPart
+    id: RightHandCyberneticMorpheus
   - type: Storage
     grid:
     - 0,0,3,3  # 3 rows x 3 columns = 9 slots
@@ -329,9 +343,10 @@
   name: military cybernetic left leg
   description: A military-grade cybernetic left leg with reinforced plating providing 10% damage resistance. Requires Tier 2 Security Research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
-    state: "l_leg"
+  - type: BodyPart
+    baseLayerId: MobCyberneticMorpheusLLeg
+  - type: GenerateChildPart
+    id: LeftFootCyberneticMorpheus
   - type: Storage
     grid:
     - 0,0,3,2  # 2 rows x 3 columns = 6 slots
@@ -348,9 +363,10 @@
   name: military cybernetic right leg
   description: A military-grade cybernetic right leg with reinforced plating providing 10% damage resistance. Requires Tier 2 Security Research.
   components:
-  - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/morpheus/morpheus_main.rsi
-    state: "r_leg"
+  - type: BodyPart
+    baseLayerId: MobCyberneticMorpheusRLeg
+  - type: GenerateChildPart
+    id: RightFootCyberneticMorpheus
   - type: Storage
     grid:
     - 0,0,3,2  # 2 rows x 3 columns = 6 slots

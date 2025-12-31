@@ -8,10 +8,12 @@ using Content.Shared.Inventory;
 using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Medical.CyberOrgan;
 using Content.Shared.Storage;
+using Content.Shared.Storage.EntitySystems;
 using Content.Shared.Tag;
 using Content.Shared.Overlays;
 using Content.Server.Flash.Components;
 using Content.Shared._EE.Overlays.Switchable;
+using Robust.Shared.Containers;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Prototypes;
 
@@ -26,7 +28,11 @@ public sealed class CyberEyeEfficiencySystem : EntitySystem
     [Dependency] private readonly SharedEyeSystem _eye = default!;
     [Dependency] private readonly SharedStorageSystem _storage = default!;
     [Dependency] private readonly TagSystem _tags = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
+
+    private static readonly ProtoId<TagPrototype> HudMedicalTag = "HudMedical";
+    private static readonly ProtoId<TagPrototype> HudSecurityTag = "HudSecurity";
+    private static readonly ProtoId<TagPrototype> MedSecHudTag = "MedSecHud";
+    private static readonly ProtoId<TagPrototype> AdminGlassesTag = "AdminGlasses";
 
     private const float BlindnessVisionRange = 1.0f; // Adjacent tile only
     private const float NormalVisionRange = 8.0f; // Default vision range
@@ -36,28 +42,21 @@ public sealed class CyberEyeEfficiencySystem : EntitySystem
     {
         base.Initialize();
 
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, ComponentStartup>(OnEfficiencyStartup);
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, EntInsertedIntoContainerMessage>(OnStorageChanged);
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, EntRemovedFromContainerMessage>(OnStorageChanged);
+        // Note: ComponentStartup and container event subscriptions moved to CyberOrganEfficiencySystem to avoid duplicates
     }
 
-    private void OnEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component, ComponentStartup args)
+    /// <summary>
+    /// Called by CyberOrganEfficiencySystem when a cyber organ with eyes starts up.
+    /// </summary>
+    public void OnEyeEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component)
     {
-        if (!HasComp<EyeComponent>(uid))
-            return;
-
         UpdateEyeEfficiency(uid, component);
     }
 
-    private void OnStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component, ref EntInsertedIntoContainerMessage args)
-    {
-        if (!HasComp<EyeComponent>(uid))
-            return;
-
-        UpdateEyeEfficiency(uid, component);
-    }
-
-    private void OnStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component, ref EntRemovedFromContainerMessage args)
+    /// <summary>
+    /// Called by CyberOrganEfficiencySystem when storage changes for a cyber organ with eyes.
+    /// </summary>
+    public void OnEyeStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component)
     {
         if (!HasComp<EyeComponent>(uid))
             return;
@@ -106,11 +105,11 @@ public sealed class CyberEyeEfficiencySystem : EntitySystem
             visionRange = Math.Max(visionRange, BlindnessVisionRange);
             
             // Apply via PvsScale (this affects the view range)
-            eye.PvsScale = visionRange / NormalVisionRange;
+            _eye.SetPvsScale((body, eye), visionRange / NormalVisionRange);
         }
         else
         {
-            eye.PvsScale = 1.0f; // Normal vision
+            _eye.SetPvsScale((body, eye), 1.0f); // Normal vision
         }
 
         Dirty(body, eye);
@@ -153,19 +152,19 @@ public sealed class CyberEyeEfficiencySystem : EntitySystem
         foreach (var item in storage.Container.ContainedEntities)
         {
             // Check for HUD items by tag
-            if (_tags.HasTag(item, "HudMedical"))
+            if (_tags.HasTag(item, HudMedicalTag))
             {
                 hasMedHud = true;
             }
-            else if (_tags.HasTag(item, "HudSecurity"))
+            else if (_tags.HasTag(item, HudSecurityTag))
             {
                 hasSecHud = true;
             }
-            else if (_tags.HasTag(item, "MedSecHud"))
+            else if (_tags.HasTag(item, MedSecHudTag))
             {
                 hasMedSecHud = true;
             }
-            else if (_tags.HasTag(item, "AdminGlasses"))
+            else if (_tags.HasTag(item, AdminGlassesTag))
             {
                 hasAdminGlasses = true;
             }

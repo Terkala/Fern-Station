@@ -10,9 +10,9 @@ using Robust.Client.UserInterface.XAML;
 namespace Content.Client._Shitmed.Medical.Surgery;
 
 [GenerateTypedNameReferences]
-public sealed partial class SurgeryWindow : DefaultWindow
+public sealed partial class ShitmedSurgeryWindow : DefaultWindow
 {
-    public SurgeryWindow()
+    public ShitmedSurgeryWindow()
     {
         RobustXamlLoader.Load(this);
     }

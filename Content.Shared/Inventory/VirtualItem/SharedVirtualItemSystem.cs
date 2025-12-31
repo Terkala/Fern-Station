@@ -94,7 +94,7 @@ public abstract class SharedVirtualItemSystem : EntitySystem
         args.Cancelled = true;
     }
 
-    private void OnGetUsedEntity(Entity<VirtualItemComponent> ent, ref GetUsedEntityEvent args)
+    protected virtual void OnGetUsedEntity(Entity<VirtualItemComponent> ent, ref GetUsedEntityEvent args)
     {
         if (args.Handled)
             return;

@@ -88,7 +88,7 @@ public partial class SharedBodySystem
 
     }
 
-    private void OnBodyInserted(Entity<BodyComponent> ent, ref EntInsertedIntoContainerMessage args)
+    protected virtual void OnBodyInserted(Entity<BodyComponent> ent, ref EntInsertedIntoContainerMessage args)
     {
         // Root body part?
         var slotId = args.Container.ID;
@@ -110,7 +110,7 @@ public partial class SharedBodySystem
         }
     }
 
-    private void OnBodyRemoved(Entity<BodyComponent> ent, ref EntRemovedFromContainerMessage args)
+    protected virtual void OnBodyRemoved(Entity<BodyComponent> ent, ref EntRemovedFromContainerMessage args)
     {
         // Root body part?
         var slotId = args.Container.ID;

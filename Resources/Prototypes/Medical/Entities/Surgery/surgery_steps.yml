@@ -51,6 +51,46 @@
       - Head
     duration: 2.0
 
+# Treat brute wounds (skin level)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepTreatBruteWounds
+  name: Treat Brute Wounds
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    tool:
+      - type: Tending
+    duration: 1.0
+  - type: SurgeryTendWoundsEffect
+    mainGroup: Brute
+    damage:
+      groups:
+        Brute: -5
+    healMultiplier: 0.07
+  - type: SurgeryRepeatableStep
+
+# Treat burn wounds (skin level)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepTreatBurnWounds
+  name: Treat Burn Wounds
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    tool:
+      - type: Tending
+    duration: 1.0
+  - type: SurgeryTendWoundsEffect
+    mainGroup: Burn
+    damage:
+      groups:
+        Burn: -5
+    healMultiplier: 0.07
+  - type: SurgeryRepeatableStep
+
 # ===== TISSUE LAYER STEPS =====
 
 # Retract tissue (requires skin retracted)

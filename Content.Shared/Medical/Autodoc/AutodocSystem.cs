@@ -7,6 +7,8 @@ using Content.Shared.DeviceLinking;
 using Content.Shared.DeviceLinking.Events;
 using Content.Shared.Medical.Autodoc;
 using Content.Shared.Popups;
+using Content.Shared._Shitmed.Medical.Surgery;
+using System.Linq;
 
 namespace Content.Shared.Medical.Autodoc;
 
@@ -27,7 +29,8 @@ public abstract partial class SharedAutodocSystem : EntitySystem
 
     private void OnNewLink(Entity<AutodocComponent> ent, ref NewLinkEvent args)
     {
-        if (args.Sink == ent.Comp.OperatingTablePort)
+        if (args.SinkPort == ent.Comp.OperatingTablePort.Id &&
+            HasComp<OperatingTableComponent>(args.Source))
         {
             ent.Comp.OperatingTable = args.Source;
             Dirty(ent, ent.Comp);
@@ -36,11 +39,11 @@ public abstract partial class SharedAutodocSystem : EntitySystem
 
     private void OnPortDisconnected(Entity<AutodocComponent> ent, ref PortDisconnectedEvent args)
     {
-        if (args.Sink == ent.Comp.OperatingTablePort && ent.Comp.OperatingTable == args.Source)
-        {
-            ent.Comp.OperatingTable = null;
-            Dirty(ent, ent.Comp);
-        }
+        if (args.Port != ent.Comp.OperatingTablePort.Id)
+            return;
+
+        ent.Comp.OperatingTable = null;
+        Dirty(ent, ent.Comp);
     }
 
     /// <summary>
@@ -51,10 +54,10 @@ public abstract partial class SharedAutodocSystem : EntitySystem
         if (autodoc.Comp.OperatingTable == null)
             return null;
 
-        if (!TryComp<BuckleComponent>(autodoc.Comp.OperatingTable, out var buckle) || buckle.BuckledEntities.Count == 0)
+        if (!TryComp<StrapComponent>(autodoc.Comp.OperatingTable, out var strap) || strap.BuckledEntities.Count == 0)
             return null;
 
-        return buckle.BuckledEntities[0];
+        return strap.BuckledEntities.First();
     }
 }
 

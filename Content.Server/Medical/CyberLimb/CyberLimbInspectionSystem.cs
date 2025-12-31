@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: MIT
 
+using Content.Shared.Body.Part;
+using Content.Shared.Damage.Prototypes;
 using Content.Shared.Examine;
 using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Overlays;
@@ -18,8 +20,6 @@ public sealed class CyberLimbInspectionSystem : EntitySystem
 {
     [Dependency] private readonly ExamineSystemShared _examine = default!;
     [Dependency] private readonly CyberLimbStatsSystem _stats = default!;
-    [Dependency] private readonly CyberLimbStorageSystem _storage = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
 
     public override void Initialize()
     {
@@ -37,13 +37,14 @@ public sealed class CyberLimbInspectionSystem : EntitySystem
         var detailsRange = _examine.IsInDetailsRange(args.User, uid);
         var stats = GetLimbStats(uid, args.User);
 
+        var user = args.User;
         var verb = new ExamineVerb
         {
             Act = () =>
             {
                 var markup = new FormattedMessage();
-                markup.AddMarkup(stats);
-                _examine.SendExamineTooltip(args.User, uid, markup, false, false);
+                markup.AddMarkupOrThrow(stats);
+                _examine.SendExamineTooltip(user, uid, markup, false, false);
             },
             Text = Loc.GetString("cyberlimb-inspect-verb-text"),
             Category = VerbCategory.Examine,

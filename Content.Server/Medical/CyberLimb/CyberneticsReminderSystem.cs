@@ -98,7 +98,7 @@ public sealed class CyberneticsReminderSystem : EntitySystem
             return false;
 
         // Check all body parts for cybernetics with expired service time
-        var allParts = _body.GetBodyPartChildren(body, bodyComp);
+        var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
             // Check if this is a cyber part (has CyberneticsComponent)

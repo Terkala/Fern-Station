@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: MIT
 
+using Content.Shared.Body.Components;
 using Content.Shared.Body.Organ;
+using Content.Shared.Body.Systems;
 using Content.Shared.Medical.CyberOrgan;
 using Content.Shared.Medical.CyberOrgan.Modules;
+using Content.Shared.Storage;
 using Content.Shared.Damage;
 using Content.Shared.Damage.Components;
 using Content.Shared.Damage.Prototypes;
-using Content.Server.Body.Systems;
 using Robust.Shared.Timing;
 
 namespace Content.Server.Medical.CyberOrgan;
@@ -32,12 +34,7 @@ public sealed class CyberKidneyEfficiencySystem : EntitySystem
     {
         base.Initialize();
 
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, ComponentStartup>(OnEfficiencyStartup);
-    }
-
-    private void OnEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component, ComponentStartup args)
-    {
-        // Kidneys don't need special startup, they work continuously
+        // Note: Kidneys don't need ComponentStartup, they work continuously via Update()
     }
 
     public override void Update(float frameTime)

@@ -3,13 +3,16 @@
 // SPDX-License-Identifier: MIT
 
 using Content.Shared.Body.Organ;
+using Content.Shared.Body.Part;
 using Content.Shared.Medical.CyberLimb;
-using Content.Shared.Medical.CyberLimb.Components;
 using Content.Shared.Medical.CyberLimb.Modules;
 using Content.Shared.Medical.CyberOrgan;
 using Content.Shared.Storage;
 using Content.Shared.Storage.EntitySystems;
 using Content.Shared.Stacks;
+using Content.Server.Stack;
+using Content.Server.Medical.CyberOrgan;
+using Content.Shared.Containers;
 using Robust.Shared.Containers;
 
 namespace Content.Server.Medical.CyberLimb;
@@ -21,8 +24,12 @@ namespace Content.Server.Medical.CyberLimb;
 public sealed class CyberLimbStorageSystem : EntitySystem
 {
     [Dependency] private readonly SharedStorageSystem _storage = default!;
+    [Dependency] private readonly SharedContainerSystem _container = default!;
     [Dependency] private readonly StackSystem _stack = default!;
     [Dependency] private readonly CyberOrganEfficiencySystem _organEfficiency = default!;
+    [Dependency] private readonly CyberLimbStatsSystem _stats = default!;
+    [Dependency] private readonly CyberLimbModuleSystem _moduleSystem = default!;
+    [Dependency] private readonly CyberneticsUpkeepSystem _upkeep = default!;
 
     public override void Initialize()
     {
@@ -39,6 +46,15 @@ public sealed class CyberLimbStorageSystem : EntitySystem
     {
         // Ensure upkeep component exists for all cybernetics
         EnsureComp<CyberneticsUpkeepComponent>(uid);
+        
+        // Initialize stats (service time, low power mode, etc.)
+        _stats.OnCyberLimbStartup(uid, component);
+        
+        // Add CyberArmActiveItemComponent to arms
+        if (TryComp<BodyPartComponent>(uid, out var part) && part.PartType == BodyPartType.Arm)
+        {
+            EnsureComp<CyberArmActiveItemComponent>(uid);
+        }
     }
 
     private void OnContainerInsertAttempt(EntityUid uid, CyberLimbStorageComponent component, ContainerIsInsertingAttemptEvent args)
@@ -102,10 +118,15 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         RecalculateModuleCounts(uid, component, storage);
         
         // Also recalculate organ efficiency if this is a cyber-organ
-        if (HasComp<OrganComponent>(uid))
+        if (HasComp<OrganComponent>(uid) && TryComp<CyberLimbStorageComponent>(uid, out var cyberStorage))
         {
-            RecalculateOrganEfficiency(uid, storage);
+            RecalculateOrganEfficiency(uid, cyberStorage, storage);
         }
+
+        // Dispatch to other systems
+        _stats.OnLimbStorageChanged(uid, component, ref args);
+        _moduleSystem.OnModuleInserted(uid, component, ref args);
+        _upkeep.OnBatteryChanged(uid, component, ref args);
     }
 
     private void OnItemRemoved(EntityUid uid, CyberLimbStorageComponent component, ref EntRemovedFromContainerMessage args)
@@ -117,11 +138,16 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         // Recalculate module counts when item is removed
         component.NeedsRecalculation = true;
         RecalculateModuleCounts(uid, component, storage);
+
+        // Dispatch to other systems
+        _stats.OnLimbStorageChanged(uid, component, ref args);
+        _moduleSystem.OnModuleRemoved(uid, component, ref args);
+        _upkeep.OnBatteryChanged(uid, component, ref args);
         
         // Also recalculate organ efficiency if this is a cyber-organ
-        if (HasComp<OrganComponent>(uid))
+        if (HasComp<OrganComponent>(uid) && TryComp<CyberLimbStorageComponent>(uid, out var cyberStorage))
         {
-            RecalculateOrganEfficiency(uid, storage);
+            RecalculateOrganEfficiency(uid, cyberStorage, storage);
         }
     }
 

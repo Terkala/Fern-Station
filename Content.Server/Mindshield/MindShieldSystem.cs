@@ -17,9 +17,11 @@ using Content.Server.Mind;
 using Content.Server.Popups;
 using Content.Server.Revolutionary.Components; // GoobStation
 using Content.Server.Roles;
+using Content.Shared.Body.Components;
 using Content.Shared.Body.Events;
 using Content.Shared.Body.Organ;
 using Content.Shared.Body.Part;
+using Content.Shared.Body.Systems;
 using Content.Shared.Database;
 using Content.Shared.Implants;
 using Content.Shared.Implants.Components;
@@ -55,9 +57,7 @@ public sealed class MindShieldSystem : EntitySystem
         SubscribeLocalEvent<SubdermalImplantComponent, ImplantImplantedEvent>(ImplantCheck);
         SubscribeLocalEvent<MindShieldComponent, ImplantRemovedFromEvent>(OnMindShieldRemoved); // GoobStation
         
-        // Handle mindshield organ added/removed
-        SubscribeLocalEvent<OrganComponent, OrganAddedToBodyEvent>(OnMindShieldOrganAdded);
-        SubscribeLocalEvent<OrganComponent, OrganRemovedFromBodyEvent>(OnMindShieldOrganRemoved);
+        // Note: OrganComponent event subscriptions moved to DonorSpeciesSystem to avoid duplicates
         
         // Handle head removal/reattachment
         SubscribeLocalEvent<BodyPartComponent, BodyPartRemovedEvent>(OnBodyPartRemoved);
@@ -127,7 +127,10 @@ public sealed class MindShieldSystem : EntitySystem
     /// <summary>
     /// Handles mindshield organ being added to a body.
     /// </summary>
-    private void OnMindShieldOrganAdded(EntityUid uid, OrganComponent component, ref OrganAddedToBodyEvent args)
+    /// <summary>
+    /// Called by DonorSpeciesSystem when an organ is added to a body.
+    /// </summary>
+    public void OnMindShieldOrganAdded(EntityUid uid, OrganComponent component, ref OrganAddedToBodyEvent args)
     {
         // Check if this is a mindshield organ
         if (!_tag.HasTag(uid, MindShieldTag))
@@ -146,15 +149,16 @@ public sealed class MindShieldSystem : EntitySystem
 
     /// <summary>
     /// Handles mindshield organ being removed from a body.
+    /// Called by DonorSpeciesSystem.
     /// </summary>
-    private void OnMindShieldOrganRemoved(EntityUid uid, OrganComponent component, ref OrganRemovedFromBodyEvent args)
+    public void OnMindShieldOrganRemoved(EntityUid uid, OrganComponent component, ref OrganRemovedFromBodyEvent args)
     {
         // Check if this is a mindshield organ
         if (!_tag.HasTag(uid, MindShieldTag))
             return;
 
         // Check if body still has a mindshield organ in the head
-        if (!TryComp<BodyComponent>(args.OldBody, out var body))
+        if (!TryComp<Content.Shared.Body.Components.BodyComponent>(args.OldBody, out var body))
             return;
 
         // Check all heads for mindshield organ

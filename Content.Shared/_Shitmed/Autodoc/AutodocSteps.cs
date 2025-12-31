@@ -35,6 +35,11 @@ public partial interface IAutodocStep
     string Title { get; }
 
     /// <summary>
+    /// Gets the title of this step using the provided prototype manager.
+    /// </summary>
+    string GetTitle(IPrototypeManager prototypeManager);
+
+    /// <summary>
     /// Run the step, returning true if it is instantly complete and ready to go to the next step, or false if it needs to wait for something else.
     /// Should throw AutodocError for player-facing errors.
     /// </summary>
@@ -76,10 +81,15 @@ public sealed partial class SurgeryAutodocStep : IAutodocStep
     public string Title {
         get {
             var protoMan = IoCManager.Resolve<IPrototypeManager>();
-            var proto = protoMan.Index(Surgery);
-            var part = Loc.GetString("autodoc-body-part-" + Part.ToString());
-            return Loc.GetString("autodoc-program-step-surgery", ("part", part), ("name", proto.Name));
+            return GetTitle(protoMan);
         }
+    }
+
+    public string GetTitle(IPrototypeManager prototypeManager)
+    {
+        var proto = prototypeManager.Index(Surgery);
+        var part = Loc.GetString("autodoc-body-part-" + Part.ToString());
+        return Loc.GetString("autodoc-program-step-surgery", ("part", part), ("name", proto.Name));
     }
 
     bool IAutodocStep.Run(Entity<AutodocComponent, HandsComponent> ent, SharedAutodocSystem autodoc)
@@ -114,6 +124,8 @@ public sealed partial class GrabItemAutodocStep : IAutodocStep
 
     public string Title => Loc.GetString("autodoc-program-step-grab-item", ("name", Name));
 
+    public string GetTitle(IPrototypeManager prototypeManager) => Title;
+
     bool IAutodocStep.Validate(Entity<AutodocComponent> ent, SharedAutodocSystem autodoc)
     {
         // client will never send a blank string for name
@@ -147,6 +159,8 @@ public abstract partial class GrabAnyItemAutodocStep : IAutodocStep
     public virtual LocId Name { get; }
 
     string IAutodocStep.Title => Loc.GetString("autodoc-program-step-grab-any", ("name", Loc.GetString(Name)));
+
+    string IAutodocStep.GetTitle(IPrototypeManager prototypeManager) => Loc.GetString("autodoc-program-step-grab-any", ("name", Loc.GetString(Name)));
 
     bool IAutodocStep.Run(Entity<AutodocComponent, HandsComponent> ent, SharedAutodocSystem autodoc)
     {
@@ -187,6 +201,8 @@ public sealed partial class StoreItemAutodocStep : IAutodocStep
 {
     string IAutodocStep.Title => Loc.GetString("autodoc-program-step-store-item");
 
+    string IAutodocStep.GetTitle(IPrototypeManager prototypeManager) => Loc.GetString("autodoc-program-step-store-item");
+
     bool IAutodocStep.Run(Entity<AutodocComponent, HandsComponent> ent, SharedAutodocSystem autodoc)
     {
         autodoc.StoreItemOrThrow(ent);
@@ -204,6 +220,8 @@ public sealed partial class SetLabelAutodocStep : IAutodocStep
     public string Label = string.Empty;
 
     string IAutodocStep.Title => Loc.GetString("autodoc-program-step-set-label", ("label", Label));
+
+    string IAutodocStep.GetTitle(IPrototypeManager prototypeManager) => Loc.GetString("autodoc-program-step-set-label", ("label", Label));
 
     bool IAutodocStep.Validate(Entity<AutodocComponent> ent, SharedAutodocSystem autodoc)
     {
@@ -229,6 +247,8 @@ public sealed partial class WaitAutodocStep : IAutodocStep
     public int Length;
 
     string IAutodocStep.Title => Loc.GetString("autodoc-program-step-wait", ("length", Length));
+
+    string IAutodocStep.GetTitle(IPrototypeManager prototypeManager) => Loc.GetString("autodoc-program-step-wait", ("length", Length));
 
     bool IAutodocStep.Validate(Entity<AutodocComponent> ent, SharedAutodocSystem autodoc)
     {

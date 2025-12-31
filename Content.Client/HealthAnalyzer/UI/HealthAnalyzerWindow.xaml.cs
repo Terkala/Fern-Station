@@ -405,18 +405,18 @@ namespace Content.Client.HealthAnalyzer.UI
             // Display ongoing penalties (surgery penalties, unskilled penalties)
             var penalties = new List<(FixedPoint2 Amount, string Description)>();
             
-            if (_entityManager.TryGetComponent<BodyComponent>(target, out var body))
+            if (_entityManager.TryGetComponent<BodyComponent>(target, out var bodyComponent))
             {
                 // Get all body parts and check for penalties
-                if (body.RootContainer.ContainedEntity != null)
+                if (bodyComponent.RootContainer.ContainedEntity != null)
                 {
-                    var parts = _bodySystem.GetBodyPartChildren(body.RootContainer.ContainedEntity.Value);
+                    var parts = _bodySystem.GetBodyPartChildren(bodyComponent.RootContainer.ContainedEntity.Value);
                     foreach (var (partUid, _) in parts)
                     {
                         var partName = _entityManager.GetComponent<MetaDataComponent>(partUid).EntityName;
                         
                         // Check for surgery penalties (incomplete surgeries)
-                        if (_entityManager.TryComp<SurgeryPenaltyComponent>(partUid, out var surgeryPenalty) && 
+                        if (_entityManager.TryGetComponent<SurgeryPenaltyComponent>(partUid, out var surgeryPenalty) && 
                             surgeryPenalty.CurrentPenalty > FixedPoint2.Zero)
                         {
                             penalties.Add((surgeryPenalty.CurrentPenalty, 
@@ -425,7 +425,7 @@ namespace Content.Client.HealthAnalyzer.UI
                         }
                         
                         // Check for unskilled surgery penalties
-                        if (_entityManager.TryComp<UnskilledSurgeryPenaltyComponent>(partUid, out var unskilledSurgery))
+                        if (_entityManager.TryGetComponent<UnskilledSurgeryPenaltyComponent>(partUid, out var unskilledSurgery))
                         {
                             penalties.Add((unskilledSurgery.Penalty,
                                 Loc.GetString("health-analyzer-window-integrity-penalty-unskilled-surgery",
@@ -433,7 +433,7 @@ namespace Content.Client.HealthAnalyzer.UI
                         }
                         
                         // Check for unskilled technician penalties
-                        if (_entityManager.TryComp<UnskilledTechnicianPenaltyComponent>(partUid, out var unskilledTech))
+                        if (_entityManager.TryGetComponent<UnskilledTechnicianPenaltyComponent>(partUid, out var unskilledTech))
                         {
                             penalties.Add((unskilledTech.Penalty,
                                 Loc.GetString("health-analyzer-window-integrity-penalty-unskilled-technician",
@@ -445,7 +445,7 @@ namespace Content.Client.HealthAnalyzer.UI
                 // Check for unsanitary conditions penalty
                 // The penalty is calculated on the server when surgery goes below skin level
                 // For display, we show the current penalty if applied, or 0 if not yet applied
-                if (_entityManager.TryComp<UnsanitaryConditionsComponent>(target, out var unsanitary))
+                if (_entityManager.TryGetComponent<UnsanitaryConditionsComponent>(target, out var unsanitary))
                 {
                     // Only show if penalty has been applied (surgery went below skin level)
                     if (unsanitary.PenaltyApplied && unsanitary.Penalty > FixedPoint2.Zero)

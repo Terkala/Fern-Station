@@ -59,7 +59,7 @@ public sealed class SurgeryBui : BoundUserInterface
     {
         // Get the local player entity to pass as user (for bone smashing which needs held item)
         var player = _playerManager.LocalEntity;
-        SendMessage(new SurgeryStepSelectedMessage(step, _window?.CurrentLayer ?? SurgeryLayer.Skin, player));
+        SendMessage(new SurgeryStepSelectedMessage(step, _window?.CurrentLayer ?? SurgeryLayer.Skin, player != null ? _entMan.GetNetEntity(player.Value) : null));
     }
 }
 

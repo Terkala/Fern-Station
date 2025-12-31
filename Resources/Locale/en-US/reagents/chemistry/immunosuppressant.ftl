@@ -4,6 +4,5 @@
 
 reagent-name-immunosuppressant = Immunosuppressant
 reagent-desc-immunosuppressant = A medication that suppresses the body's integrity penalty response, preventing max health reduction from cybernetic enhancements.
-reagent-physical-desc-powdery = powdery
 
 

@@ -12,6 +12,7 @@ namespace Content.Shared._Shitmed.Medical.Surgery.Conditions;
 /// Condition that checks if an organ with a specific prototype ID is present in the body part.
 /// </summary>
 [RegisterComponent, NetworkedComponent]
+[ComponentProtoName("ShitmedSurgeryOrganPrototypeCondition")]
 public sealed partial class SurgeryOrganPrototypeConditionComponent : Component
 {
     /// <summary>

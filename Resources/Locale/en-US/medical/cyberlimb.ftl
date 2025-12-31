@@ -6,9 +6,9 @@ cyberlimb-inspect-service-time-unknown = Service Time: Unknown
 cyberlimb-inspect-battery = Battery: { $percent }% ({ $minutes } min remaining)
 cyberlimb-inspect-service-time = Service Time: { $minutes } min remaining
 cyberlimb-inspect-stats = Battery: { $battery }
-Service Time: { $serviceTime }
-Efficiency: { $efficiency }
-Modules: { $modules }
+    Service Time: { $serviceTime }
+    Efficiency: { $efficiency }
+    Modules: { $modules }
 cyberlimb-inspect-module-battery = { $count }x Battery
 cyberlimb-inspect-module-matter-bin = { $count }x Matter Bin
 cyberlimb-inspect-module-manipulator = { $count }x Manipulator

@@ -57,6 +57,7 @@ using Robust.Shared.Timing;
 
 // Shitmed Change
 using Content.Shared.Body.Part;
+using Content.Server.Medical.Surgery;
 using Content.Shared.Body.Systems;
 using Content.Shared._Shitmed.Targeting;
 using System.Linq;
