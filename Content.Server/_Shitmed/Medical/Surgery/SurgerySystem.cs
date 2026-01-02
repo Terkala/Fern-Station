@@ -31,6 +31,7 @@ using Content.Shared._Shitmed.Medical.Surgery.Effects.Step;
 using Content.Shared._Shitmed.Medical.Surgery.Steps;
 using Content.Shared._Shitmed.Medical.Surgery.Steps.Parts;
 using Content.Shared._Shitmed.Medical.Surgery.Tools;
+using Content.Shared.Medical.Surgery;
 using Robust.Server.GameObjects;
 using Robust.Shared.Configuration;
 using Robust.Shared.Player;
@@ -41,7 +42,7 @@ using Content.Shared.Verbs;
 
 namespace Content.Server._Shitmed.Medical.Surgery;
 
-public sealed class SurgerySystem : SharedSurgerySystem
+public sealed class SurgerySystem : Content.Shared._Shitmed.Medical.Surgery.SharedSurgerySystem
 {
     [Dependency] private readonly BodySystem _body = default!;
     [Dependency] private readonly ChatSystem _chat = default!;
@@ -73,6 +74,13 @@ public sealed class SurgerySystem : SharedSurgerySystem
 
     protected override void RefreshUI(EntityUid body)
     {
+        // Block old surgery UI if body uses new layer-based surgery system
+        foreach (var part in _body.GetBodyChildren(body))
+        {
+            if (HasComp<SurgeryLayerComponent>(part.Id))
+                return; // New system handles this - don't update old UI
+        }
+
         var surgeries = new Dictionary<NetEntity, List<EntProtoId>>();
         foreach (var surgery in AllSurgeries)
         {
@@ -91,13 +99,13 @@ public sealed class SurgerySystem : SharedSurgerySystem
             }
 
         }
-        _ui.SetUiState(body, SurgeryUIKey.Key, new SurgeryBuiState(surgeries));
+        _ui.SetUiState(body, Content.Shared._Shitmed.Medical.Surgery.SurgeryUIKey.Key, new SurgeryBuiState(surgeries));
         /*
             Reason we do this is because when applying a BUI State, it rolls back the state on the entity temporarily,
             which just so happens to occur right as we're checking for step completion, so we end up with the UI
             not updating at all until you change tools or reopen the window. I love shitcode.
         */
-        _ui.ServerSendUiMessage(body, SurgeryUIKey.Key, new SurgeryBuiRefreshMessage());
+        _ui.ServerSendUiMessage(body, Content.Shared._Shitmed.Medical.Surgery.SurgeryUIKey.Key, new SurgeryBuiRefreshMessage());
     }
     private void SetDamage(EntityUid body,
         DamageSpecifier damage,
@@ -119,6 +127,13 @@ public sealed class SurgerySystem : SharedSurgerySystem
 
     private void AttemptStartSurgery(Entity<SurgeryToolComponent> ent, EntityUid user, EntityUid target)
     {
+        // Block old surgery UI if body uses new layer-based surgery system
+        foreach (var part in _body.GetBodyChildren(target))
+        {
+            if (HasComp<SurgeryLayerComponent>(part.Id))
+                return; // New system handles this - don't open old UI
+        }
+
         if (!IsLyingDown(target, user))
             return;
 
@@ -128,7 +143,7 @@ public sealed class SurgerySystem : SharedSurgerySystem
             return;
         }
 
-        _ui.OpenUi(target, SurgeryUIKey.Key, user);
+        _ui.OpenUi(target, Content.Shared._Shitmed.Medical.Surgery.SurgeryUIKey.Key, user);
         RefreshUI(target);
     }
 
@@ -138,6 +153,15 @@ public sealed class SurgerySystem : SharedSurgerySystem
             || !args.CanAccess
             || !HasComp<SurgeryTargetComponent>(args.Target))
             return;
+
+        // Check if this body has any body parts with SurgeryLayerComponent
+        // If so, skip adding the verb - the new layer-based surgery system should handle it
+        // Users should interact with individual body parts instead
+        foreach (var part in _body.GetBodyChildren(args.Target))
+        {
+            if (HasComp<SurgeryLayerComponent>(part.Id))
+                return; // New system handles this via body part verbs
+        }
 
         var user = args.User;
         var target = args.Target;

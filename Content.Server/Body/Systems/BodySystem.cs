@@ -44,6 +44,7 @@ using Content.Shared.Mind;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Movement.Events;
 using Content.Shared.Movement.Systems;
+using Content.Shared.Storage;
 using Robust.Shared.Audio;
 using Robust.Shared.Timing;
 using System.Numerics;
@@ -88,8 +89,8 @@ public sealed class BodySystem : SharedBodySystem
         SubscribeLocalEvent<BodyComponent, ApplyMetabolicMultiplierEvent>(OnApplyMetabolicMultiplier);
         
         // Subscribe to events for cybernetics ability recalculation
-        SubscribeLocalEvent<OrganComponent, OrganRemovedFromBodyEvent>(OnOrganRemovedFromBody);
-        SubscribeLocalEvent<BodyPartComponent, BodyPartRemovedEvent>(OnBodyPartRemoved);
+        // Note: OrganRemovedFromBodyEvent subscription handled by DonorSpeciesSystem to avoid duplicates
+        // Note: BodyPartRemovedEvent subscription handled by MindShieldSystem to avoid duplicates
         SubscribeLocalEvent<BodyPartComponent, BeingGibbedEvent>(OnBodyPartGibbed);
         SubscribeLocalEvent<OrganComponent, BeingGibbedEvent>(OnOrganGibbed);
     }
@@ -300,13 +301,13 @@ public sealed class BodySystem : SharedBodySystem
     #region Cybernetics Ability Recalculation
 
     /// <summary>
-    /// Event handler for when an organ is removed from a body.
+    /// Called by DonorSpeciesSystem when an organ is removed from a body.
     /// Recalculates cybernetics abilities if the removed organ was a cybernetic.
     /// </summary>
-    private void OnOrganRemovedFromBody(Entity<OrganComponent> ent, ref OrganRemovedFromBodyEvent args)
+    public void OnOrganRemovedFromBody(EntityUid uid, OrganComponent component, ref OrganRemovedFromBodyEvent args)
     {
         // Check if this is a cybernetic organ
-        if (!HasComp<CyberneticsComponent>(ent) && !HasComp<CyberLimbStorageComponent>(ent))
+        if (!HasComp<CyberneticsComponent>(uid) && !HasComp<CyberLimbStorageComponent>(uid))
             return;
 
         // Recalculate abilities for the body
@@ -317,17 +318,17 @@ public sealed class BodySystem : SharedBodySystem
     }
 
     /// <summary>
-    /// Event handler for when a body part is removed from a body.
+    /// Called by MindShieldSystem when a body part is removed from a body.
     /// Recalculates cybernetics abilities if the removed part was a cybernetic.
     /// </summary>
-    private void OnBodyPartRemoved(Entity<BodyPartComponent> ent, ref BodyPartRemovedEvent args)
+    public void OnBodyPartRemoved(EntityUid uid, BodyPartComponent component, ref BodyPartRemovedEvent args)
     {
         // Check if this is a cybernetic limb
-        if (!HasComp<CyberneticsComponent>(ent) && !HasComp<CyberLimbStorageComponent>(ent))
+        if (!HasComp<CyberneticsComponent>(uid) && !HasComp<CyberLimbStorageComponent>(uid))
             return;
 
         // Find the body entity
-        var bodyUid = args.Part.Comp.Body;
+        var bodyUid = component.Body;
         if (bodyUid.HasValue && bodyUid.Value.IsValid() && !TerminatingOrDeleted(bodyUid.Value))
         {
             RecalculateCyberneticsAbilities(bodyUid.Value);
@@ -455,7 +456,8 @@ public sealed class BodySystem : SharedBodySystem
                     var actionId = tagString.Substring("GrantsAction:".Length);
                     if (!string.IsNullOrWhiteSpace(actionId))
                     {
-                        _actionsSystem.AddAction(bodyUid, out _, actionId, cyberneticUid);
+                        EntityUid? actionEntity = null;
+                        _actionsSystem.AddAction(bodyUid, ref actionEntity, out _, actionId, cyberneticUid);
                     }
                 }
             }
@@ -498,7 +500,8 @@ public sealed class BodySystem : SharedBodySystem
                         if (!string.IsNullOrWhiteSpace(actionId))
                         {
                             // Grant action to body, with the item as the container
-                            _actionsSystem.AddAction(bodyUid, out _, actionId, item);
+                            EntityUid? actionEntity = null;
+                            _actionsSystem.AddAction(bodyUid, ref actionEntity, out _, actionId, item);
                         }
                     }
                 }

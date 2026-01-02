@@ -8,6 +8,7 @@ using Content.Shared.Examine;
 using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Overlays;
 using Content.Shared.Verbs;
+using Content.Server.Power.Components;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 
@@ -88,12 +89,16 @@ public sealed class CyberLimbInspectionSystem : EntitySystem
         {
             if (TryComp<CyberLimbStatsComponent>(part.Body.Value, out var bodyStats))
             {
-                var batteryPercent = bodyStats.CachedAverageBatteryCapacity > 0
-                    ? (bodyStats.CurrentBatteryCharge / bodyStats.CachedAverageBatteryCapacity * 100)
-                    : 0;
-                var batteryMinutes = bodyStats.CurrentBatteryCharge > 0 && bodyStats.CachedAverageBatteryCapacity > 0
-                    ? (bodyStats.CurrentBatteryCharge / bodyStats.CachedAverageBatteryCapacity * 20)
-                    : 0;
+                var body = part.Body.Value;
+                float batteryPercent = 0f;
+                float batteryMinutes = 0f;
+                
+                if (TryComp<BatteryComponent>(body, out var battery) && battery.MaxCharge > 0f)
+                {
+                    batteryPercent = (battery.CurrentCharge / battery.MaxCharge * 100);
+                    // Calculate minutes: (currentCharge / maxCharge) * 20 minutes baseline
+                    batteryMinutes = (battery.CurrentCharge / battery.MaxCharge * 20);
+                }
 
                 batteryInfo = Loc.GetString("cyberlimb-inspect-battery",
                     ("percent", batteryPercent.ToString("F0")),

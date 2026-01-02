@@ -12,8 +12,8 @@ namespace Content.Shared.Medical.Surgery.Components;
 /// Base component for tracking improvised surgery steps performed on a body part.
 /// Each improvised operation type should have its own component that inherits from this.
 /// </summary>
-[RegisterComponent, NetworkedComponent]
-public sealed partial class ImprovisedSurgeryComponent : Component
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
+public abstract partial class ImprovisedSurgeryComponent : Component
 {
     /// <summary>
     /// The integrity cost that was applied when this improvised step was performed.
@@ -32,7 +32,7 @@ public sealed partial class ImprovisedSurgeryComponent : Component
 /// <summary>
 /// Tracks that bones were removed via improvised method (bashing).
 /// </summary>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class ImprovisedBoneRemovalComponent : ImprovisedSurgeryComponent
 {
 }
@@ -40,7 +40,7 @@ public sealed partial class ImprovisedBoneRemovalComponent : ImprovisedSurgeryCo
 /// <summary>
 /// Tracks that tissue was cut via improvised method (slashing).
 /// </summary>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class ImprovisedTissueCutComponent : ImprovisedSurgeryComponent
 {
 }
@@ -48,7 +48,7 @@ public sealed partial class ImprovisedTissueCutComponent : ImprovisedSurgeryComp
 /// <summary>
 /// Tracks that bleeders were clamped via improvised method (wirecutters/heat).
 /// </summary>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class ImprovisedBleederClampingComponent : ImprovisedSurgeryComponent
 {
 }
@@ -56,7 +56,7 @@ public sealed partial class ImprovisedBleederClampingComponent : ImprovisedSurge
 /// <summary>
 /// Tracks that wounds were cauterized via improvised method (heat damage).
 /// </summary>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class ImprovisedCauterizationComponent : ImprovisedSurgeryComponent
 {
 }
@@ -64,7 +64,7 @@ public sealed partial class ImprovisedCauterizationComponent : ImprovisedSurgery
 /// <summary>
 /// Tracks that blood vessels were severed via improvised method (slashing).
 /// </summary>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class ImprovisedSeverBloodVesselsComponent : ImprovisedSurgeryComponent
 {
 }
@@ -72,7 +72,7 @@ public sealed partial class ImprovisedSeverBloodVesselsComponent : ImprovisedSur
 /// <summary>
 /// Tracks that tissue was retracted via improvised method (prying).
 /// </summary>
-[RegisterComponent, NetworkedComponent]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class ImprovisedRetractTissueComponent : ImprovisedSurgeryComponent
 {
 }

@@ -37,7 +37,7 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         base.Initialize();
 
         SubscribeLocalEvent<CyberLimbStorageComponent, ComponentStartup>(OnCyberLimbStorageStartup);
-        SubscribeLocalEvent<CyberLimbStorageComponent, EntInsertedIntoContainerMessage>(OnItemInserted);
+        SubscribeLocalEvent<CyberLimbStorageComponent, EntInsertedIntoContainerMessage>(OnItemInserted, after: new[] { typeof(SharedStorageSystem) });
         SubscribeLocalEvent<CyberLimbStorageComponent, EntRemovedFromContainerMessage>(OnItemRemoved);
         SubscribeLocalEvent<CyberLimbStorageComponent, StorageInteractAttemptEvent>(OnStorageInteractAttempt);
         SubscribeLocalEvent<CyberLimbStorageComponent, ContainerIsInsertingAttemptEvent>(OnContainerInsertAttempt, before: new[] { typeof(SharedStorageSystem) });
@@ -56,15 +56,14 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         {
             EnsureComp<CyberArmActiveItemComponent>(uid);
             
+            // Ensure UserInterface component exists (should be added via prototype, but ensure it exists)
+            EnsureComp<UserInterfaceComponent>(uid);
+            
             // Add UI components for radial menu
-            EnsureComp<ActivatableUIComponent>(uid);
             var activatable = EnsureComp<ActivatableUIComponent>(uid);
             activatable.Key = CyberArmRadialMenuUiKey.Key;
             activatable.InHandsOnly = false;
             activatable.RequiresComplex = false;
-            
-            // Ensure UserInterface component exists
-            EnsureComp<UserInterfaceComponent>(uid);
         }
     }
 
@@ -105,22 +104,30 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         if (!TryComp<StorageComponent>(uid, out var storage) || args.Container.ID != storage.Container.ID)
             return;
 
+        // Verify the entity is still in the container (SharedStorageSystem may have removed it if no grid space)
+        if (!args.Container.Contains(args.Entity))
+            return;
+
         // Check if the inserted item is a stack with count > 1
         // If so, we need to remove it, split it, and re-insert only 1 item
         if (TryComp<StackComponent>(args.Entity, out var stack) && stack.Count > 1)
         {
-            // Remove the stack from storage
+            // Remove the stack from storage - this will reparent it back to where it was (player's hand or ground)
             _container.Remove(args.Entity, args.Container);
 
             // Split the stack: take 1, leave the rest
+            // The original stack remains with reduced count and should be in the player's hand
             var splitItem = _stack.Split(args.Entity, 1, Transform(uid).Coordinates, stack);
             if (splitItem != null)
             {
-                // Insert the split item (single item, not a stack)
+                // Try to insert the split item (single item, not a stack)
+                // Use Insert with stackAutomatically: false - SharedStorageSystem's OnEntInserted will handle grid space
+                // If insertion fails, the item will remain at its current location (accessible to player)
                 _storage.Insert(uid, splitItem.Value, out _, storageComp: storage, stackAutomatically: false);
             }
 
-            // Don't recalculate yet, wait for the split item to be inserted
+            // Don't recalculate yet, wait for the split item to be inserted (if it succeeded)
+            // If insertion fails, SharedStorageSystem will have already removed it in its OnEntInserted handler
             return;
         }
 

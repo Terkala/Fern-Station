@@ -9,6 +9,9 @@ using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Medical.CyberLimb.Modules;
 using Content.Shared.Medical.Integrity;
 using Content.Shared._Shitmed.Cybernetics;
+using Content.Shared.Storage;
+using Content.Server.Power.Components;
+using Content.Server.Power.EntitySystems;
 using Robust.Shared.Containers;
 using Robust.Shared.Timing;
 
@@ -24,6 +27,7 @@ public sealed class CyberLimbStatsSystem : EntitySystem
     [Dependency] private readonly SharedBodySystem _body = default!;
     [Dependency] private readonly CyberLimbLowPowerModeSystem _lowPowerMode = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private readonly BatterySystem _battery = default!;
 
     private const float BatteryUpdateInterval = 1.0f; // Update every 1 second instead of every tick
     private const float ServiceTimeUpdateInterval = 1.0f; // Update every 1 second
@@ -61,11 +65,13 @@ public sealed class CyberLimbStatsSystem : EntitySystem
                 UpdateBatteryDrain(uid, stats);
                 stats.LastBatteryUpdate = curTime;
 
-                // If battery is full or empty and not changing, stop updating
-                if (stats.CurrentBatteryCharge <= 0f ||
-                    stats.CurrentBatteryCharge >= stats.CachedAverageBatteryCapacity)
+                // Check if battery is full or empty and not changing, stop updating
+                if (TryComp<BatteryComponent>(uid, out var battery))
                 {
-                    stats.NeedsBatteryUpdate = false;
+                    if (battery.CurrentCharge <= 0f || battery.CurrentCharge >= battery.MaxCharge)
+                    {
+                        stats.NeedsBatteryUpdate = false;
+                    }
                 }
             }
 
@@ -116,6 +122,9 @@ public sealed class CyberLimbStatsSystem : EntitySystem
                 stats.NeedsRecalculation = true;
                 Dirty(body, stats);
             }
+            
+            // Ensure BatteryComponent exists on body (only added when cybernetics exist)
+            EnsureComp<BatteryComponent>(body);
             
             // Ensure low power mode component exists on the body
             if (!HasComp<CyberLimbLowPowerModeComponent>(body))
@@ -179,14 +188,16 @@ public sealed class CyberLimbStatsSystem : EntitySystem
 
     /// <summary>
     /// Recalculates averaged battery capacity across all cyber limbs on a body.
+    /// Also sums efficiency modifiers from capacitors across all cybernetics for service time multiplier.
     /// Service time is now tracked per-limb, not on the body.
     /// </summary>
     private void RecalculateAveragedStats(EntityUid body, CyberLimbStatsComponent stats, BodyComponent bodyComp)
     {
         var cyberLimbs = new List<(EntityUid, CyberLimbStorageComponent)>();
         float totalBattery = 0f;
+        float totalCapacitorEfficiencyModifierSum = 0f;
 
-        // Find all cyber limbs
+        // Find all cyber limbs and sum capacitor efficiency modifiers
         var allParts = _body.GetBodyChildren(body, bodyComp);
         foreach (var (partUid, _) in allParts)
         {
@@ -199,35 +210,97 @@ public sealed class CyberLimbStatsSystem : EntitySystem
                 cyberLimbs.Add((partUid, storage));
                 totalBattery += storage.CachedBatteryCapacity;
             }
+
+            // Sum efficiency modifiers from capacitors in this cybernetic's storage
+            if (TryComp<StorageComponent>(partUid, out var storageComp))
+            {
+                foreach (var item in storageComp.Container.ContainedEntities)
+                {
+                    if (TryComp<CyberLimbCapacitorModuleComponent>(item, out var capacitor))
+                    {
+                        totalCapacitorEfficiencyModifierSum += capacitor.EfficiencyModifier;
+                    }
+                }
+            }
         }
+
+        // Store capacitor efficiency modifier sum
+        var oldCapacitorModifierSum = stats.CachedCapacitorEfficiencyModifierSum;
+        stats.CachedCapacitorEfficiencyModifierSum = totalCapacitorEfficiencyModifierSum;
+        var capacitorModifierSumChanged = Math.Abs(oldCapacitorModifierSum - totalCapacitorEfficiencyModifierSum) > 0.0001f;
 
         if (cyberLimbs.Count > 0)
         {
             stats.CachedAverageBatteryCapacity = totalBattery / cyberLimbs.Count;
 
-            // Initialize battery charge if not set
-            if (stats.CurrentBatteryCharge == 0f && stats.CachedAverageBatteryCapacity > 0f)
+            // Ensure BatteryComponent exists (cybernetics exist)
+            var battery = EnsureComp<BatteryComponent>(body);
+            
+            // Calculate total capacity (sum of all battery modules)
+            var totalCapacity = totalBattery;
+            
+            // Calculate power draw: watts = (totalCapacity / BaselineDurationSeconds) * cyberneticsCount
+            // Where BaselineDurationSeconds = 20 minutes (1200 seconds)
+            var wattsPerCybernetic = totalCapacity / CyberneticsUpkeepComponent.BaselineDurationSeconds;
+            stats.CachedPowerDrawWatts = wattsPerCybernetic * cyberLimbs.Count;
+            
+            // Update BatteryComponent max charge
+            _battery.SetMaxCharge(body, totalCapacity, battery);
+            
+            // Initialize battery charge if not set and BatteryComponent is empty
+            if (battery.CurrentCharge == 0f && totalCapacity > 0f)
             {
-                stats.CurrentBatteryCharge = stats.CachedAverageBatteryCapacity;
+                _battery.SetCharge(body, totalCapacity, battery);
                 stats.NeedsBatteryUpdate = true;
+                stats.LastBatteryUpdate = _timing.CurTime;
+            }
+            else if (totalCapacity > 0f)
+            {
+                stats.NeedsBatteryUpdate = true;
+                // Initialize LastBatteryUpdate if not set
+                if (stats.LastBatteryUpdate == TimeSpan.Zero)
+                {
+                    stats.LastBatteryUpdate = _timing.CurTime;
+                }
             }
         }
         else
         {
+            // All cybernetics removed - clean up BatteryComponent
+            RemComp<BatteryComponent>(body);
             stats.CachedAverageBatteryCapacity = 0f;
-            stats.CurrentBatteryCharge = 0f;
+            stats.CachedPowerDrawWatts = 0f;
         }
 
         stats.NeedsRecalculation = false;
         Dirty(body, stats);
+
+        // If capacitor modifier sum changed, recalculate service time for all cybernetics
+        if (capacitorModifierSumChanged)
+        {
+            RecalculateAllLimbsServiceTime(body, bodyComp);
+        }
     }
 
     /// <summary>
     /// Recalculates service time for a specific limb based on its matter bin modules.
+    /// Applies capacitor multiplier from body stats (sum of efficiency modifiers from all capacitors).
     /// </summary>
     private void RecalculateLimbServiceTime(EntityUid limb, CyberLimbStorageComponent storage)
     {
-        var maxServiceTime = storage.CachedMatterBinCount * ServiceTimePerMatterBin;
+        var baseMaxServiceTime = storage.CachedMatterBinCount * ServiceTimePerMatterBin;
+        
+        // Apply capacitor multiplier: 1.0 + sum of all capacitor efficiency modifiers
+        float capacitorMultiplier = 1.0f;
+        if (TryComp<BodyPartComponent>(limb, out var part) && part.Body != null)
+        {
+            if (TryComp<CyberLimbStatsComponent>(part.Body.Value, out var bodyStats))
+            {
+                capacitorMultiplier = 1.0f + bodyStats.CachedCapacitorEfficiencyModifierSum;
+            }
+        }
+        
+        var maxServiceTime = baseMaxServiceTime * capacitorMultiplier;
         var oldMaxServiceTime = storage.MaxServiceTime;
         storage.MaxServiceTime = maxServiceTime;
 
@@ -253,27 +326,54 @@ public sealed class CyberLimbStatsSystem : EntitySystem
         Dirty(limb, storage);
         
         // Update next expiration time when service time is recalculated
-        if (TryComp<BodyPartComponent>(limb, out var part) && part.Body != null)
+        if (part != null && part.Body != null)
         {
             UpdateNextServiceTimeExpiration(part.Body.Value);
         }
     }
 
     /// <summary>
-    /// Updates battery drain. Battery drains at a rate of (average_capacity / 20_minutes) per second.
+    /// Recalculates service time for all cybernetics on a body.
+    /// Called when capacitor count changes.
+    /// </summary>
+    private void RecalculateAllLimbsServiceTime(EntityUid body, BodyComponent bodyComp)
+    {
+        var allParts = _body.GetBodyChildren(body, bodyComp);
+        foreach (var (partUid, _) in allParts)
+        {
+            // Check if this is a cybernetic
+            if (!HasComp<CyberneticsComponent>(partUid))
+                continue;
+
+            if (TryComp<CyberLimbStorageComponent>(partUid, out var storage))
+            {
+                RecalculateLimbServiceTime(partUid, storage);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates battery drain using watt-based calculations.
     /// In low power mode, drains at 50% rate.
     /// </summary>
     private void UpdateBatteryDrain(EntityUid body, CyberLimbStatsComponent stats)
     {
-        if (stats.CachedAverageBatteryCapacity <= 0f)
+        // Check BatteryComponent exists (defensive check)
+        if (!TryComp<BatteryComponent>(body, out var battery))
+            return;
+
+        if (stats.CachedPowerDrawWatts <= 0f)
             return;
 
         // Get power consumption multiplier (0.5 in low power mode, 1.0 otherwise)
         var powerMultiplier = _lowPowerMode.GetPowerConsumptionMultiplier(body);
 
-        // Drain battery: (capacity / 20_minutes) per second, reduced in low power mode
-        var drainAmount = stats.CachedAverageBatteryCapacity * BatteryDrainRatePerSecond * BatteryUpdateInterval * powerMultiplier;
-        stats.CurrentBatteryCharge = Math.Max(0f, stats.CurrentBatteryCharge - drainAmount);
+        // Calculate elapsed time since last update
+        var elapsedSeconds = (_timing.CurTime - stats.LastBatteryUpdate).TotalSeconds;
+        
+        // Drain battery: watts * elapsedSeconds * powerMultiplier
+        var drainJoules = stats.CachedPowerDrawWatts * (float)elapsedSeconds * powerMultiplier;
+        _battery.UseCharge(body, drainJoules, battery);
 
         Dirty(body, stats);
     }
@@ -305,9 +405,13 @@ public sealed class CyberLimbStatsSystem : EntitySystem
     /// </summary>
     private void UpdateBatteryEfficiencyPenalty(EntityUid body, CyberLimbStatsComponent stats)
     {
+        // Check BatteryComponent exists (defensive check)
+        if (!TryComp<BatteryComponent>(body, out var battery))
+            return; // No battery = no cybernetics = no penalty needed
+
         bool wasDepleted = stats.IsBatteryDepleted;
 
-        stats.IsBatteryDepleted = stats.CurrentBatteryCharge <= 0f;
+        stats.IsBatteryDepleted = battery.CurrentCharge <= 0f;
 
         // Only update if state changed
         if (wasDepleted != stats.IsBatteryDepleted)

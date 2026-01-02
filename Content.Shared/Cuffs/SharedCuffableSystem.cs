@@ -223,7 +223,7 @@ namespace Content.Shared.Cuffs
             UpdateCuffState(uid, component);
         }
 
-        private void OnCuffsInsertedIntoContainer(EntityUid uid, CuffableComponent component, ContainerModifiedMessage args)
+        private void OnCuffsInsertedIntoContainer(EntityUid uid, CuffableComponent component, EntInsertedIntoContainerMessage args)
         {
             if (args.Container == component.Container)
                 UpdateCuffState(uid, component);

@@ -14,6 +14,7 @@ using Content.Shared.Storage.Components;
 using Content.Shared.Storage.EntitySystems;
 using Content.Shared.Verbs;
 using Content.Shared._Shitmed.Cybernetics;
+using Content.Server.Power.Components;
 using Robust.Shared.Containers;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
@@ -271,20 +272,20 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
             // Sum up all battery capacities
             foreach (var item in storage.Container.ContainedEntities)
             {
-                if (TryComp<CyberLimbBatteryModuleComponent>(item, out var battery))
+                if (TryComp<CyberLimbBatteryModuleComponent>(item, out var moduleBattery))
                 {
-                    totalMaxWattage += battery.MaxCharge;
+                    totalMaxWattage += moduleBattery.MaxCharge;
                 }
             }
         }
 
-        // Calculate current total wattage based on body's shared battery percentage
-        // The body's CurrentBatteryCharge represents the average capacity * percentage
-        // So: bodyPercentage = CurrentBatteryCharge / CachedAverageBatteryCapacity
-        // Total current = totalMaxWattage * bodyPercentage
-        var bodyPercentage = stats.CachedAverageBatteryCapacity > 0f
-            ? stats.CurrentBatteryCharge / stats.CachedAverageBatteryCapacity
-            : 0f;
+        // Calculate current total wattage based on body's BatteryComponent
+        // Get percentage from BatteryComponent
+        float bodyPercentage = 0f;
+        if (TryComp<BatteryComponent>(body, out var bodyBattery) && bodyBattery.MaxCharge > 0f)
+        {
+            bodyPercentage = bodyBattery.CurrentCharge / bodyBattery.MaxCharge;
+        }
         var totalCurrentWattage = totalMaxWattage * bodyPercentage;
 
         // Update upkeep components for parts with open panels
@@ -303,9 +304,9 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
             {
                 foreach (var item in storage.Container.ContainedEntities)
                 {
-                    if (TryComp<CyberLimbBatteryModuleComponent>(item, out var battery))
+                    if (TryComp<CyberLimbBatteryModuleComponent>(item, out var moduleBattery))
                     {
-                        partMaxWattage += battery.MaxCharge;
+                        partMaxWattage += moduleBattery.MaxCharge;
                     }
                 }
             }
@@ -326,10 +327,12 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         if (!TryComp<CyberLimbStatsComponent>(body, out var stats))
             return;
 
-        // Calculate body's current percentage
-        var bodyPercentage = stats.CachedAverageBatteryCapacity > 0f
-            ? stats.CurrentBatteryCharge / stats.CachedAverageBatteryCapacity
-            : 1f; // If no capacity, assume full
+        // Calculate body's current percentage from BatteryComponent
+        float bodyPercentage = 1f; // Default to full if no battery
+        if (TryComp<BatteryComponent>(body, out var bodyBattery) && bodyBattery.MaxCharge > 0f)
+        {
+            bodyPercentage = bodyBattery.CurrentCharge / bodyBattery.MaxCharge;
+        }
 
         // Calculate total wattage before adding this battery
         float oldTotalMax = 0f;
@@ -363,9 +366,7 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         var newTotalMax = oldTotalMax + battery.MaxCharge;
         var newCurrentWattage = oldCurrentWattage + (battery.MaxCharge * bodyPercentage);
 
-        // Update body's battery charge to reflect new total
-        // The body's CurrentBatteryCharge should represent the average, so we need to recalculate
-        // But actually, the body system handles this via RecalculateAveragedStats
+        // The body system handles battery updates via RecalculateAveragedStats
         // We just need to update the percentage to match the new total
         // The body's percentage should stay the same, but the total wattage changes
 
@@ -382,10 +383,12 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         if (!TryComp<CyberLimbStatsComponent>(body, out var stats))
             return;
 
-        // Calculate body's current percentage before removal
-        var bodyPercentage = stats.CachedAverageBatteryCapacity > 0f
-            ? stats.CurrentBatteryCharge / stats.CachedAverageBatteryCapacity
-            : 0f;
+        // Calculate body's current percentage from BatteryComponent before removal
+        float bodyPercentage = 0f;
+        if (TryComp<BatteryComponent>(body, out var bodyBattery) && bodyBattery.MaxCharge > 0f)
+        {
+            bodyPercentage = bodyBattery.CurrentCharge / bodyBattery.MaxCharge;
+        }
 
         // Calculate total wattage before removing this battery
         float oldTotalMax = 0f;
@@ -453,9 +456,9 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
             // Sum up battery capacities
             foreach (var item in storage.Container.ContainedEntities)
             {
-                if (TryComp<CyberLimbBatteryModuleComponent>(item, out var battery))
+                if (TryComp<CyberLimbBatteryModuleComponent>(item, out var moduleBattery))
                 {
-                    totalMaxWattage += battery.MaxCharge;
+                    totalMaxWattage += moduleBattery.MaxCharge;
                 }
             }
         }
@@ -485,8 +488,12 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         // Simplified: drawRate = totalMaxWattage * cyberneticsCount / 1200
         var drawRate = totalMaxWattage * cyberneticsCount / CyberneticsUpkeepComponent.BaselineDurationSeconds;
 
-        // Calculate remaining wattage from body's shared battery
-        var remainingWattage = stats.CurrentBatteryCharge * (totalMaxWattage / Math.Max(1f, stats.CachedAverageBatteryCapacity));
+        // Calculate remaining wattage from body's BatteryComponent
+        float remainingWattage = 0f;
+        if (TryComp<BatteryComponent>(body, out var bodyBattery))
+        {
+            remainingWattage = bodyBattery.CurrentCharge;
+        }
 
         // Calculate time until empty
         var secondsUntilEmpty = drawRate > 0f ? remainingWattage / drawRate : 0f;

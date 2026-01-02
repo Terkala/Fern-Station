@@ -294,10 +294,11 @@ namespace Content.Client.HealthAnalyzer.UI
                 return;
             }
 
-            // Display overall integrity
+            // Display overall integrity (showing remaining/max instead of used/max)
             var effectiveMax = FixedPoint2.New(integrity.MaxIntegrity) + integrity.TemporaryIntegrityBonus;
+            var remainingIntegrity = FixedPoint2.Max(FixedPoint2.Zero, effectiveMax - integrity.UsedIntegrity);
             var integrityText = Loc.GetString("health-analyzer-window-integrity-overall",
-                ("used", integrity.UsedIntegrity),
+                ("used", remainingIntegrity),
                 ("max", effectiveMax));
             var integrityLabel = new Label
             {
@@ -318,21 +319,33 @@ namespace Content.Client.HealthAnalyzer.UI
                 {
                     if (_entityManager.TryGetComponent<OrganIntegrityComponent>(organUid, out var organIntegrity))
                     {
-                        // Check if this is a cyber organ (has CyberneticsComponent or SubdermalImplantComponent)
-                        bool isCyberOrgan = _entityManager.HasComponent<CyberneticsComponent>(organUid) ||
-                                           _entityManager.HasComponent<SubdermalImplantComponent>(organUid);
-                        
-                        if (isCyberOrgan)
+                        // Get the actual applied cost (accounts for donor species compatibility)
+                        // Same-species organs have 0 cost and should not be displayed
+                        FixedPoint2 appliedCost = FixedPoint2.Zero;
+                        if (_entityManager.TryGetComponent<AppliedIntegrityCostComponent>(organUid, out var appliedCostComp))
                         {
-                            // Sum cyber organ costs instead of showing individually
-                            cyberOrganPenalty += organIntegrity.BaseIntegrityCost;
+                            appliedCost = appliedCostComp.AppliedCost;
                         }
-                        else
+                        
+                        // Only process if there's an actual cost (skip same-species organs)
+                        if (appliedCost > FixedPoint2.Zero)
                         {
-                            // Regular organs are shown individually
-                            var name = _entityManager.GetComponent<MetaDataComponent>(organUid).EntityName;
-                            var type = _entityManager.HasComponent<BiosyntheticOrganComponent>(organUid) ? "Biosynthetic" : "Organ";
-                            integrityItems.Add((organUid, organIntegrity.BaseIntegrityCost, name, type));
+                            // Check if this is a cyber organ (has CyberneticsComponent or SubdermalImplantComponent)
+                            bool isCyberOrgan = _entityManager.HasComponent<CyberneticsComponent>(organUid) ||
+                                               _entityManager.HasComponent<SubdermalImplantComponent>(organUid);
+                            
+                            if (isCyberOrgan)
+                            {
+                                // Sum cyber organ costs instead of showing individually
+                                cyberOrganPenalty += appliedCost;
+                            }
+                            else
+                            {
+                                // Regular organs are shown individually
+                                var name = _entityManager.GetComponent<MetaDataComponent>(organUid).EntityName;
+                                var type = _entityManager.HasComponent<BiosyntheticOrganComponent>(organUid) ? "Biosynthetic" : "Organ";
+                                integrityItems.Add((organUid, appliedCost, name, type));
+                            }
                         }
                     }
                 }
@@ -343,15 +356,43 @@ namespace Content.Client.HealthAnalyzer.UI
                     var parts = _bodySystem.GetBodyPartChildren(body.RootContainer.ContainedEntity.Value);
                     foreach (var (partUid, _) in parts)
                 {
+                    // Get the actual applied cost for limbs/cybernetics
+                    FixedPoint2 appliedCost = FixedPoint2.Zero;
+                    bool hasCost = false;
+                    
                     if (_entityManager.TryGetComponent<LimbIntegrityComponent>(partUid, out var limbIntegrity))
                     {
-                        var name = _entityManager.GetComponent<MetaDataComponent>(partUid).EntityName;
-                        integrityItems.Add((partUid, limbIntegrity.BaseIntegrityCost, name, "Limb"));
+                        if (_entityManager.TryGetComponent<AppliedIntegrityCostComponent>(partUid, out var appliedCostComp))
+                        {
+                            appliedCost = appliedCostComp.AppliedCost;
+                        }
+                        else
+                        {
+                            // Fallback to base cost if AppliedCost not set (shouldn't happen normally)
+                            appliedCost = limbIntegrity.BaseIntegrityCost;
+                        }
+                        hasCost = true;
                     }
                     else if (_entityManager.TryGetComponent<CyberneticIntegrityComponent>(partUid, out var cyberIntegrity))
                     {
+                        if (_entityManager.TryGetComponent<AppliedIntegrityCostComponent>(partUid, out var appliedCostComp))
+                        {
+                            appliedCost = appliedCostComp.AppliedCost;
+                        }
+                        else
+                        {
+                            // Fallback to base cost if AppliedCost not set (shouldn't happen normally)
+                            appliedCost = cyberIntegrity.BaseIntegrityCost;
+                        }
+                        hasCost = true;
+                    }
+                    
+                    // Only add if there's an actual cost
+                    if (hasCost && appliedCost > FixedPoint2.Zero)
+                    {
                         var name = _entityManager.GetComponent<MetaDataComponent>(partUid).EntityName;
-                        integrityItems.Add((partUid, cyberIntegrity.BaseIntegrityCost, name, "Cybernetic"));
+                        var type = _entityManager.TryGetComponent<CyberneticIntegrityComponent>(partUid, out _) ? "Cybernetic" : "Limb";
+                        integrityItems.Add((partUid, appliedCost, name, type));
                     }
                     }
                 }
@@ -377,7 +418,7 @@ namespace Content.Client.HealthAnalyzer.UI
             foreach (var (entity, cost, name, type) in integrityItems.OrderByDescending(x => x.Cost))
             {
                 var itemText = Loc.GetString("health-analyzer-window-integrity-item",
-                    ("cost", -cost),
+                    ("cost", cost),
                     ("name", name),
                     ("type", type));
                 

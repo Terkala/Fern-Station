@@ -9,6 +9,7 @@ using Content.Shared.Weapons.Melee;
 using Content.Shared.FixedPoint;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Containers;
+using Robust.Shared.Prototypes;
 using System.Linq;
 
 namespace Content.Server.Medical.Surgery.Operations;
@@ -26,7 +27,7 @@ public sealed class SurgeryOperationEvaluatorSystem : EntitySystem
     public SurgeryOperationEvaluationResult EvaluateSecondaryMethod(
         EntityUid user,
         string evaluatorName,
-        List<ComponentRegistry>? tools = null)
+        List<Robust.Shared.Prototypes.ComponentRegistry>? tools = null)
     {
         return evaluatorName switch
         {
@@ -142,7 +143,7 @@ public sealed class SurgeryOperationEvaluatorSystem : EntitySystem
     /// <summary>
     /// Checks if user has any of the specified tool components.
     /// </summary>
-    private SurgeryOperationEvaluationResult EvaluateToolList(EntityUid user, List<ComponentRegistry>? tools)
+    private SurgeryOperationEvaluationResult EvaluateToolList(EntityUid user, List<Robust.Shared.Prototypes.ComponentRegistry>? tools)
     {
         if (tools == null || tools.Count == 0)
             return SurgeryOperationEvaluationResult.Invalid();
@@ -154,10 +155,20 @@ public sealed class SurgeryOperationEvaluatorSystem : EntitySystem
         {
             foreach (var toolReg in tools)
             {
-                if (HasComp(heldItem, toolReg.Component.GetType()))
+                // ComponentRegistry is a Dictionary<string, ComponentRegistryEntry>
+                // Get the first component name (key) and use it to get the component type
+                var componentName = toolReg.Keys.FirstOrDefault();
+                if (componentName != null)
                 {
-                    // Tool found, return with normal speed
-                    return SurgeryOperationEvaluationResult.Valid(1.0f, heldItem);
+                    var componentFactory = EntityManager.ComponentFactory;
+                    if (componentFactory.TryGetRegistration(componentName, out var reg))
+                    {
+                        if (HasComp(heldItem, reg.Type))
+                        {
+                            // Tool found, return with normal speed
+                            return SurgeryOperationEvaluationResult.Valid(1.0f, heldItem);
+                        }
+                    }
                 }
             }
         }

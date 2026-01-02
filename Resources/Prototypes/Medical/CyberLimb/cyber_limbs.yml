@@ -15,10 +15,24 @@
   name: rudimentary cybernetic left arm
   description: A basic cybernetic left arm with limited storage capacity. Available at roundstart.
   components:
+  - type: Item
+    size: Large
+    shape:
+    - 0,0,2,1  # 3x2 = 6 slots
   - type: Storage
     grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    - 0,0,2,1  # 2 rows x 3 columns = 6 slots (right=2, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
+      enum.CyberArmRadialMenuUiKey.Key:
+        type: CyberArmRadialMenuBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -29,10 +43,24 @@
   name: rudimentary cybernetic right arm
   description: A basic cybernetic right arm with limited storage capacity. Available at roundstart.
   components:
+  - type: Item
+    size: Large
+    shape:
+    - 0,0,2,1  # 3x2 = 6 slots
   - type: Storage
     grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    - 0,0,2,1  # 2 rows x 3 columns = 6 slots (right=2, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
+      enum.CyberArmRadialMenuUiKey.Key:
+        type: CyberArmRadialMenuBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -43,10 +71,18 @@
   name: rudimentary cybernetic left leg
   description: A basic cybernetic left leg with limited storage capacity. Available at roundstart.
   components:
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,1,1  # 2x2 = 4 slots
   - type: Storage
     grid:
-    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
+    - 0,0,1,1  # 2 rows x 2 columns = 4 slots (right=1, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -57,10 +93,18 @@
   name: rudimentary cybernetic right leg
   description: A basic cybernetic right leg with limited storage capacity. Available at roundstart.
   components:
+  - type: Item
+    size: Normal
+    shape:
+    - 0,0,1,1  # 2x2 = 4 slots
   - type: Storage
     grid:
-    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
+    - 0,0,1,1  # 2 rows x 2 columns = 4 slots (right=1, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -79,10 +123,18 @@
     baseLayerId: MobCyberneticHesphiastosLArm
   - type: GenerateChildPart
     id: LeftHandCyberneticHesphiastos
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,2,2  # 3x3 = 9 slots
   - type: Storage
     grid:
-    - 0,0,3,3  # 3 rows x 3 columns = 9 slots
+    - 0,0,2,2  # 3 rows x 3 columns = 9 slots (right=2, top=2, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -97,10 +149,18 @@
     baseLayerId: MobCyberneticHesphiastosRArm
   - type: GenerateChildPart
     id: RightHandCyberneticHesphiastos
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,2,2  # 3x3 = 9 slots
   - type: Storage
     grid:
-    - 0,0,3,3  # 3 rows x 3 columns = 9 slots
+    - 0,0,2,2  # 3 rows x 3 columns = 9 slots (right=2, top=2, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -115,10 +175,24 @@
     baseLayerId: MobCyberneticHesphiastosLLeg
   - type: GenerateChildPart
     id: LeftFootCyberneticHesphiastos
+  - type: Item
+    size: Large
+    shape:
+    - 0,0,2,1  # 3x2 = 6 slots
   - type: Storage
     grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    - 0,0,2,1  # 2 rows x 3 columns = 6 slots (right=2, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
+      enum.CyberArmRadialMenuUiKey.Key:
+        type: CyberArmRadialMenuBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -133,10 +207,24 @@
     baseLayerId: MobCyberneticHesphiastosRLeg
   - type: GenerateChildPart
     id: RightFootCyberneticHesphiastos
+  - type: Item
+    size: Large
+    shape:
+    - 0,0,2,1  # 3x2 = 6 slots
   - type: Storage
     grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    - 0,0,2,1  # 2 rows x 3 columns = 6 slots (right=2, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
+      enum.CyberArmRadialMenuUiKey.Key:
+        type: CyberArmRadialMenuBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -155,10 +243,18 @@
     baseLayerId: MobCyberneticXionLArm
   - type: GenerateChildPart
     id: LeftHandCyberneticXion
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,3,2  # 4x3 = 12 slots
   - type: Storage
     grid:
-    - 0,0,4,3  # 3 rows x 4 columns = 12 slots
+    - 0,0,3,2  # 3 rows x 4 columns = 12 slots (right=3, top=2, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -173,10 +269,18 @@
     baseLayerId: MobCyberneticXionRArm
   - type: GenerateChildPart
     id: RightHandCyberneticXion
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,3,2  # 4x3 = 12 slots
   - type: Storage
     grid:
-    - 0,0,4,3  # 3 rows x 4 columns = 12 slots
+    - 0,0,3,2  # 3 rows x 4 columns = 12 slots (right=3, top=2, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -191,10 +295,18 @@
     baseLayerId: MobCyberneticXionLLeg
   - type: GenerateChildPart
     id: LeftFootCyberneticXion
+  - type: Item
+    size: Large
+    shape:
+    - 0,0,3,1  # 4x2 = 8 slots
   - type: Storage
     grid:
-    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
+    - 0,0,3,1  # 2 rows x 4 columns = 8 slots (right=3, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -209,10 +321,18 @@
     baseLayerId: MobCyberneticXionRLeg
   - type: GenerateChildPart
     id: RightFootCyberneticXion
+  - type: Item
+    size: Large
+    shape:
+    - 0,0,3,1  # 4x2 = 8 slots
   - type: Storage
     grid:
-    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
+    - 0,0,3,1  # 2 rows x 4 columns = 8 slots (right=3, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -231,10 +351,18 @@
     baseLayerId: MobCyberneticShellguardLArm
   - type: GenerateChildPart
     id: LeftHandCyberneticShellguard
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,4,2  # 5x3 = 15 slots
   - type: Storage
     grid:
-    - 0,0,5,3  # 3 rows x 5 columns = 15 slots
+    - 0,0,4,2  # 3 rows x 5 columns = 15 slots (right=4, top=2, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -249,10 +377,18 @@
     baseLayerId: MobCyberneticShellguardRArm
   - type: GenerateChildPart
     id: RightHandCyberneticShellguard
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,4,2  # 5x3 = 15 slots
   - type: Storage
     grid:
-    - 0,0,5,3  # 3 rows x 5 columns = 15 slots
+    - 0,0,4,2  # 3 rows x 5 columns = 15 slots (right=4, top=2, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -267,10 +403,18 @@
     baseLayerId: MobCyberneticShellguardLLeg
   - type: GenerateChildPart
     id: LeftFootCyberneticShellguard
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,4,1  # 5x2 = 10 slots
   - type: Storage
     grid:
-    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
+    - 0,0,4,1  # 2 rows x 5 columns = 10 slots (right=4, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -285,10 +429,18 @@
     baseLayerId: MobCyberneticShellguardRLeg
   - type: GenerateChildPart
     id: RightFootCyberneticShellguard
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,4,1  # 5x2 = 10 slots
   - type: Storage
     grid:
-    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
+    - 0,0,4,1  # 2 rows x 5 columns = 10 slots (right=4, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -307,10 +459,18 @@
     baseLayerId: MobCyberneticMorpheusLArm
   - type: GenerateChildPart
     id: LeftHandCyberneticMorpheus
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,2,2  # 3x3 = 9 slots
   - type: Storage
     grid:
-    - 0,0,3,3  # 3 rows x 3 columns = 9 slots
+    - 0,0,2,2  # 3 rows x 3 columns = 9 slots (right=2, top=2, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -327,10 +487,18 @@
     baseLayerId: MobCyberneticMorpheusRArm
   - type: GenerateChildPart
     id: RightHandCyberneticMorpheus
+  - type: Item
+    size: Huge
+    shape:
+    - 0,0,2,2  # 3x3 = 9 slots
   - type: Storage
     grid:
-    - 0,0,3,3  # 3 rows x 3 columns = 9 slots
+    - 0,0,2,2  # 3 rows x 3 columns = 9 slots (right=2, top=2, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -347,10 +515,24 @@
     baseLayerId: MobCyberneticMorpheusLLeg
   - type: GenerateChildPart
     id: LeftFootCyberneticMorpheus
+  - type: Item
+    size: Large
+    shape:
+    - 0,0,2,1  # 3x2 = 6 slots
   - type: Storage
     grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    - 0,0,2,1  # 2 rows x 3 columns = 6 slots (right=2, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
+      enum.CyberArmRadialMenuUiKey.Key:
+        type: CyberArmRadialMenuBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -367,10 +549,24 @@
     baseLayerId: MobCyberneticMorpheusRLeg
   - type: GenerateChildPart
     id: RightFootCyberneticMorpheus
+  - type: Item
+    size: Large
+    shape:
+    - 0,0,2,1  # 3x2 = 6 slots
   - type: Storage
     grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
+    - 0,0,2,1  # 2 rows x 3 columns = 6 slots (right=2, top=1, both inclusive)
     maxItemSize: Small
+  - type: ContainerContainer
+    containers:
+      storagebase: !type:Container
+        ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
+      enum.CyberArmRadialMenuUiKey.Key:
+        type: CyberArmRadialMenuBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance

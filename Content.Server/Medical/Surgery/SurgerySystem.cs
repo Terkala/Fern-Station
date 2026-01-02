@@ -32,7 +32,6 @@ using Content.Shared.Stacks;
 using Content.Shared._Shitmed.Medical.Surgery.Effects.Step;
 using Content.Shared._Shitmed.Medical.Surgery;
 using Content.Shared._Shitmed.Medical.Surgery.Tools;
-using Content.Shared._Shitmed.Surgery;
 using Content.Shared._Shitmed.Cybernetics;
 using ShitmedSurgerySteps = Content.Shared._Shitmed.Medical.Surgery.Steps;
 using ShitmedSurgeryUIKey = Content.Shared._Shitmed.Medical.Surgery.SurgeryUIKey;
@@ -414,21 +413,23 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         foreach (var heldItem in _hands.EnumerateHeld(user, hands))
         {
             // Check if it's a medical multitool (has all tools)
-            if (HasComp<TagComponent>(heldItem))
+            if (Tags.HasTag(heldItem, "AdvancedSurgeryTool"))
             {
-                var tag = Comp<TagComponent>(heldItem);
-                if (tag.Tags.Contains("AdvancedSurgeryTool"))
-                {
-                    // Medical multitool has all primary tools
-                    return true;
-                }
+                // Medical multitool has all primary tools
+                return true;
             }
 
             // Check if item has any of the required primary tool components
             foreach (var toolReg in operation.PrimaryTools)
             {
-                if (HasComp(heldItem, toolReg.Component.GetType()))
-                    return true;
+                // ComponentRegistry is a Dictionary<string, ComponentRegistryEntry>
+                // Get the first component name (key) and use it to get the component type
+                var componentName = toolReg.Keys.FirstOrDefault();
+                if (componentName != null && _componentFactory.TryGetRegistration(componentName, out var reg))
+                {
+                    if (HasComp(heldItem, reg.Type))
+                        return true;
+                }
             }
 
             // Special cases: Check for specific entity prototype IDs that work for certain operations
@@ -441,9 +442,10 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                 // Check if this operation requires Cautery
                 foreach (var toolReg in operation.PrimaryTools)
                 {
-                    var compType = toolReg.Component.GetType();
-                    // Get component registration name (e.g., "Cautery" from CauteryComponent)
-                    if (_componentFactory.TryGetRegistration(compType, out var reg) && reg.Name == "Cautery")
+                    // ComponentRegistry is a Dictionary<string, ComponentRegistryEntry>
+                    // Get the first component name (key) and check if it's "Cautery"
+                    var componentName = toolReg.Keys.FirstOrDefault();
+                    if (componentName == "Cautery")
                     {
                         return true;
                     }
@@ -486,14 +488,22 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     private bool HasImprovisedComponentForOperation(EntityUid bodyPart, ProtoId<SurgeryOperationPrototype> operationId)
     {
         // Map operation IDs to component types
+        // Use local variables for ProtoId (cannot use const or static readonly in method scope)
+        var boneRemoval = new ProtoId<SurgeryOperationPrototype>("BoneRemoval");
+        var cutTissue = new ProtoId<SurgeryOperationPrototype>("CutTissue");
+        var clampBloodVessels = new ProtoId<SurgeryOperationPrototype>("ClampBloodVessels");
+        var retractTissue = new ProtoId<SurgeryOperationPrototype>("RetractTissue");
+        var cauterizeWounds = new ProtoId<SurgeryOperationPrototype>("CauterizeWounds");
+        var severBloodVessels = new ProtoId<SurgeryOperationPrototype>("SeverBloodVessels");
+        
         return operationId switch
         {
-            "BoneRemoval" => HasComp<ImprovisedBoneRemovalComponent>(bodyPart),
-            "CutTissue" => HasComp<ImprovisedTissueCutComponent>(bodyPart),
-            "ClampBloodVessels" => HasComp<ImprovisedBleederClampingComponent>(bodyPart),
-            "RetractTissue" => HasComp<ImprovisedRetractTissueComponent>(bodyPart),
-            "CauterizeWounds" => HasComp<ImprovisedCauterizationComponent>(bodyPart),
-            "SeverBloodVessels" => HasComp<ImprovisedSeverBloodVesselsComponent>(bodyPart),
+            _ when operationId == boneRemoval => HasComp<ImprovisedBoneRemovalComponent>(bodyPart),
+            _ when operationId == cutTissue => HasComp<ImprovisedTissueCutComponent>(bodyPart),
+            _ when operationId == clampBloodVessels => HasComp<ImprovisedBleederClampingComponent>(bodyPart),
+            _ when operationId == retractTissue => HasComp<ImprovisedRetractTissueComponent>(bodyPart),
+            _ when operationId == cauterizeWounds => HasComp<ImprovisedCauterizationComponent>(bodyPart),
+            _ when operationId == severBloodVessels => HasComp<ImprovisedSeverBloodVesselsComponent>(bodyPart),
             _ => false
         };
     }
@@ -508,14 +518,22 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             return;
 
         // Add tracking component based on operation type
+        // Use local variables for ProtoId (cannot use const or static readonly in method scope)
+        var boneRemoval = new ProtoId<SurgeryOperationPrototype>("BoneRemoval");
+        var cutTissue = new ProtoId<SurgeryOperationPrototype>("CutTissue");
+        var clampBloodVessels = new ProtoId<SurgeryOperationPrototype>("ClampBloodVessels");
+        var retractTissue = new ProtoId<SurgeryOperationPrototype>("RetractTissue");
+        var cauterizeWounds = new ProtoId<SurgeryOperationPrototype>("CauterizeWounds");
+        var severBloodVessels = new ProtoId<SurgeryOperationPrototype>("SeverBloodVessels");
+        
         ImprovisedSurgeryComponent? improvisedComp = operation.ID switch
         {
-            "BoneRemoval" => EnsureComp<ImprovisedBoneRemovalComponent>(bodyPart),
-            "CutTissue" => EnsureComp<ImprovisedTissueCutComponent>(bodyPart),
-            "ClampBloodVessels" => EnsureComp<ImprovisedBleederClampingComponent>(bodyPart),
-            "RetractTissue" => EnsureComp<ImprovisedRetractTissueComponent>(bodyPart),
-            "CauterizeWounds" => EnsureComp<ImprovisedCauterizationComponent>(bodyPart),
-            "SeverBloodVessels" => EnsureComp<ImprovisedSeverBloodVesselsComponent>(bodyPart),
+            _ when operation.ID == boneRemoval => EnsureComp<ImprovisedBoneRemovalComponent>(bodyPart),
+            _ when operation.ID == cutTissue => EnsureComp<ImprovisedTissueCutComponent>(bodyPart),
+            _ when operation.ID == clampBloodVessels => EnsureComp<ImprovisedBleederClampingComponent>(bodyPart),
+            _ when operation.ID == retractTissue => EnsureComp<ImprovisedRetractTissueComponent>(bodyPart),
+            _ when operation.ID == cauterizeWounds => EnsureComp<ImprovisedCauterizationComponent>(bodyPart),
+            _ when operation.ID == severBloodVessels => EnsureComp<ImprovisedSeverBloodVesselsComponent>(bodyPart),
             _ => null
         };
 
@@ -541,14 +559,22 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
 
         // Find and remove the improvised component
         // The component stores the penalty amount, so removing it will remove the penalty
+        // Use local variables for ProtoId (cannot use const or static readonly in method scope)
+        var boneRemoval = new ProtoId<SurgeryOperationPrototype>("BoneRemoval");
+        var cutTissue = new ProtoId<SurgeryOperationPrototype>("CutTissue");
+        var clampBloodVessels = new ProtoId<SurgeryOperationPrototype>("ClampBloodVessels");
+        var retractTissue = new ProtoId<SurgeryOperationPrototype>("RetractTissue");
+        var cauterizeWounds = new ProtoId<SurgeryOperationPrototype>("CauterizeWounds");
+        var severBloodVessels = new ProtoId<SurgeryOperationPrototype>("SeverBloodVessels");
+        
         ImprovisedSurgeryComponent? improvisedComp = repairOperation.RepairOperationFor.Value switch
         {
-            "BoneRemoval" => CompOrNull<ImprovisedBoneRemovalComponent>(bodyPart),
-            "CutTissue" => CompOrNull<ImprovisedTissueCutComponent>(bodyPart),
-            "ClampBloodVessels" => CompOrNull<ImprovisedBleederClampingComponent>(bodyPart),
-            "RetractTissue" => CompOrNull<ImprovisedRetractTissueComponent>(bodyPart),
-            "CauterizeWounds" => CompOrNull<ImprovisedCauterizationComponent>(bodyPart),
-            "SeverBloodVessels" => CompOrNull<ImprovisedSeverBloodVesselsComponent>(bodyPart),
+            _ when repairOperation.RepairOperationFor.Value == boneRemoval => CompOrNull<ImprovisedBoneRemovalComponent>(bodyPart),
+            _ when repairOperation.RepairOperationFor.Value == cutTissue => CompOrNull<ImprovisedTissueCutComponent>(bodyPart),
+            _ when repairOperation.RepairOperationFor.Value == clampBloodVessels => CompOrNull<ImprovisedBleederClampingComponent>(bodyPart),
+            _ when repairOperation.RepairOperationFor.Value == retractTissue => CompOrNull<ImprovisedRetractTissueComponent>(bodyPart),
+            _ when repairOperation.RepairOperationFor.Value == cauterizeWounds => CompOrNull<ImprovisedCauterizationComponent>(bodyPart),
+            _ when repairOperation.RepairOperationFor.Value == severBloodVessels => CompOrNull<ImprovisedSeverBloodVesselsComponent>(bodyPart),
             _ => null
         };
 
@@ -1249,14 +1275,11 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         if (_openSurgeryUIs.ContainsKey(uid) && TryComp<UserInterfaceComponent>(uid, out var uiComp))
         {
             // Get first user with UI open
-            var sessions = _ui.GetActorSessions(uid, uiComp);
-            if (sessions.Count > 0)
+            var actors = _ui.GetActors((uid, uiComp), ShitmedSurgeryUIKey.Key);
+            var actorList = actors.ToList();
+            if (actorList.Count > 0)
             {
-                var session = sessions[0];
-                if (session.AttachedEntity != null)
-                {
-                    evalUser = session.AttachedEntity.Value;
-                }
+                evalUser = actorList[0];
             }
         }
 

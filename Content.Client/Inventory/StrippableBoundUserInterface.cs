@@ -204,7 +204,7 @@ namespace Content.Client.Inventory
                 
                 // For cyber-arm virtual items, show the real item icon but greyed out
                 // Check if this is a cyber-arm virtual item
-                var query = EntMan.AllEntityQuery<CyberArmActiveItemComponent>();
+                var query = EntMan.AllEntityQueryEnumerator<CyberArmActiveItemComponent>();
                 bool isCyberArmItem = false;
                 while (query.MoveNext(out var cyberArmUid, out var activeItem))
                 {

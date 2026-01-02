@@ -9,6 +9,7 @@ using Content.Shared.Body.Part;
 using Content.Shared.Medical.Compatibility;
 using Content.Shared.Medical.Surgery;
 using Content.Server.Mindshield;
+using Content.Server.Body.Systems;
 
 namespace Content.Server.Medical.Compatibility;
 
@@ -20,6 +21,7 @@ public sealed class DonorSpeciesSystem : EntitySystem
 {
     [Dependency] private readonly SharedSurgerySystem _surgery = default!;
     [Dependency] private readonly MindShieldSystem _mindShield = default!;
+    [Dependency] private readonly BodySystem _bodySystem = default!;
 
     public override void Initialize()
     {
@@ -90,6 +92,9 @@ public sealed class DonorSpeciesSystem : EntitySystem
 
         // Dispatch to MindShieldSystem for mindshield organ handling
         _mindShield.OnMindShieldOrganRemoved(uid, component, ref args);
+        
+        // Dispatch to BodySystem for cybernetics ability recalculation
+        _bodySystem.OnOrganRemovedFromBody(uid, component, ref args);
     }
 
     /// <summary>

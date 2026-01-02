@@ -9,7 +9,7 @@ namespace Content.Shared.Medical.CyberLimb.Modules;
 /// <summary>
 /// Component for auto-reload modules that automatically reload firearms from stored ammunition.
 /// </summary>
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
+[RegisterComponent, NetworkedComponent]
 public sealed partial class CyberLimbAutoReloadModuleComponent : Component
 {
 }

@@ -15,12 +15,6 @@ namespace Content.Shared.Medical.CyberLimb;
 public sealed partial class CyberLimbStatsComponent : Component
 {
     /// <summary>
-    /// Current battery charge (shared across all cyber limbs).
-    /// </summary>
-    [DataField, ViewVariables, AutoNetworkedField]
-    public float CurrentBatteryCharge = 0f;
-
-    /// <summary>
     /// Cached average battery capacity across all cyber limbs on this body.
     /// Updated when any limb's modules change.
     /// </summary>
@@ -58,5 +52,20 @@ public sealed partial class CyberLimbStatsComponent : Component
     /// </summary>
     [DataField, ViewVariables, AutoNetworkedField]
     public bool IsBatteryDepleted = false;
+
+    /// <summary>
+    /// Cached sum of efficiency modifiers from all capacitor modules across all cybernetics on this body.
+    /// Applied as a multiplier to service time (1.0 + this value = service time multiplier).
+    /// </summary>
+    [DataField, ViewVariables, AutoNetworkedField]
+    public float CachedCapacitorEfficiencyModifierSum = 0f;
+
+    /// <summary>
+    /// Cached power draw in watts. Calculated from total battery capacity and cybernetics count.
+    /// Formula: (totalCapacity / BaselineDurationSeconds) * cyberneticsCount
+    /// Where BaselineDurationSeconds = 1200 seconds (20 minutes)
+    /// </summary>
+    [DataField, ViewVariables, AutoNetworkedField]
+    public float CachedPowerDrawWatts = 0f;
 }
 

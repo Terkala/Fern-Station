@@ -301,6 +301,7 @@
       components:
       - BorgChassis
       - Silicon # EE IPCs
+      - CyberLimbStatsComponent # Anyone with cybernetics
   - type: Construction
     containers:
     - machine_parts

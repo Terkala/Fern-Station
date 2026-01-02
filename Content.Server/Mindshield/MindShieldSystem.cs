@@ -47,6 +47,7 @@ public sealed class MindShieldSystem : EntitySystem
     [Dependency] private readonly SharedRevolutionarySystem _revolutionarySystem = default!; // Goobstation
     [Dependency] private readonly SharedBodySystem _body = default!;
     [Dependency] private readonly SharedContainerSystem _container = default!;
+    [Dependency] private readonly BodySystem _bodySystem = default!;
 
     [ValidatePrototypeId<TagPrototype>]
     public const string MindShieldTag = "MindShield";
@@ -242,6 +243,9 @@ public sealed class MindShieldSystem : EntitySystem
 
             RemComp<MindShieldComponent>(component.Body.Value);
         }
+        
+        // Dispatch to BodySystem for cybernetics ability recalculation
+        _bodySystem.OnBodyPartRemoved(uid, component, ref args);
     }
 
     /// <summary>

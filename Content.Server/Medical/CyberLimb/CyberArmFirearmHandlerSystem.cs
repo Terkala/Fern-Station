@@ -8,7 +8,7 @@ using Content.Shared.Body.Systems;
 using Content.Shared.Containers.ItemSlots;
 using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
-using Content.Shared.Interaction.Events;
+using Content.Shared.Interaction;
 using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Medical.CyberLimb.Modules;
 using Content.Shared.Storage;
@@ -21,6 +21,7 @@ using Content.Shared.Whitelist;
 using Robust.Shared.Containers;
 using Robust.Shared.Network;
 using Robust.Shared.Timing;
+using System.Linq;
 
 namespace Content.Server.Medical.CyberLimb;
 
@@ -91,10 +92,10 @@ public sealed class CyberArmFirearmHandlerSystem : EntitySystem
         while (autoReloadQuery.MoveNext(out var moduleUid, out _))
         {
             // Find the cyber arm that contains this module
-            if (!_containers.TryGetContainingContainer(moduleUid, out var container) || container.Owner == null)
+            if (!_containers.TryGetContainingContainer(moduleUid, out var container))
                 continue;
 
-            var cyberArm = container.Owner.Value;
+            var cyberArm = container.Owner;
 
             // Get the body that owns this cyber arm
             if (!TryComp<BodyPartComponent>(cyberArm, out var part) || part.Body == null)
@@ -195,8 +196,7 @@ public sealed class CyberArmFirearmHandlerSystem : EntitySystem
             return;
 
         // Get the gun's magazine slot whitelist to check compatibility
-        if (!TryComp<ItemSlotsComponent>(firearm, out var itemSlots) ||
-            !itemSlots.Slots.TryGetValue("gun_magazine", out var magSlot))
+        if (!_itemSlots.TryGetSlot(firearm, "gun_magazine", out var magSlot))
             return;
 
         // Step 1: Check for compatible magazines in storage
@@ -233,8 +233,7 @@ public sealed class CyberArmFirearmHandlerSystem : EntitySystem
                 // Try to add one bullet from the ammo box to the magazine
                 if (TryAddBulletFromAmmoBox(compatibleAmmoBox.Value, currentMag))
                 {
-                    // Update ammo count
-                    _gunSystem.UpdateAmmoCount(firearm);
+                    // Ammo count will be updated automatically by the ammo system
                     return;
                 }
             }
@@ -246,16 +245,16 @@ public sealed class CyberArmFirearmHandlerSystem : EntitySystem
     /// </summary>
     private EntityUid? FindCompatibleMagazine(EntityUid cyberArm, StorageComponent storage, ItemSlot magSlot)
     {
-        foreach (var item in _storage.GetAllItemSlots(cyberArm, storage))
+        foreach (var item in storage.Container.ContainedEntities)
         {
-            if (item == null || !item.Value.IsValid())
+            if (!item.IsValid())
                 continue;
 
             // Check if this item passes the gun's magazine whitelist
-            if (!_whitelist.IsWhitelistFailOrNull(magSlot.Whitelist, item.Value) &&
-                !_whitelist.IsBlacklistPass(magSlot.Blacklist, item.Value))
+            if (!_whitelist.IsWhitelistFailOrNull(magSlot.Whitelist, item) &&
+                !_whitelist.IsBlacklistPass(magSlot.Blacklist, item))
             {
-                return item.Value;
+                return item;
             }
         }
 
@@ -268,17 +267,16 @@ public sealed class CyberArmFirearmHandlerSystem : EntitySystem
     private EntityUid? FindCompatibleAmmoBox(EntityUid cyberArm, StorageComponent storage, EntityUid firearm)
     {
         // Get the gun's chamber whitelist to determine calibre
-        if (!TryComp<ItemSlotsComponent>(firearm, out var itemSlots) ||
-            !itemSlots.Slots.TryGetValue("gun_chamber", out var chamberSlot))
+        if (!_itemSlots.TryGetSlot(firearm, "gun_chamber", out var chamberSlot))
             return null;
 
-        foreach (var item in _storage.GetAllItemSlots(cyberArm, storage))
+        foreach (var item in storage.Container.ContainedEntities)
         {
-            if (item == null || !item.Value.IsValid())
+            if (!item.IsValid())
                 continue;
 
             // Check if this is an ammo box (has BallisticAmmoProvider)
-            if (!TryComp<BallisticAmmoProviderComponent>(item.Value, out var ammoBox))
+            if (!TryComp<BallisticAmmoProviderComponent>(item, out var ammoBox))
                 continue;
 
             // Check if the ammo box's whitelist matches the gun's chamber whitelist
@@ -292,7 +290,7 @@ public sealed class CyberArmFirearmHandlerSystem : EntitySystem
                     // Check if there's any overlap in tags (same calibre)
                     var hasOverlap = ammoBox.Whitelist.Tags.Any(tag => chamberSlot.Whitelist.Tags.Contains(tag));
                     if (hasOverlap)
-                        return item.Value;
+                        return item;
                 }
                 
                 // Also check components if tags don't match
@@ -300,7 +298,7 @@ public sealed class CyberArmFirearmHandlerSystem : EntitySystem
                 {
                     var hasOverlap = ammoBox.Whitelist.Components.Any(comp => chamberSlot.Whitelist.Components.Contains(comp));
                     if (hasOverlap)
-                        return item.Value;
+                        return item;
                 }
             }
         }
@@ -341,7 +339,7 @@ public sealed class CyberArmFirearmHandlerSystem : EntitySystem
 
         // Try to insert the bullet into the magazine using InteractUsingEvent
         // This will trigger the magazine's BallisticAmmoProvider to accept the bullet
-        var interactEv = new InteractUsingEvent(bullet.Value, user: null, target: magazine, used: bullet.Value);
+        var interactEv = new InteractUsingEvent(user: EntityUid.Invalid, used: bullet.Value, target: magazine, clickLocation: Transform(magazine).Coordinates);
         RaiseLocalEvent(magazine, interactEv);
 
         if (interactEv.Handled)

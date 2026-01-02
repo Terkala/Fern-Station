@@ -40,24 +40,22 @@ public partial class SharedBodySystem
             || part.ToHumanoidLayers() is not { } relevantLayer)
             return;
 
-        // Try to get baseLayerId from component first
-        string? baseLayerId = part.BaseLayerId;
-        
-        // Fallback: If baseLayerId is null or matches parent's default (Bishop), read directly from entity prototype
+        // Always read baseLayerId from the entity prototype first to ensure we get the YAML-defined value
         // This handles cases where component inheritance might not properly override the parent's baseLayerId
-        if (baseLayerId == null || baseLayerId.StartsWith("MobCyberneticBishop"))
+        string? baseLayerId = null;
+        if (TryComp(uid, out MetaDataComponent? metaData) && metaData.EntityPrototype != null)
         {
-            if (TryComp(uid, out MetaDataComponent? metaData) && metaData.EntityPrototype != null)
+            // Read BodyPart component directly from the prototype to get the YAML-defined value
+            if (metaData.EntityPrototype.TryGetComponent<BodyPartComponent>(out var protoBodyPart, _componentFactory))
             {
-                // Read BodyPart component directly from the prototype to get the YAML-defined value
-                if (metaData.EntityPrototype.TryGetComponent<BodyPartComponent>(_componentFactory, out var protoBodyPart))
-                {
-                    if (protoBodyPart.BaseLayerId != null && !protoBodyPart.BaseLayerId.StartsWith("MobCyberneticBishop"))
-                    {
-                        baseLayerId = protoBodyPart.BaseLayerId;
-                    }
-                }
+                baseLayerId = protoBodyPart.BaseLayerId;
             }
+        }
+        
+        // Fallback to component value if prototype doesn't have it
+        if (baseLayerId == null)
+        {
+            baseLayerId = part.BaseLayerId;
         }
 
         if (baseLayerId != null)

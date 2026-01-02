@@ -72,7 +72,7 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
         SubscribeLocalEvent<CyberLimbSpecialModuleComponent, EntRemovedFromContainerMessage>(OnItemRemovedFromModuleStorage);
         
         // Clear active item when player is cuffed
-        SubscribeLocalEvent<CuffableComponent, EntInsertedIntoContainerMessage>(OnCuffsAdded);
+        SubscribeLocalEvent<CuffableComponent, CuffedStateChangeEvent>(OnCuffedStateChanged);
     }
 
     /// <summary>
@@ -209,7 +209,7 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
     /// Intercepts UseInHandEvent on all entities to prevent self-use when used via cyber arm virtual items.
     /// This prevents items like food from being eaten when pressing use, but allows clicking on self.
     /// </summary>
-    private void OnAnyItemUseInHand(ref UseInHandEvent args)
+    private void OnAnyItemUseInHand(UseInHandEvent args)
     {
         // Check if the user is holding a virtual item
         if (!TryComp<HandsComponent>(args.User, out var hands) || hands.ActiveHandEntity == null)
@@ -532,7 +532,7 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
         // Block if player is cuffed
         if (TryComp<CuffableComponent>(args.User, out var cuffable) && _cuffable.IsCuffed((args.User, cuffable)))
         {
-            args.Cancelled = true;
+            args.Cancel();
             return;
         }
 
@@ -540,7 +540,7 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
         if (TryComp<BodyPartComponent>(ent.Owner, out var part) && part.Body == args.User)
             return;
 
-        args.Cancelled = true;
+        args.Cancel();
     }
 
     /// <summary>
@@ -610,11 +610,10 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
             var itemName = Identity.Name(item, EntityManager);
             string? spritePath = null;
 
-            // Try to get sprite path from ItemComponent
-            if (TryComp<ItemComponent>(item, out var itemComp) && itemComp.RsiPath != null)
-            {
-                spritePath = itemComp.RsiPath.ToString();
-            }
+            // Try to get sprite path from ItemComponent's StoredSprite if available
+            // Note: RsiPath is read-only (Access restricted to SharedItemSystem)
+            // So we'll rely on the fallback method in the UI that uses GetPrototypeIcon
+            // For now, leave spritePath as null to use the fallback
 
             itemDataList.Add(new CyberArmItemData(
                 GetNetEntity(item),
@@ -623,7 +622,7 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
             ));
         }
 
-        var activeItemNet = component.ActiveItem != null ? GetNetEntity(component.ActiveItem.Value) : null;
+        NetEntity? activeItemNet = component.ActiveItem != null ? GetNetEntity(component.ActiveItem.Value) : null;
         var state = new CyberArmRadialMenuState(itemDataList, activeItemNet);
         _uiSystem.SetUiState(cyberArm, CyberArmRadialMenuUiKey.Key, state);
     }
@@ -631,15 +630,10 @@ public sealed class CyberArmActiveItemSystem : EntitySystem
     /// <summary>
     /// Clears active item when player is cuffed.
     /// </summary>
-    private void OnCuffsAdded(Entity<CuffableComponent> ent, ref EntInsertedIntoContainerMessage args)
+    private void OnCuffedStateChanged(Entity<CuffableComponent> ent, ref CuffedStateChangeEvent args)
     {
-        // Check if this is the cuff container (all cuffs go into this container)
-        if (args.Container.ID != ent.Comp.Container.ID)
-            return;
-
-        // Check if the entity being inserted is actually a cuff (has HandcuffComponent)
-        // This covers handcuffs, zipties, improvised cuffs, etc.
-        if (!HasComp<HandcuffComponent>(args.Entity))
+        // Only clear if the entity is now cuffed (CuffedHandCount > 0)
+        if (ent.Comp.CuffedHandCount == 0)
             return;
 
         // Find all cyber arms belonging to this entity and clear their active items

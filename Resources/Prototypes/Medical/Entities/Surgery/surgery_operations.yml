@@ -9,11 +9,8 @@
   id: BoneRemoval
   name: Bone Removal
   primaryTools:
-    - type: BoneSaw
-    - type: CircularSaw
-    - type: Choppa
-    - type: AdvancedSurgicalSaw
-    - type: Drill
+    - - type: BoneSaw
+    - - type: Drill
   secondaryMethod:
     type: Bashing
     evaluator: CheckBluntDamage
@@ -25,15 +22,14 @@
   name: Mend Bones
   repairOperationFor: BoneRemoval
   primaryTools:
-    - type: BoneGel
+    - - type: BoneGel
   repairIntegrityCost: 4
 
 - type: surgeryOperation
   id: CutTissue
   name: Cut Tissue
   primaryTools:
-    - type: Scalpel
-    - type: LaserScalpel
+    - - type: Scalpel
   secondaryMethod:
     type: Slashing
     evaluator: CheckSlashDamage
@@ -45,23 +41,23 @@
   name: Repair Tissue Damage
   repairOperationFor: CutTissue
   primaryTools:
-    - type: Cautery
-    - type: LaserScalpel
+    - - type: Cautery
+    - - type: Scalpel
   repairIntegrityCost: 0.5
 
 - type: surgeryOperation
   id: ClampBloodVessels
   name: Clamp Blood Vessels
   primaryTools:
-    - type: Hemostat
-    - type: AdvancedRetractor  # Mechanical pinches also work as hemostat
+    - - type: Hemostat
+    - - type: Retractor  # Mechanical pinches also work as hemostat
   secondaryMethod:
     type: MultiEvaluator
     evaluator: CheckMultiEvaluator
     evaluators:
       - evaluator: CheckToolList
         tools:
-          - type: Wirecutters
+          - - type: Hemostat
       - evaluator: CheckHeatDamage
     integrityCost: 0.2
     repairOperation: ProperlyClampBleeders
@@ -71,21 +67,20 @@
   name: Properly Clamp Bleeders
   repairOperationFor: ClampBloodVessels
   primaryTools:
-    - type: Hemostat
-    - type: AdvancedRetractor  # Mechanical pinches also work as hemostat
+    - - type: Hemostat
+    - - type: Retractor  # Mechanical pinches also work as hemostat
   repairIntegrityCost: 0.2
 
 - type: surgeryOperation
   id: RetractTissue
   name: Retract Tissue
   primaryTools:
-    - type: Retractor
-    - type: AdvancedRetractor  # Mechanical pinches also work as retractor
+    - - type: Retractor
   secondaryMethod:
     type: Prying
     evaluator: CheckToolList
     tools:
-      - type: Prying
+      - - type: Prying
     integrityCost: 0.5
     repairOperation: ProperlyRetractTissue
 
@@ -94,16 +89,15 @@
   name: Properly Retract Tissue
   repairOperationFor: RetractTissue
   primaryTools:
-    - type: Retractor
-    - type: AdvancedRetractor  
+    - - type: Retractor
   repairIntegrityCost: 0.5
 
 - type: surgeryOperation
   id: CauterizeWounds
   name: Cauterize Wounds
   primaryTools:
-    - type: Cautery
-    - type: LaserScalpel
+    - - type: Cautery
+    - - type: Scalpel
   secondaryMethod:
     type: Heat
     evaluator: CheckHeatDamage
@@ -115,21 +109,21 @@
   name: Properly Cauterize
   repairOperationFor: CauterizeWounds
   primaryTools:
-    - type: Cautery
-    - type: LaserScalpel
+    - - type: Cautery
+    - - type: Scalpel
   repairIntegrityCost: 1
 
 - type: surgeryOperation
   id: RemoveOrgan
   name: Remove Organ
   primaryTools:
-    - type: Tweezers
-    - type: AdvancedRetractor  # Mechanical pinches also work as tweezers
+    - - type: Tweezers
+    - - type: Retractor  # Mechanical pinches also work as tweezers
   secondaryMethod:
     type: Prying
     evaluator: CheckToolList
     tools:
-      - type: Prying
+      - - type: Prying
 
 - type: surgeryOperation
   id: InsertOrgan
@@ -147,8 +141,8 @@
   id: SeverBloodVessels
   name: Sever Blood Vessels
   primaryTools:
-    - type: Cautery
-    - type: LaserScalpel
+    - - type: Cautery
+    - - type: Scalpel
   secondaryMethod:
     type: Slashing
     evaluator: CheckSlashDamage
@@ -160,18 +154,15 @@
   name: Mend Blood Vessels
   repairOperationFor: SeverBloodVessels
   primaryTools:
-    - type: Tweezers
-    - type: AdvancedRetractor  # Mechanical pinches also work as tweezers
+    - - type: Tweezers
+    - - type: Retractor  # Mechanical pinches also work as tweezers
   repairIntegrityCost: 0.5
 
 - type: surgeryOperation
   id: RemoveLimb
   name: Remove Limb
   primaryTools:
-    - type: BoneSaw
-    - type: AdvancedSurgicalSaw
-    - type: CircularSaw
-    - type: Choppa
+    - - type: BoneSaw
   secondaryMethod:
     type: Slashing
     evaluator: CheckSlashDamage

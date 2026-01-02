@@ -49,12 +49,12 @@
 - type: entity
   id: CyberLimbCapacitorModule
   name: Capacitor Module
-  description: A capacitor module for cyber limbs. Modifies power efficiency.
+  description: A capacitor module for cyber limbs. Can be used in machines, and lessens wear on all cybernetics by 10%.
   components:
     - type: Item
       size: Tiny
     - type: CyberLimbCapacitorModule
-      efficiencyModifier: 1.2
+      efficiencyModifier: 0.1
 
 - type: entity
   id: CyberLimbAutoReloadModule
@@ -62,9 +62,9 @@
   description: When implanted into a cybernetic, automatically reloads any implanted weapon with ammunition stored in this implant.
   components:
     - type: Item
-      size:
-        - 2
-        - 1
+      size: Tiny
+      shape:
+        - 0,0,1,0
     - type: CyberLimbAutoReloadModule
     - type: Sprite
       sprite: Objects/Specific/Robotics/borgmodule.rsi
