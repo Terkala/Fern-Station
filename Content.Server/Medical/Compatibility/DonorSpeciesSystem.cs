@@ -29,11 +29,13 @@ public sealed class DonorSpeciesSystem : EntitySystem
 
         // Centralized subscriptions to avoid duplicates with MindShieldSystem and SharedBodySystem
         // Subscribe to organ/limb addition events to set donor species when first added
-        SubscribeLocalEvent<OrganComponent, OrganAddedToBodyEvent>(OnOrganAdded);
+        // Cyber system: Run BEFORE CyberneticsSlotSystem to ensure donor species is set before slot component creation
+        SubscribeLocalEvent<OrganComponent, OrganAddedToBodyEvent>(OnOrganAdded, before: new[] { typeof(Content.Server.Medical.Cyber.CyberneticsSlotSystem) });
         // Note: BodyPartAddedEvent subscription moved to BodySystem to avoid duplicates
         
         // Subscribe to organ/limb removal events to track donor species
-        SubscribeLocalEvent<OrganComponent, OrganRemovedFromBodyEvent>(OnOrganRemoved);
+        // Cyber system: Run BEFORE CyberneticsSlotSystem to ensure proper cleanup order
+        SubscribeLocalEvent<OrganComponent, OrganRemovedFromBodyEvent>(OnOrganRemoved, before: new[] { typeof(Content.Server.Medical.Cyber.CyberneticsSlotSystem) });
         // Note: BodyPartRemovedEvent subscription moved to BodySystem to avoid duplicates
     }
 

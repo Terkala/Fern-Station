@@ -14,6 +14,7 @@ using Content.Shared.Storage.Components;
 using Content.Shared.Storage.EntitySystems;
 using Content.Shared.Verbs;
 using Content.Shared._Shitmed.Cybernetics;
+using SharedCyberneticsFunctionalitySystem = Content.Shared._Shitmed.Cybernetics.SharedCyberneticsFunctionalitySystem;
 using Content.Server.Power.Components;
 using Robust.Shared.Containers;
 using Robust.Shared.Timing;
@@ -30,6 +31,7 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
     [Dependency] private readonly SharedBodySystem _body = default!;
     [Dependency] private readonly SharedStorageSystem _storage = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private readonly SharedCyberneticsFunctionalitySystem _cyberneticsFunctionality = default!;
 
     public override void Initialize()
     {
@@ -570,6 +572,16 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         upkeep.IsPanelUnscrewed = unscrewed;
         Dirty(cyberPart, upkeep);
         UpdateUpkeepState(cyberPart, upkeep);
+        
+        // Re-evaluate all cybernetics on the body when panel state changes
+        if (TryComp<BodyPartComponent>(cyberPart, out var part) && part.Body != null)
+        {
+            _cyberneticsFunctionality.EvaluateAllCybernetics(part.Body.Value);
+        }
+        else if (TryComp<OrganComponent>(cyberPart, out var organ) && organ.Body != null)
+        {
+            _cyberneticsFunctionality.EvaluateAllCybernetics(organ.Body.Value);
+        }
     }
 }
 

@@ -33,6 +33,7 @@ using Content.Shared._Shitmed.Medical.Surgery.Effects.Step;
 using Content.Shared._Shitmed.Medical.Surgery;
 using Content.Shared._Shitmed.Medical.Surgery.Tools;
 using Content.Shared._Shitmed.Cybernetics;
+using SharedCyberneticsFunctionalitySystem = Content.Shared._Shitmed.Cybernetics.SharedCyberneticsFunctionalitySystem;
 using ShitmedSurgerySteps = Content.Shared._Shitmed.Medical.Surgery.Steps;
 using ShitmedSurgeryUIKey = Content.Shared._Shitmed.Medical.Surgery.SurgeryUIKey;
 using Content.Shared.Medical.Surgery.Components;
@@ -66,6 +67,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     [Dependency] private readonly SharedHandsSystem _hands = default!;
     [Dependency] private readonly CyberLimbStatsSystem _cyberLimbStats = default!;
     [Dependency] private readonly CyberneticsUpkeepSystem _cyberneticsUpkeep = default!;
+    [Dependency] private readonly SharedCyberneticsFunctionalitySystem _cyberneticsFunctionality = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly EntityLookupSystem _lookup = default!;
     [Dependency] private readonly SharedStackSystem _stack = default!;
@@ -1654,6 +1656,12 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             upkeep.IsPanelUnscrewed = true;
             Dirty(bodyPart, upkeep);
             _cyberneticsUpkeep.UpdateUpkeepState(bodyPart, upkeep);
+            
+            // Re-evaluate all cybernetics on the body when panel is opened
+            if (TryComp<BodyPartComponent>(bodyPart, out var part) && part.Body != null)
+            {
+                _cyberneticsFunctionality.EvaluateAllCybernetics(part.Body.Value);
+            }
         }
         else if (stepId.Contains("CloseCyberneticsPanel") || stepName.Contains("Close Maintenance Panel"))
         {
@@ -1667,6 +1675,12 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                 upkeep.WiringReplaced = false;
                 Dirty(bodyPart, upkeep);
                 _cyberneticsUpkeep.UpdateUpkeepState(bodyPart, upkeep);
+                
+                // Re-evaluate all cybernetics on the body when panel is closed
+                if (TryComp<BodyPartComponent>(bodyPart, out var part) && part.Body != null)
+                {
+                    _cyberneticsFunctionality.EvaluateAllCybernetics(part.Body.Value);
+                }
             }
             else
             {
