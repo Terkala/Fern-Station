@@ -17,6 +17,8 @@ using Content.Shared._Shitmed.Cybernetics;
 using Robust.Shared.Containers;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Reflection;
+using Content.Server.Medical.CyberLimb;
+using Content.Shared.Tag;
 
 namespace Content.Server.Medical.Cyber;
 
@@ -27,6 +29,8 @@ namespace Content.Server.Medical.Cyber;
 {
     [Dependency] private readonly IReflectionManager _reflection = default!;
     [Dependency] private readonly Content.Shared.Medical.Cyber.SharedCyberneticsFunctionalitySystem _cyberFunctionality = default!;
+    [Dependency] private readonly CyberLimbStorageSystem _cyberLimbStorage = default!;
+    [Dependency] private readonly TagSystem _tag = default!;
 
     public override void Initialize()
     {
@@ -82,6 +86,30 @@ namespace Content.Server.Medical.Cyber;
         
         // Evaluate all cybernetics after slot component removal
         _cyberFunctionality.EvaluateAllCybernetics(body);
+    }
+
+    protected override void OnCyberneticAdded(Entity<CyberneticsComponent> cyberEnt, ref OrganAddedToBodyEvent ev)
+    {
+        // Call base implementation for organ handling
+        base.OnCyberneticAdded(cyberEnt, ref ev);
+        
+        // Also handle body parts (cybernetic limbs)
+        if (TryComp<BodyPartComponent>(cyberEnt, out var partComp))
+        {
+            // Get slot ID from body part
+            var slotId = Body.GetSlotFromBodyPart(partComp);
+            if (!string.IsNullOrEmpty(slotId))
+            {
+                CreateSlotComponent(ev.Body, slotId, cyberEnt);
+            }
+        }
+        
+        // Auto-close maintenance panel when any cybernetic is installed
+        if (TryComp<CyberneticsUpkeepComponent>(cyberEnt, out var upkeep))
+        {
+            upkeep.IsPanelUnscrewed = false;
+            Dirty(cyberEnt, upkeep);
+        }
     }
 
     /// <summary>

@@ -15,6 +15,9 @@ using Content.Server.Stack;
 using Content.Server.Medical.CyberOrgan;
 using Content.Shared.Containers;
 using Robust.Shared.Containers;
+using Content.Shared.Popups;
+using Content.Server.Popups;
+using Content.Shared.Tag;
 
 namespace Content.Server.Medical.CyberLimb;
 
@@ -31,6 +34,8 @@ public sealed class CyberLimbStorageSystem : EntitySystem
     [Dependency] private readonly CyberLimbStatsSystem _stats = default!;
     [Dependency] private readonly CyberLimbModuleSystem _moduleSystem = default!;
     [Dependency] private readonly CyberneticsUpkeepSystem _upkeep = default!;
+    [Dependency] private readonly PopupSystem _popup = default!;
+    [Dependency] private readonly TagSystem _tag = default!;
 
     public override void Initialize()
     {
@@ -41,18 +46,34 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         SubscribeLocalEvent<CyberLimbStorageComponent, EntRemovedFromContainerMessage>(OnItemRemoved);
         SubscribeLocalEvent<CyberLimbStorageComponent, StorageInteractAttemptEvent>(OnStorageInteractAttempt);
         SubscribeLocalEvent<CyberLimbStorageComponent, ContainerIsInsertingAttemptEvent>(OnContainerInsertAttempt, before: new[] { typeof(SharedStorageSystem) });
+        SubscribeLocalEvent<CyberLimbStorageComponent, ContainerIsRemovingAttemptEvent>(OnContainerRemoveAttempt, before: new[] { typeof(SharedStorageSystem) });
+        SubscribeLocalEvent<CyberLimbStorageComponent, BoundUIOpenedEvent>(OnStorageUIOpened);
     }
 
     private void OnCyberLimbStorageStartup(EntityUid uid, CyberLimbStorageComponent component, ComponentStartup args)
     {
         // Ensure upkeep component exists for all cybernetics
-        EnsureComp<CyberneticsUpkeepComponent>(uid);
+        var upkeep = EnsureComp<CyberneticsUpkeepComponent>(uid);
+        
+        // Cyborg arms and legs spawn with maintenance panels open
+        if (TryComp<BodyPartComponent>(uid, out var part))
+        {
+            if (part.PartType == BodyPartType.Arm || part.PartType == BodyPartType.Leg)
+            {
+                // Check if this is a cyborg arm/leg (has BorgArm or BorgLeg tag)
+                if (_tag.HasTag(uid, "BorgArm") || _tag.HasTag(uid, "BorgLeg"))
+                {
+                    upkeep.IsPanelUnscrewed = true;
+                    Dirty(uid, upkeep);
+                }
+            }
+        }
         
         // Initialize stats (service time, low power mode, etc.)
         _stats.OnCyberLimbStartup(uid, component);
         
         // Add CyberArmActiveItemComponent to arms
-        if (TryComp<BodyPartComponent>(uid, out var part) && part.PartType == BodyPartType.Arm)
+        if (TryComp<BodyPartComponent>(uid, out var part2) && part2.PartType == BodyPartType.Arm)
         {
             EnsureComp<CyberArmActiveItemComponent>(uid);
             
@@ -86,14 +107,56 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         // The actual stack splitting will happen in a post-insertion check
     }
 
-    private void OnStorageInteractAttempt(EntityUid uid, CyberLimbStorageComponent component, ref StorageInteractAttemptEvent args)
+    private void OnContainerRemoveAttempt(EntityUid uid, CyberLimbStorageComponent component, ContainerIsRemovingAttemptEvent args)
     {
-        // Check if maintenance panel is open - if not, prevent access
+        // Check if maintenance panel is open - if not, prevent removal
         if (TryComp<CyberneticsUpkeepComponent>(uid, out var upkeep))
         {
             if (!upkeep.IsPanelUnscrewed)
             {
-                args.Cancelled = true;
+                args.Cancel();
+                return;
+            }
+        }
+    }
+
+    private void OnStorageInteractAttempt(EntityUid uid, CyberLimbStorageComponent component, ref StorageInteractAttemptEvent args)
+    {
+        // Allow UI to open - panel check only prevents insertion/removal, not viewing
+        // The OnContainerInsertAttempt handler will prevent item insertion when panel is closed
+        // Popup will be shown when UI actually opens (in OnStorageUIOpened)
+    }
+
+    private void OnStorageUIOpened(EntityUid uid, CyberLimbStorageComponent component, BoundUIOpenedEvent args)
+    {
+        // Check if this is the storage UI
+        if (args.UiKey is not StorageComponent.StorageUiKey.Key)
+            return;
+
+        // Check if maintenance panel is closed and show popup
+        if (TryComp<CyberneticsUpkeepComponent>(uid, out var upkeep) && !upkeep.IsPanelUnscrewed)
+        {
+            _popup.PopupEntity("The maintenance panel is closed.", uid, args.Actor, PopupType.MediumCaution);
+        }
+    }
+
+    /// <summary>
+    /// Called by CyberneticsSlotSystem when a cybernetic body part is added to a body.
+    /// Auto-closes maintenance panel when cyborg arm/leg is installed.
+    /// </summary>
+    public void OnBodyPartAdded(Entity<BodyPartComponent> ent, ref BodyPartAddedEvent args)
+    {
+        // Auto-close maintenance panel when cyborg arm/leg is installed
+        if (ent.Comp.PartType == BodyPartType.Arm || ent.Comp.PartType == BodyPartType.Leg)
+        {
+            // Check if this is a cyborg arm/leg (has BorgArm or BorgLeg tag)
+            if (_tag.HasTag(ent, "BorgArm") || _tag.HasTag(ent, "BorgLeg"))
+            {
+                if (TryComp<CyberneticsUpkeepComponent>(ent, out var upkeep))
+                {
+                    upkeep.IsPanelUnscrewed = false;
+                    Dirty(ent, upkeep);
+                }
             }
         }
     }

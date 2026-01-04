@@ -78,6 +78,38 @@
     {
       "name": "r_hand-2",
       "directions": 4
+    },
+    {
+      "name": "l_arm_combined",
+      "directions": 4
+    },
+    {
+      "name": "r_arm_combined",
+      "directions": 4
+    },
+    {
+      "name": "l_leg_combined",
+      "directions": 4
+    },
+    {
+      "name": "r_leg_combined",
+      "directions": 4
+    },
+    {
+      "name": "l_arm_combined_hand",
+      "directions": 4
+    },
+    {
+      "name": "r_arm_combined_hand",
+      "directions": 4
+    },
+    {
+      "name": "l_leg_combined_foot",
+      "directions": 4
+    },
+    {
+      "name": "r_leg_combined_foot",
+      "directions": 4
     }
   ]
 }

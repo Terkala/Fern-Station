@@ -58,25 +58,25 @@
   id: MobCyberneticHesphiastosLArm
   baseSprite:
     sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
-    state: "l_arm-1"
+    state: "l_arm_combined"
 
 - type: humanoidBaseSprite
   id: MobCyberneticHesphiastosRArm
   baseSprite:
     sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
-    state: "r_arm-1"
+    state: "r_arm_combined"
 
 - type: humanoidBaseSprite
   id: MobCyberneticHesphiastosLLeg
   baseSprite:
     sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
-    state: "l_leg-1"
+    state: "l_leg_combined"
 
 - type: humanoidBaseSprite
   id: MobCyberneticHesphiastosRLeg
   baseSprite:
     sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
-    state: "r_leg-1"
+    state: "r_leg_combined"
 
 - type: humanoidBaseSprite
   id: MobCyberneticHesphiastosLHand

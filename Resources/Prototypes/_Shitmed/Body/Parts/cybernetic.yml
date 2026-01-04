@@ -20,8 +20,8 @@
     id: LeftHandCybernetic
   - type: Cybernetics
   - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
-    state: "l_arm-combined"
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "l_arm_combined_hand"
   - type: UserInterface
     interfaces:
       enum.StorageUiKey.Key:
@@ -40,8 +40,8 @@
     id: RightHandCybernetic
   - type: Cybernetics
   - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
-    state: "r_arm-combined"
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "r_arm_combined_hand"
   - type: UserInterface
     interfaces:
       enum.StorageUiKey.Key:
@@ -60,8 +60,8 @@
     id: LeftFootCybernetic
   - type: Cybernetics
   - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
-    state: "l_leg-combined"
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "l_leg_combined_foot"
   - type: UserInterface
     interfaces:
       enum.StorageUiKey.Key:
@@ -80,8 +80,8 @@
     id: RightFootCybernetic
   - type: Cybernetics
   - type: Sprite
-    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/bishop/bishop_main.rsi
-    state: "r_leg-combined"
+    sprite: _EinsteinEngines/Mobs/Species/Cybernetics/hesphiastos/hesphiastos_main.rsi
+    state: "r_leg_combined_foot"
   - type: UserInterface
     interfaces:
       enum.StorageUiKey.Key:

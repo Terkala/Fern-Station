@@ -49,6 +49,7 @@ using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using Robust.Shared.Map;
 using System.Linq;
+using System.Reflection;
 
 namespace Content.Server.Medical.Surgery;
 
@@ -133,6 +134,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         SubscribeLocalEvent<SurgeryLayerComponent, ComponentStartup>(OnSurgeryLayerStartup);
         SubscribeLocalEvent<SurgeryLayerComponent, GetVerbsEvent<Verb>>(OnGetSurgeryVerb);
         SubscribeLocalEvent<UnskilledSurgeryPenaltyComponent, GetVerbsEvent<Verb>>(OnGetUnskilledPenaltyVerb);
+        SubscribeLocalEvent<SurgeryTargetComponent, GetVerbsEvent<Verb>>(OnGetBodySurgeryVerb);
     }
 
     /// <summary>
@@ -199,14 +201,25 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         if (!HasComp<SurgeryTargetComponent>(partComp.Body.Value))
             return;
 
-        // Only show if user has a surgical tool in hand
+        // Only show if user has a surgical tool or slashing weapon in hand
         var hasSurgicalTool = false;
         foreach (var heldItem in _hands.EnumerateHeld(args.User))
         {
+            // Check for surgery tool component
             if (HasComp<SurgeryToolComponent>(heldItem))
             {
                 hasSurgicalTool = true;
                 break;
+            }
+            
+            // Check for melee weapon with slashing damage
+            if (TryComp<MeleeWeaponComponent>(heldItem, out var melee))
+            {
+                if (melee.Damage.DamageDict.TryGetValue("Slash", out var slashDamage) && slashDamage > 0)
+                {
+                    hasSurgicalTool = true;
+                    break;
+                }
             }
         }
 
@@ -219,6 +232,74 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             Text = Loc.GetString("surgery-verb-open"),
             Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/settings.svg.192dpi.png")),
             Act = () => OpenSurgeryUI(ent, user)
+        });
+    }
+
+    private void OnGetBodySurgeryVerb(Entity<SurgeryTargetComponent> ent, ref GetVerbsEvent<Verb> args)
+    {
+        if (!args.CanAccess || !args.CanInteract)
+            return;
+
+        // Only show if user has a surgical tool or slashing weapon in hand
+        var hasSurgicalTool = false;
+        foreach (var heldItem in _hands.EnumerateHeld(args.User))
+        {
+            // Check for surgery tool component
+            if (HasComp<SurgeryToolComponent>(heldItem))
+            {
+                hasSurgicalTool = true;
+                break;
+            }
+            
+            // Check for melee weapon with slashing damage
+            if (TryComp<MeleeWeaponComponent>(heldItem, out var melee))
+            {
+                if (melee.Damage.DamageDict.TryGetValue("Slash", out var slashDamage) && slashDamage > 0)
+                {
+                    hasSurgicalTool = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasSurgicalTool)
+            return;
+
+        // Find the first body part with SurgeryLayerComponent (prefer torso, then any part)
+        EntityUid? targetPart = null;
+        foreach (var part in _body.GetBodyChildren(ent))
+        {
+            if (HasComp<SurgeryLayerComponent>(part.Id))
+            {
+                // Prefer torso if available
+                if (TryComp<BodyPartComponent>(part.Id, out var partComp) && 
+                    partComp.PartType == BodyPartType.Torso)
+                {
+                    targetPart = part.Id;
+                    break;
+                }
+                
+                // Otherwise use the first available part
+                if (targetPart == null)
+                    targetPart = part.Id;
+            }
+        }
+
+        // If no body part found, don't show the verb
+        if (targetPart == null)
+            return;
+
+        var user = args.User;
+        var partToOpen = targetPart.Value;
+        args.Verbs.Add(new Verb
+        {
+            Text = Loc.GetString("surgery-verb-open"),
+            Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/settings.svg.192dpi.png")),
+            Act = () =>
+            {
+                if (TryComp<SurgeryLayerComponent>(partToOpen, out var layer))
+                    OpenSurgeryUI((partToOpen, layer), user);
+            }
         });
     }
 
@@ -275,7 +356,9 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             return;
 
         var uiComp = EnsureComp<UserInterfaceComponent>(ent.Owner);
-        _ui.SetUiState((ent.Owner, uiComp), Content.Shared.Medical.Surgery.SurgeryUIKey.Key, new SurgeryBoundUserInterfaceState(
+        var uiKey = Content.Shared.Medical.Surgery.SurgeryUIKey.Key;
+        
+        _ui.SetUiState((ent.Owner, uiComp), uiKey, new SurgeryBoundUserInterfaceState(
             GetNetEntity(ent),
             ent.Comp.PartType,
             ent.Comp.SkinRetracted,
@@ -288,7 +371,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         ));
 
         UpdateUI(ent);
-        _ui.TryOpenUi((ent.Owner, uiComp), Content.Shared.Medical.Surgery.SurgeryUIKey.Key, user);
+        _ui.TryOpenUi((ent.Owner, uiComp), uiKey, user);
         
         // Start material scanning for this UI
         _openSurgeryUIs[ent] = _timing.CurTime + TimeSpan.FromSeconds(MaterialScanInterval);
@@ -313,6 +396,25 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         {
             component.PartType = part.PartType;
             Dirty(uid, component);
+        }
+        
+        // Ensure UserInterfaceComponent exists and register the surgery interface
+        var uiComp = EnsureComp<UserInterfaceComponent>(uid);
+        var uiKey = Content.Shared.Medical.Surgery.SurgeryUIKey.Key;
+        
+        // Use reflection to access the internal Interfaces property
+        var interfacesField = typeof(UserInterfaceComponent).GetField("Interfaces", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (interfacesField?.GetValue(uiComp) is Dictionary<Enum, InterfaceData> interfaces)
+        {
+            if (!interfaces.ContainsKey(uiKey))
+            {
+                interfaces[uiKey] = new InterfaceData(
+                    "SurgeryBui",
+                    interactionRange: 0f, // No range limit - body parts are inside the body
+                    requireInputValidation: true
+                );
+                Dirty(uid, uiComp);
+            }
         }
     }
 
