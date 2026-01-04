@@ -42,14 +42,16 @@ using Content.Server.Medical.Surgery.Operations;
 using Content.Shared.Implants.Components;
 using Content.Shared.UserInterface;
 using Content.Shared.Prototypes;
+using Content.Shared.Interaction;
+using Content.Shared._Shitmed.Targeting;
 using Robust.Server.GameObjects;
 using Robust.Shared.Containers;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using Robust.Shared.Map;
+using Robust.Shared.GameObjects;
 using System.Linq;
-using System.Reflection;
 
 namespace Content.Server.Medical.Surgery;
 
@@ -76,6 +78,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     [Dependency] private readonly MobStateSystem _mobState = default!;
     [Dependency] private readonly DamageableSystem _damageable = default!;
     [Dependency] private readonly SharedContainerSystem _containers = default!;
+    [Dependency] private readonly SharedInteractionSystem _interaction = default!;
     
     /// <summary>
     /// Tracks which method (primary/improvised) was selected for each step.
@@ -105,6 +108,24 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     /// </summary>
     private readonly Dictionary<EntityUid, TimeSpan> _openSurgeryUIs = new();
 
+    /// <summary>
+    /// Tracks the current layer for each body part in open surgery UIs.
+    /// Key: Body part entity, Value: Current layer
+    /// </summary>
+    private readonly Dictionary<EntityUid, SurgeryLayer> _bodyPartCurrentLayer = new();
+
+    /// <summary>
+    /// Tracks the selected body part for each surgery UI.
+    /// Key: Body entity (where UI is opened), Value: Selected body part entity
+    /// </summary>
+    private readonly Dictionary<EntityUid, EntityUid> _selectedBodyParts = new();
+
+    /// <summary>
+    /// Tracks the selected target body part for each surgery UI (for missing limbs).
+    /// Key: Body entity (where UI is opened), Value: Selected target body part enum
+    /// </summary>
+    private readonly Dictionary<EntityUid, TargetBodyPart?> _selectedTargetBodyParts = new();
+
     private const float MaterialScanRange = 1.5f;
     private const float MaterialScanInterval = 0.5f;
 
@@ -120,6 +141,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             subs.Event<SurgeryStepSelectedMessage>(OnStepSelected);
             subs.Event<SurgeryOperationMethodSelectedMessage>(OnOperationMethodSelected);
             subs.Event<SurgeryLayerChangedMessage>(OnLayerChanged);
+            subs.Event<SurgeryBodyPartSelectedMessage>(OnBodyPartSelected);
             subs.Event<BoundUIOpenedEvent>(OnSurgeryUIOpened);
             subs.Event<BoundUIClosedEvent>(OnSurgeryUIClosed);
         });
@@ -133,6 +155,9 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         SubscribeLocalEvent<BodyPartComponent, ComponentStartup>(OnBodyPartStartup);
         SubscribeLocalEvent<SurgeryLayerComponent, ComponentStartup>(OnSurgeryLayerStartup);
         SubscribeLocalEvent<SurgeryLayerComponent, GetVerbsEvent<Verb>>(OnGetSurgeryVerb);
+        SubscribeLocalEvent<SurgeryTargetComponent, BoundUserInterfaceCheckRangeEvent>(OnSurgeryUIRangeCheck);
+        SubscribeLocalEvent<BoundUserInterfaceMessageAttempt>(OnSurgeryUIMessageAttempt, before: new[] { typeof(SharedInteractionSystem) });
+        SubscribeLocalEvent<InRangeOverrideEvent>(OnInRangeOverride);
         SubscribeLocalEvent<UnskilledSurgeryPenaltyComponent, GetVerbsEvent<Verb>>(OnGetUnskilledPenaltyVerb);
         SubscribeLocalEvent<SurgeryTargetComponent, GetVerbsEvent<Verb>>(OnGetBodySurgeryVerb);
     }
@@ -355,11 +380,54 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         if (!HasComp<SurgeryLayerComponent>(ent.Owner))
             return;
 
-        var uiComp = EnsureComp<UserInterfaceComponent>(ent.Owner);
+        // Get the body from the body part - open UI on the body entity (like old Shitmed system)
+        // This avoids range check issues since body parts are inside the body and may not have proper world transforms
+        if (!TryComp<BodyPartComponent>(ent, out var part) || part.Body == null)
+            return;
+
+        var body = part.Body.Value;
+
+        // Initialize selected body part to the one that was clicked (or default to torso)
+        EntityUid selectedPart = ent;
+        TargetBodyPart? selectedTargetPart = _body.GetTargetBodyPart(ent.Comp);
+        
+        // If this isn't the torso, try to find torso as default
+        if (ent.Comp.PartType != BodyPartType.Torso)
+        {
+            var torsoParts = _body.GetBodyChildrenOfType(body, BodyPartType.Torso);
+            var torso = torsoParts.FirstOrDefault();
+            if (torso.Id != default)
+            {
+                selectedPart = torso.Id;
+                selectedTargetPart = TargetBodyPart.Torso;
+            }
+        }
+
+        // Store the selected body part
+        _selectedBodyParts[body] = selectedPart;
+        _selectedTargetBodyParts[body] = selectedTargetPart;
+
+        // Initialize layer state for the selected body part (default to Skin)
+        if (!_bodyPartCurrentLayer.ContainsKey(selectedPart))
+        {
+            _bodyPartCurrentLayer[selectedPart] = SurgeryLayer.Skin;
+        }
+
+        // Ensure the body has UserInterfaceComponent
+        var uiComp = EnsureComp<UserInterfaceComponent>(body);
         var uiKey = Content.Shared.Medical.Surgery.SurgeryUIKey.Key;
         
-        _ui.SetUiState((ent.Owner, uiComp), uiKey, new SurgeryBoundUserInterfaceState(
-            GetNetEntity(ent),
+        // Ensure the interface is registered (fallback in case it wasn't registered on the body)
+        // SetUi is safe to call multiple times - it will just update the existing entry
+        _ui.SetUi((body, uiComp), uiKey, new InterfaceData(
+            "Content.Client.Medical.Surgery.SurgeryBui", // Full namespace to avoid ambiguity with _Shitmed version
+            interactionRange: 2f, // Range check between surgeon and body (body has proper world transform)
+            requireInputValidation: true
+        ));
+        
+        // Initial state will be updated by UpdateUI
+        _ui.SetUiState((body, uiComp), uiKey, new SurgeryBoundUserInterfaceState(
+            GetNetEntity(ent), // Original body part (for reference)
             ent.Comp.PartType,
             ent.Comp.SkinRetracted,
             ent.Comp.TissueRetracted,
@@ -367,14 +435,28 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             new List<NetEntity>(),
             new List<NetEntity>(),
             new List<NetEntity>(),
-            ent.Comp.BonesSmashed
+            ent.Comp.BonesSmashed,
+            null,
+            GetNetEntity(selectedPart),
+            selectedTargetPart,
+            false,
+            false
         ));
 
-        UpdateUI(ent);
-        _ui.TryOpenUi((ent.Owner, uiComp), uiKey, user);
+        // Update UI with the selected body part
+        if (TryComp<SurgeryLayerComponent>(selectedPart, out var selectedLayer))
+        {
+            UpdateUI((selectedPart, selectedLayer));
+        }
+        else
+        {
+            UpdateUI(ent);
+        }
         
-        // Start material scanning for this UI
-        _openSurgeryUIs[ent] = _timing.CurTime + TimeSpan.FromSeconds(MaterialScanInterval);
+        _ui.TryOpenUi((body, uiComp), uiKey, user);
+        
+        // Start material scanning for this UI (track by selected body part)
+        _openSurgeryUIs[selectedPart] = _timing.CurTime + TimeSpan.FromSeconds(MaterialScanInterval);
     }
 
     private void OnSurgeryUIOpened(Entity<SurgeryLayerComponent> ent, ref BoundUIOpenedEvent args)
@@ -387,6 +469,56 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     {
         // Stop material scanning when UI closes
         _openSurgeryUIs.Remove(ent);
+        
+        // Clean up layer tracking for this body part
+        _bodyPartCurrentLayer.Remove(ent);
+        
+        // Clean up selected body part tracking
+        if (TryComp<BodyPartComponent>(ent, out var part) && part.Body != null)
+        {
+            _selectedBodyParts.Remove(part.Body.Value);
+            _selectedTargetBodyParts.Remove(part.Body.Value);
+        }
+    }
+
+    private void OnSurgeryUIMessageAttempt(BoundUserInterfaceMessageAttempt args)
+    {
+        // Only handle surgery UI key
+        if (!args.UiKey.Equals(Content.Shared.Medical.Surgery.SurgeryUIKey.Key))
+            return;
+
+        // Only handle if target has SurgeryTargetComponent (body entity)
+        // The UI is now opened on the body entity, not the body part
+        if (!HasComp<SurgeryTargetComponent>(args.Target))
+            return;
+
+        // The UI is on the body entity which has a proper world transform,
+        // so the range check should work correctly without special handling
+    }
+
+    private void OnInRangeOverride(ref InRangeOverrideEvent ev)
+    {
+        // If the target is a body with surgery UI, we need to check if it's for surgery
+        // The UI is now opened on the body entity, so this should work correctly
+        // But we still need to handle the case where the range check is being done
+        // This handler is mainly for body parts, but since we moved UI to body, it may not be needed
+        // However, keep it for safety in case there are edge cases
+    }
+
+    private void OnSurgeryUIRangeCheck(Entity<SurgeryTargetComponent> ent, ref BoundUserInterfaceCheckRangeEvent args)
+    {
+        // If already failed, don't override
+        if (args.Result == BoundUserInterfaceRangeResult.Fail)
+            return;
+
+        // Only handle surgery UI key
+        if (!args.UiKey.Equals(Content.Shared.Medical.Surgery.SurgeryUIKey.Key))
+            return;
+
+        // The UI is now opened on the body entity (ent.Owner), which has a proper world transform
+        // So the default range check should work fine. But we can still override it if needed.
+        // Since the body has a proper transform, the range check should pass automatically.
+        // We don't need to do anything special here - the default check will work.
     }
 
     private void OnSurgeryLayerStartup(EntityUid uid, SurgeryLayerComponent component, ComponentStartup args)
@@ -398,24 +530,8 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             Dirty(uid, component);
         }
         
-        // Ensure UserInterfaceComponent exists and register the surgery interface
-        var uiComp = EnsureComp<UserInterfaceComponent>(uid);
-        var uiKey = Content.Shared.Medical.Surgery.SurgeryUIKey.Key;
-        
-        // Use reflection to access the internal Interfaces property
-        var interfacesField = typeof(UserInterfaceComponent).GetField("Interfaces", BindingFlags.NonPublic | BindingFlags.Instance);
-        if (interfacesField?.GetValue(uiComp) is Dictionary<Enum, InterfaceData> interfaces)
-        {
-            if (!interfaces.ContainsKey(uiKey))
-            {
-                interfaces[uiKey] = new InterfaceData(
-                    "SurgeryBui",
-                    interactionRange: 0f, // No range limit - body parts are inside the body
-                    requireInputValidation: true
-                );
-                Dirty(uid, uiComp);
-            }
-        }
+        // Note: UI registration is now done on the body entity in OpenSurgeryUI,
+        // not on the body part. This matches the old Shitmed system behavior.
     }
 
     private void OnStepSelected(Entity<SurgeryLayerComponent> ent, ref SurgeryStepSelectedMessage msg)
@@ -439,8 +555,160 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
 
     private void OnLayerChanged(Entity<SurgeryLayerComponent> ent, ref SurgeryLayerChangedMessage msg)
     {
-        // Just update UI when layer changes
+        // Store the current layer for this body part
+        _bodyPartCurrentLayer[ent] = msg.Layer;
+        
+        // Update UI when layer changes
         UpdateUI(ent);
+    }
+
+    private void OnBodyPartSelected(Entity<SurgeryLayerComponent> ent, ref SurgeryBodyPartSelectedMessage msg)
+    {
+        // Get the body from the body part
+        if (!TryComp<BodyPartComponent>(ent, out var part) || part.Body == null)
+            return;
+
+        var body = part.Body.Value;
+        EntityUid? selectedPart = null;
+        TargetBodyPart? selectedTargetPart = null;
+        bool isMissingLimb = false;
+
+        // If a target body part was selected, find the corresponding body part entity
+        if (msg.TargetBodyPart != null)
+        {
+            var (targetType, targetSymmetry) = _body.ConvertTargetBodyPart(msg.TargetBodyPart.Value);
+            var bodyParts = _body.GetBodyChildrenOfType(body, targetType, symmetry: targetSymmetry);
+            var foundPart = bodyParts.FirstOrDefault();
+            
+            if (foundPart.Id != default)
+            {
+                selectedPart = foundPart.Id;
+                selectedTargetPart = msg.TargetBodyPart;
+            }
+            else
+            {
+                // Limb is missing - we still want to allow selection for attach limb surgery
+                // Use the parent part (usually torso) as the base, but mark as missing
+                isMissingLimb = true;
+                selectedTargetPart = msg.TargetBodyPart;
+                
+                // For missing limbs, we need to find the parent part where the limb would attach
+                // For arms/legs, this is usually the torso
+                // For hands/feet, this is the corresponding arm/leg
+                if (targetType == BodyPartType.Arm || targetType == BodyPartType.Leg || targetType == BodyPartType.Head)
+                {
+                    var torsoParts = _body.GetBodyChildrenOfType(body, BodyPartType.Torso);
+                    var torso = torsoParts.FirstOrDefault();
+                    if (torso.Id != default)
+                    {
+                        selectedPart = torso.Id;
+                    }
+                }
+                else if (targetType == BodyPartType.Hand)
+                {
+                    // Find the corresponding arm
+                    var armType = targetSymmetry == BodyPartSymmetry.Left ? BodyPartSymmetry.Left : BodyPartSymmetry.Right;
+                    var armParts = _body.GetBodyChildrenOfType(body, BodyPartType.Arm, symmetry: armType);
+                    var arm = armParts.FirstOrDefault();
+                    if (arm.Id != default)
+                    {
+                        selectedPart = arm.Id;
+                    }
+                    else
+                    {
+                        // Arm is also missing, use torso
+                        var torsoParts = _body.GetBodyChildrenOfType(body, BodyPartType.Torso);
+                        var torso = torsoParts.FirstOrDefault();
+                        if (torso.Id != default)
+                        {
+                            selectedPart = torso.Id;
+                        }
+                    }
+                }
+                else if (targetType == BodyPartType.Foot)
+                {
+                    // Find the corresponding leg
+                    var legType = targetSymmetry == BodyPartSymmetry.Left ? BodyPartSymmetry.Left : BodyPartSymmetry.Right;
+                    var legParts = _body.GetBodyChildrenOfType(body, BodyPartType.Leg, symmetry: legType);
+                    var leg = legParts.FirstOrDefault();
+                    if (leg.Id != default)
+                    {
+                        selectedPart = leg.Id;
+                    }
+                    else
+                    {
+                        // Leg is also missing, use torso
+                        var torsoParts = _body.GetBodyChildrenOfType(body, BodyPartType.Torso);
+                        var torso = torsoParts.FirstOrDefault();
+                        if (torso.Id != default)
+                        {
+                            selectedPart = torso.Id;
+                        }
+                    }
+                }
+                
+                // Fallback to original body part if we couldn't find a parent
+                if (selectedPart == null)
+                {
+                    selectedPart = ent;
+                }
+            }
+        }
+        else
+        {
+            // No selection - default to the original body part
+            selectedPart = ent;
+            if (TryComp<BodyPartComponent>(ent, out var entPart))
+            {
+                selectedTargetPart = _body.GetTargetBodyPart(entPart);
+            }
+        }
+
+        // If no body part found, don't update
+        if (selectedPart == null)
+            return;
+
+        // Store the selected body part for this UI (store the target body part info for missing limbs)
+        _selectedBodyParts[body] = selectedPart.Value;
+        _selectedTargetBodyParts[body] = selectedTargetPart;
+
+        // Determine which layer to switch to
+        SurgeryLayer targetLayer = SurgeryLayer.Skin;
+        
+        // For missing limbs, always start at skin layer (where attach limb surgeries would be)
+        if (!isMissingLimb)
+        {
+            // Check if the selected body part has a stored layer state
+            if (_bodyPartCurrentLayer.TryGetValue(selectedPart.Value, out var storedLayer))
+            {
+                targetLayer = storedLayer;
+            }
+            else if (TryComp<SurgeryLayerComponent>(selectedPart.Value, out var selectedLayer))
+            {
+                // If tissue is retracted, we can access tissue layer
+                if (selectedLayer.TissueRetracted && (selectedLayer.BonesSawed || selectedLayer.BonesSmashed))
+                {
+                    targetLayer = SurgeryLayer.Organ;
+                }
+                else if (selectedLayer.SkinRetracted)
+                {
+                    targetLayer = SurgeryLayer.Tissue;
+                }
+                else
+                {
+                    targetLayer = SurgeryLayer.Skin;
+                }
+            }
+        }
+
+        // Store the layer for the selected body part
+        _bodyPartCurrentLayer[selectedPart.Value] = targetLayer;
+
+        // Update UI with the new selected body part
+        if (TryComp<SurgeryLayerComponent>(selectedPart.Value, out var layerComp))
+        {
+            UpdateUI((selectedPart.Value, layerComp));
+        }
     }
 
     private void OnOperationMethodSelected(Entity<SurgeryLayerComponent> ent, ref SurgeryOperationMethodSelectedMessage msg)
@@ -1217,6 +1485,37 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     {
         var (uid, layer) = ent;
 
+        // Get the body from the body part to find the selected body part
+        EntityUid selectedPart = uid;
+        TargetBodyPart? selectedTargetPart = _body.GetTargetBodyPart(layer);
+        
+        if (TryComp<BodyPartComponent>(uid, out var part) && part.Body != null)
+        {
+            // Check if there's a selected body part for this body
+            if (_selectedBodyParts.TryGetValue(part.Body.Value, out var storedSelectedPart))
+            {
+                selectedPart = storedSelectedPart;
+                
+                // Get the stored target body part (for missing limbs)
+                if (_selectedTargetBodyParts.TryGetValue(part.Body.Value, out var storedTargetPart))
+                {
+                    selectedTargetPart = storedTargetPart;
+                }
+                else if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartComp))
+                {
+                    selectedTargetPart = _body.GetTargetBodyPart(selectedPartComp);
+                }
+            }
+        }
+
+        // Get the layer component for the selected body part
+        if (!TryComp<SurgeryLayerComponent>(selectedPart, out var selectedLayer))
+        {
+            // Fallback to original if selected doesn't have layer component
+            selectedLayer = layer;
+            selectedPart = uid;
+        }
+
         // Get all surgery steps and filter by layer and part type
         var skinSteps = new List<NetEntity>();
         var tissueSteps = new List<NetEntity>();
@@ -1225,9 +1524,9 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         // Only scan for surgical items if the UI is actually open (performance optimization)
         // This prevents expensive spatial queries when UpdateUI is called from other places
         Dictionary<string, int> availableItems;
-        if (_openSurgeryUIs.ContainsKey(uid))
+        if (_openSurgeryUIs.ContainsKey(selectedPart) || _openSurgeryUIs.ContainsKey(uid))
         {
-            availableItems = ScanForSurgicalItems(uid);
+            availableItems = ScanForSurgicalItems(selectedPart);
         }
         else
         {
@@ -1235,12 +1534,12 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             availableItems = new Dictionary<string, int>();
         }
 
-        // Check if this part has cybernetics - if so, show maintenance steps
-        bool hasCybernetics = HasComp<CyberneticsComponent>(uid);
+        // Check if the selected part has cybernetics - if so, show maintenance steps
+        bool hasCybernetics = HasComp<CyberneticsComponent>(selectedPart);
         
-        // Check if this is a cybernetic arm or leg - if so, only allow maintenance steps
+        // Check if the selected part is a cybernetic arm or leg - if so, only allow maintenance steps
         bool isCyberLimb = false;
-        if (hasCybernetics && TryComp<BodyPartComponent>(uid, out var partComp))
+        if (hasCybernetics && TryComp<BodyPartComponent>(selectedPart, out var partComp))
         {
             isCyberLimb = partComp.PartType == BodyPartType.Arm || partComp.PartType == BodyPartType.Leg;
         }
@@ -1271,10 +1570,10 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                 // (This will be handled by the surgery system showing steps on the correct part)
             }
             
-            // Check if step is valid for this part type
-            if (layer.PartType != null && stepData.ValidPartTypes.Count > 0)
+            // Check if step is valid for the selected part type
+            if (selectedLayer.PartType != null && stepData.ValidPartTypes.Count > 0)
             {
-                if (!stepData.ValidPartTypes.Contains(layer.PartType.Value))
+                if (!stepData.ValidPartTypes.Contains(selectedLayer.PartType.Value))
                 {
                     continue;
                 }
@@ -1284,16 +1583,16 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             // This allows surgeons to skip steps (e.g., close skin without mending bones)
             // Complications come from using bad tools or bad conditions, not randomness
 
-            // For organ steps, check if the target organ slot exists on this body part
+            // For organ steps, check if the target organ slot exists on the selected body part
             if (stepData.Layer == SurgeryLayer.Organ && stepData.TargetOrganSlot != null)
             {
-                // Check if this body part has the target organ slot
-                if (!TryComp<BodyPartComponent>(uid, out var organPartComp))
+                // Check if the selected body part has the target organ slot
+                if (!TryComp<BodyPartComponent>(selectedPart, out var organPartComp))
                 {
                     continue;
                 }
 
-                // Check if the organ slot exists on this body part
+                // Check if the organ slot exists on the selected body part
                 // If the slot doesn't exist (e.g., Diona has no heart slot), don't show the step
                 if (!organPartComp.Organs.ContainsKey(stepData.TargetOrganSlot))
                 {
@@ -1303,7 +1602,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
 
                 // Special case: Slimes only have "core" and "lungs" organs
                 // Only allow core removal, not other organ surgeries
-                if (IsSlimeBody(uid))
+                if (IsSlimeBody(selectedPart))
                 {
                     // Only show organ steps for "core" removal, hide all other organ steps
                     if (stepData.TargetOrganSlot != "core")
@@ -1314,10 +1613,10 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             }
 
             // For slimes, hide generic organ steps (no TargetOrganSlot) unless they're for core
-            if (stepData.Layer == SurgeryLayer.Organ && IsSlimeBody(uid) && stepData.TargetOrganSlot == null)
+            if (stepData.Layer == SurgeryLayer.Organ && IsSlimeBody(selectedPart) && stepData.TargetOrganSlot == null)
             {
-                // Check if this is a core-specific step by checking if body part has core slot
-                if (!TryComp<BodyPartComponent>(uid, out var slimePartComp) ||
+                // Check if this is a core-specific step by checking if selected body part has core slot
+                if (!TryComp<BodyPartComponent>(selectedPart, out var slimePartComp) ||
                     !slimePartComp.Organs.ContainsKey("core"))
                 {
                     continue;
@@ -1376,10 +1675,21 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         var stepOperationInfo = new Dictionary<NetEntity, SurgeryStepOperationInfo>();
         EntityUid? evalUser = null;
         
-        if (_openSurgeryUIs.ContainsKey(uid) && TryComp<UserInterfaceComponent>(uid, out var uiComp))
+        // Get the body entity to find UI
+        EntityUid? bodyEntity = null;
+        if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartComp) && selectedPartComp.Body != null)
+        {
+            bodyEntity = selectedPartComp.Body.Value;
+        }
+        else if (TryComp<BodyPartComponent>(uid, out var originalPart) && originalPart.Body != null)
+        {
+            bodyEntity = originalPart.Body.Value;
+        }
+        
+        if (bodyEntity != null && TryComp<UserInterfaceComponent>(bodyEntity, out var uiComp))
         {
             // Get first user with UI open
-            var actors = _ui.GetActors((uid, uiComp), ShitmedSurgeryUIKey.Key);
+            var actors = _ui.GetActors((bodyEntity.Value, uiComp), Content.Shared.Medical.Surgery.SurgeryUIKey.Key);
             var actorList = actors.ToList();
             if (actorList.Count > 0)
             {
@@ -1402,7 +1712,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                 bool isRepair = operation.RepairOperationFor != null;
                 
                 // For repair operations, only show if corresponding improvised component exists
-                if (isRepair && !HasImprovisedComponentForOperation(uid, operation.RepairOperationFor!.Value))
+                if (isRepair && !HasImprovisedComponentForOperation(selectedPart, operation.RepairOperationFor!.Value))
                 {
                     hasPrimary = false; // Don't show repair if not needed
                 }
@@ -1416,20 +1726,49 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             }
         }
 
+        // Calculate layer accessibility based on selected body part
+        bool canAccessTissueLayer = selectedLayer.SkinRetracted;
+        bool canAccessOrganLayer = selectedLayer.TissueRetracted && (selectedLayer.BonesSawed || selectedLayer.BonesSmashed);
+
+        // Get the current layer for the selected body part (default to Skin)
+        SurgeryLayer currentLayer = SurgeryLayer.Skin;
+        if (_bodyPartCurrentLayer.TryGetValue(selectedPart, out var storedLayer))
+        {
+            currentLayer = storedLayer;
+        }
+
+        // Get the body entity to send state to
+        EntityUid? bodyEntity = null;
+        if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartComp2) && selectedPartComp2.Body != null)
+        {
+            bodyEntity = selectedPartComp2.Body.Value;
+        }
+        else if (TryComp<BodyPartComponent>(uid, out var originalPart2) && originalPart2.Body != null)
+        {
+            bodyEntity = originalPart2.Body.Value;
+        }
+
+        if (bodyEntity == null)
+            return;
+
         var state = new SurgeryBoundUserInterfaceState(
-            GetNetEntity(uid),
+            GetNetEntity(uid), // Original body part (for reference)
             layer.PartType,
-            layer.SkinRetracted,
-            layer.TissueRetracted,
-            layer.BonesSawed,
+            selectedLayer.SkinRetracted, // Use selected body part's state
+            selectedLayer.TissueRetracted,
+            selectedLayer.BonesSawed,
             skinSteps,
             tissueSteps,
             organSteps,
-            layer.BonesSmashed,
-            stepOperationInfo
+            selectedLayer.BonesSmashed,
+            stepOperationInfo,
+            GetNetEntity(selectedPart), // Selected body part
+            selectedTargetPart, // Target body part enum
+            canAccessTissueLayer,
+            canAccessOrganLayer
         );
 
-        _ui.SetUiState(uid, Content.Shared.Medical.Surgery.SurgeryUIKey.Key, state);
+        _ui.SetUiState(bodyEntity.Value, Content.Shared.Medical.Surgery.SurgeryUIKey.Key, state);
     }
 
     /// <summary>

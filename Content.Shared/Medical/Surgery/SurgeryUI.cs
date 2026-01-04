@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 using Content.Shared.Body.Part;
+using Content.Shared._Shitmed.Targeting;
 using Robust.Shared.Serialization;
 
 namespace Content.Shared.Medical.Surgery;
@@ -70,6 +71,26 @@ public sealed class SurgeryBoundUserInterfaceState : BoundUserInterfaceState
     /// </summary>
     public Dictionary<NetEntity, SurgeryStepOperationInfo> StepOperationInfo = new();
 
+    /// <summary>
+    /// The currently selected body part for surgery.
+    /// </summary>
+    public NetEntity SelectedBodyPart;
+
+    /// <summary>
+    /// The target body part enum for UI highlighting.
+    /// </summary>
+    public TargetBodyPart? SelectedTargetBodyPart;
+
+    /// <summary>
+    /// Whether the tissue layer is accessible (skin must be retracted).
+    /// </summary>
+    public bool CanAccessTissueLayer;
+
+    /// <summary>
+    /// Whether the organ layer is accessible (tissue must be retracted and bones sawed/smashed).
+    /// </summary>
+    public bool CanAccessOrganLayer;
+
     public SurgeryBoundUserInterfaceState(
         NetEntity bodyPart,
         BodyPartType? partType,
@@ -80,7 +101,11 @@ public sealed class SurgeryBoundUserInterfaceState : BoundUserInterfaceState
         List<NetEntity> tissueSteps,
         List<NetEntity> organSteps,
         bool bonesSmashed = false,
-        Dictionary<NetEntity, SurgeryStepOperationInfo>? stepOperationInfo = null)
+        Dictionary<NetEntity, SurgeryStepOperationInfo>? stepOperationInfo = null,
+        NetEntity? selectedBodyPart = null,
+        TargetBodyPart? selectedTargetBodyPart = null,
+        bool canAccessTissueLayer = false,
+        bool canAccessOrganLayer = false)
     {
         BodyPart = bodyPart;
         PartType = partType;
@@ -92,6 +117,10 @@ public sealed class SurgeryBoundUserInterfaceState : BoundUserInterfaceState
         TissueSteps = tissueSteps;
         OrganSteps = organSteps;
         StepOperationInfo = stepOperationInfo ?? new();
+        SelectedBodyPart = selectedBodyPart ?? bodyPart;
+        SelectedTargetBodyPart = selectedTargetBodyPart;
+        CanAccessTissueLayer = canAccessTissueLayer;
+        CanAccessOrganLayer = canAccessOrganLayer;
     }
 }
 
@@ -124,6 +153,20 @@ public sealed class SurgeryLayerChangedMessage : BoundUserInterfaceMessage
     public SurgeryLayerChangedMessage(SurgeryLayer layer)
     {
         Layer = layer;
+    }
+}
+
+/// <summary>
+/// Message sent when user selects a body part in the UI.
+/// </summary>
+[Serializable, NetSerializable]
+public sealed class SurgeryBodyPartSelectedMessage : BoundUserInterfaceMessage
+{
+    public TargetBodyPart? TargetBodyPart;
+
+    public SurgeryBodyPartSelectedMessage(TargetBodyPart? targetBodyPart)
+    {
+        TargetBodyPart = targetBodyPart;
     }
 }
 

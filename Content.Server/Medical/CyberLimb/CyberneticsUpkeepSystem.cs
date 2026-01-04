@@ -32,6 +32,7 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
     [Dependency] private readonly SharedStorageSystem _storage = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly SharedCyberneticsFunctionalitySystem _cyberneticsFunctionality = default!;
+    [Dependency] private readonly SharedUserInterfaceSystem _uiSystem = default!;
 
     public override void Initialize()
     {
@@ -41,6 +42,12 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         SubscribeLocalEvent<CyberneticsUpkeepComponent, GetVerbsEvent<ExamineVerb>>(OnGetExamineVerbs);
         // Note: BodyComponent GetVerbsEvent subscription moved to StorageImplantOrganSystem to avoid duplicates
         // Note: Container event subscriptions moved to CyberLimbStorageSystem to avoid duplicates
+
+        // Subscribe to selection UI messages
+        Subs.BuiEvents<BodyComponent>(CyberneticsSelectionUiKey.Key, subs =>
+        {
+            subs.Event<CyberneticsSelectionMessage>(OnCyberneticSelected);
+        });
     }
 
     private void OnUpkeepStartup(EntityUid uid, CyberneticsUpkeepComponent component, ComponentStartup args)
@@ -62,6 +69,11 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         if (!HasComp<CyberneticsComponent>(uid))
             return;
 
+        // Only show this verb if the cybernetic is installed in a body
+        // Uninstalled cybernetics should be accessed directly via their storage UI
+        if (!IsInBody(uid))
+            return;
+
         args.Verbs.Add(new ExamineVerb
         {
             Act = () =>
@@ -77,7 +89,9 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
     }
 
     /// <summary>
-    /// Adds verbs to the body entity to access cybernetics storage when panels are unscrewed.
+    /// Adds verbs to the body entity to access cybernetics.
+    /// Shows "Access cybernetic maintenance panel" to open selection UI.
+    /// Also shows individual verbs for cybernetics with open panels to access their storage.
     /// Called by StorageImplantOrganSystem.
     /// </summary>
     public void OnGetBodyVerbs(EntityUid uid, BodyComponent component, GetVerbsEvent<Verb> args)
@@ -85,38 +99,173 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         if (!args.CanAccess || !args.CanInteract)
             return;
 
-        // Find all cyber parts with unscrewed panels
+        // Collect all cybernetics with storage (both body parts and organs)
+        var cyberneticsWithStorage = new List<(EntityUid Uid, string Name, bool IsPanelOpen)>();
         var allParts = _body.GetBodyChildren(uid, component);
+        var allOrgans = _body.GetBodyOrgans(uid, component);
+        
+        // Check body parts
         foreach (var (partUid, _) in allParts)
         {
-            // Check if this is a cyber part with unscrewed panel
+            // Check if this is a cyber part with storage
             if (!HasComp<CyberneticsComponent>(partUid))
                 continue;
 
-            if (!TryComp<CyberneticsUpkeepComponent>(partUid, out var upkeep))
+            if (!TryComp<StorageComponent>(partUid, out _))
                 continue;
 
-            if (!upkeep.IsPanelUnscrewed)
+            var partName = MetaData(partUid).EntityName ?? "cybernetics";
+            var isPanelOpen = TryComp<CyberneticsUpkeepComponent>(partUid, out var upkeep) && upkeep.IsPanelUnscrewed;
+            
+            cyberneticsWithStorage.Add((partUid, partName, isPanelOpen));
+        }
+
+        // Check organs
+        foreach (var (organUid, _) in allOrgans)
+        {
+            // Check if this is a cyber organ with storage
+            if (!HasComp<CyberneticsComponent>(organUid))
+                continue;
+
+            if (!TryComp<StorageComponent>(organUid, out _))
+                continue;
+
+            var organName = MetaData(organUid).EntityName ?? "cybernetics";
+            var isPanelOpen = TryComp<CyberneticsUpkeepComponent>(organUid, out var upkeep) && upkeep.IsPanelUnscrewed;
+            
+            cyberneticsWithStorage.Add((organUid, organName, isPanelOpen));
+        }
+
+        if (cyberneticsWithStorage.Count == 0)
+            return;
+
+        // Add verb to open selection UI
+        args.Verbs.Add(new Verb
+        {
+            Act = () =>
+            {
+                OpenSelectionUI(uid, args.User);
+            },
+            Text = "Access cybernetic maintenance panel",
+            Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/inventory.svg.192dpi.png")),
+            Priority = 2
+        });
+
+        // Add individual verbs for cybernetics with open panels
+        foreach (var (partUid, partName, isPanelOpen) in cyberneticsWithStorage)
+        {
+            if (!isPanelOpen)
                 continue;
 
             if (!TryComp<StorageComponent>(partUid, out var storage))
                 continue;
 
-            // Get part name for verb text
-            var partName = MetaData(partUid).EntityName ?? "cybernetics";
-
             args.Verbs.Add(new Verb
             {
                 Act = () =>
                 {
-                    // Open storage UI
+                    // Open storage UI directly (panel is already open)
                     _storage.OpenStorageUI(partUid, args.User, storage);
                 },
-                Text = $"Access {partName} Maintenance Panel",
+                Text = $"Open {partName}",
                 Icon = new SpriteSpecifier.Texture(new("/Textures/Interface/VerbIcons/inventory.svg.192dpi.png")),
                 Priority = 1
             });
         }
+    }
+
+    /// <summary>
+    /// Opens the cybernetic selection UI for a body.
+    /// </summary>
+    private void OpenSelectionUI(EntityUid body, EntityUid user)
+    {
+        if (!TryComp<BodyComponent>(body, out var bodyComp))
+            return;
+
+        // Ensure UI component exists
+        EnsureComp<UserInterfaceComponent>(body);
+
+        // Collect all cybernetics with storage (both body parts and organs)
+        var cybernetics = new List<CyberneticData>();
+        var allParts = _body.GetBodyChildren(body, bodyComp);
+        var allOrgans = _body.GetBodyOrgans(body, bodyComp);
+
+        // Check body parts
+        foreach (var (partUid, _) in allParts)
+        {
+            if (!HasComp<CyberneticsComponent>(partUid))
+                continue;
+
+            if (!TryComp<StorageComponent>(partUid, out _))
+                continue;
+
+            var partName = MetaData(partUid).EntityName ?? "cybernetics";
+            var isPanelOpen = TryComp<CyberneticsUpkeepComponent>(partUid, out var upkeep) && upkeep.IsPanelUnscrewed;
+
+            cybernetics.Add(new CyberneticData(GetNetEntity(partUid), partName, isPanelOpen));
+        }
+
+        // Check organs
+        foreach (var (organUid, _) in allOrgans)
+        {
+            if (!HasComp<CyberneticsComponent>(organUid))
+                continue;
+
+            if (!TryComp<StorageComponent>(organUid, out _))
+                continue;
+
+            var organName = MetaData(organUid).EntityName ?? "cybernetics";
+            var isPanelOpen = TryComp<CyberneticsUpkeepComponent>(organUid, out var upkeep) && upkeep.IsPanelUnscrewed;
+
+            cybernetics.Add(new CyberneticData(GetNetEntity(organUid), organName, isPanelOpen));
+        }
+
+        if (cybernetics.Count == 0)
+            return;
+
+        // Open UI and send state
+        if (_uiSystem.TryOpenUi(body, CyberneticsSelectionUiKey.Key, user))
+        {
+            _uiSystem.SetUiState(body, CyberneticsSelectionUiKey.Key, new CyberneticsSelectionState(cybernetics));
+        }
+    }
+
+    /// <summary>
+    /// Handles when a cybernetic is selected from the selection UI.
+    /// Opens the maintenance panel for that cybernetic.
+    /// </summary>
+    private void OnCyberneticSelected(Entity<BodyComponent> ent, ref CyberneticsSelectionMessage args)
+    {
+        var cybernetic = GetEntity(args.Cybernetic);
+        
+        if (!Exists(cybernetic))
+            return;
+
+        // Verify this cybernetic is actually part of this body
+        var isInBody = false;
+        if (TryComp<BodyPartComponent>(cybernetic, out var part))
+        {
+            isInBody = part.Body == ent.Owner;
+        }
+        else if (TryComp<OrganComponent>(cybernetic, out var organ))
+        {
+            isInBody = organ.Body == ent.Owner;
+        }
+        
+        if (!isInBody)
+        if (!isInBody)
+            return;
+
+        // Open the maintenance panel
+        var upkeep = EnsureComp<CyberneticsUpkeepComponent>(cybernetic);
+        if (!upkeep.IsPanelUnscrewed)
+        {
+            upkeep.IsPanelUnscrewed = true;
+            Dirty(cybernetic, upkeep);
+        }
+
+        // Close the selection UI
+        _uiSystem.CloseUi(ent.Owner, CyberneticsSelectionUiKey.Key);
     }
 
     /// <summary>
@@ -582,6 +731,26 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         {
             _cyberneticsFunctionality.EvaluateAllCybernetics(organ.Body.Value);
         }
+    }
+
+    /// <summary>
+    /// Checks if a cybernetic is installed in a body.
+    /// </summary>
+    private bool IsInBody(EntityUid uid)
+    {
+        // Check if it's a body part in a body
+        if (TryComp<BodyPartComponent>(uid, out var part))
+        {
+            return part.Body != null;
+        }
+
+        // Check if it's an organ in a body
+        if (TryComp<OrganComponent>(uid, out var organ))
+        {
+            return organ.Body != null;
+        }
+
+        return false;
     }
 }
 

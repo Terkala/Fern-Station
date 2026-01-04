@@ -5,12 +5,269 @@
 # Base cyber-organ prototype with storage
 # All cyber-organs inherit from the abstract cybernetic organ prototype
 
+# Base cybernetic organ prototypes without Food component (cybernetic organs are metal and cannot be eaten)
+# These bases replicate BaseHumanOrganUnGibbable/BaseHumanOrgan but without the Food component
+- type: entity
+  id: BaseCyberOrgan
+  parent: BaseItem
+  abstract: true
+  components:
+  - type: Sprite
+    sprite: Mobs/Species/Human/organs.rsi
+  - type: Organ
+  - type: Extractable
+    grindableSolutionName: organ
+  - type: SolutionContainerManager
+    solutions:
+      organ:
+        reagents:
+        - ReagentId: UncookedAnimalProteins
+          Quantity: 8
+      food:
+        maxVol: 5
+        reagents:
+        - ReagentId: UncookedAnimalProteins
+          Quantity: 5
+  - type: FlavorProfile
+    flavors:
+      - people
+  - type: Tag
+    tags:
+      - Meat
+      - Organ
+
+- type: entity
+  id: BaseCyberOrganGibbable
+  parent: BaseCyberOrgan
+  abstract: true
+  components:
+  - type: Gibbable
+
+# Base cybernetic organ prototypes for each organ type (without Food component)
+- type: entity
+  id: BaseCyberHeart
+  parent: BaseCyberOrganGibbable
+  abstract: true
+  components:
+  - type: Heart
+  - type: Organ
+    slotId: heart
+  - type: Sprite
+    state: heart-on
+  - type: Metabolizer
+    maxReagents: 3
+    metabolizerTypes: [Human]
+    groups:
+    - id: Medicine
+    - id: Poison
+    - id: Narcotic
+  - type: Tag
+    tags:
+      - Meat
+      - Organ
+      - Heart
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.5
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: BaseCyberLungs
+  parent: BaseCyberOrganGibbable
+  abstract: true
+  components:
+  - type: Organ
+    slotId: lungs
+  - type: Sprite
+    layers:
+      - state: lung-l
+      - state: lung-r
+  - type: Lung
+  - type: Metabolizer
+    removeEmpty: true
+    solutionOnBody: false
+    solution: "Lung"
+    metabolizerTypes: [ Human ]
+    groups:
+    - id: Gas
+      rateModifier: 100.0
+
+- type: entity
+  id: BaseCyberStomach
+  parent: BaseCyberOrganGibbable
+  abstract: true
+  components:
+  - type: Organ
+    slotId: stomach
+  - type: Sprite
+    state: stomach
+  - type: Stomach
+  - type: Metabolizer
+    maxReagents: 20
+    metabolizerTypes: [ Human ]
+    groups:
+    - id: Food
+      rateModifier: 1.0
+  - type: Tag
+    tags:
+      - Meat
+      - Organ
+      - Stomach
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: BaseCyberLiver
+  parent: BaseCyberOrganGibbable
+  abstract: true
+  components:
+  - type: Organ
+    slotId: liver
+  - type: Sprite
+    state: liver
+  - type: Liver
+  - type: Metabolizer
+    maxReagents: 10
+    metabolizerTypes: [ Human ]
+    groups:
+    - id: Toxin
+      rateModifier: 1.0
+  - type: Tag
+    tags:
+      - Meat
+      - Organ
+      - Liver
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: BaseCyberKidneys
+  parent: BaseCyberOrganGibbable
+  abstract: true
+  components:
+  - type: Organ
+    slotId: kidneys
+  - type: Sprite
+    layers:
+      - state: kidney-l
+      - state: kidney-r
+  - type: Metabolizer
+    maxReagents: 10
+    metabolizerTypes: [ Human ]
+    groups:
+    - id: Toxin
+      rateModifier: 1.0
+  - type: Tag
+    tags:
+      - Meat
+      - Organ
+      - Kidneys
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
+
+- type: entity
+  id: BaseCyberEyes
+  parent: BaseCyberOrganGibbable
+  abstract: true
+  components:
+  - type: Organ
+    slotId: eyes
+  - type: Eyes
+  - type: Sprite
+    layers:
+      - state: eyeball-l
+      - state: eyeball-r
+  - type: Tag
+    tags:
+      - Meat
+      - Organ
+      - Eyes
+  - type: OrganIntegrity
+    baseIntegrityCost: 1.0
+  - type: OrganCompatibility
+    compatibleSpecies:
+      - Human
+      - Dwarf
+    incompatibleCostMultiplier: 2.0
+
+# Base Diona cybernetic organ prototypes (without Food component)
+- type: entity
+  id: BaseDionaCyberOrgan
+  parent: BaseItem
+  abstract: true
+  components:
+  - type: Sprite
+    sprite: Mobs/Species/Diona/organs.rsi
+  - type: Organ
+  - type: Extractable
+    grindableSolutionName: organ
+  - type: SolutionContainerManager
+    solutions:
+      organ:
+        maxVol: 10
+        reagents:
+        - ReagentId: Nutriment
+          Quantity: 10
+      food:
+        maxVol: 5
+        reagents:
+        - ReagentId: UncookedAnimalProteins
+          Quantity: 5
+  - type: FlavorProfile
+    flavors:
+      - people
+  - type: Tag
+    tags:
+      - Meat
+      - Organ
+
+- type: entity
+  id: BaseDionaCyberLungs
+  parent: BaseDionaCyberOrgan
+  abstract: true
+  components:
+  - type: Organ
+    slotId: lungs
+  - type: Sprite
+    state: lungs
+  - type: Lung
+
+- type: entity
+  id: BaseDionaCyberStomach
+  parent: BaseDionaCyberOrgan
+  abstract: true
+  components:
+  - type: Sprite
+    state: stomach
+  - type: SolutionContainerManager
+    solutions:
+      stomach:
+        maxVol: 50
+
 # ============================================
 # RUDIMENTARY CYBER-ORGANS (Roundstart, 2x2 storage)
 # ============================================
 
 - type: entity
-  parent: OrganHumanHeart
+  parent: BaseCyberHeart
   id: RudimentaryCyberHeart
   name: rudimentary cybernetic heart
   description: A basic cybernetic heart with limited storage capacity.
@@ -31,6 +288,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -43,7 +304,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganHumanHeart
+  parent: BaseCyberHeart
   id: BasicCyberHeart
   name: basic cybernetic heart
   description: A standard cybernetic heart with improved storage capacity. Requires Tier 1 Civilian Services research.
@@ -64,6 +325,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -76,7 +341,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganHumanHeart
+  parent: BaseCyberHeart
   id: AdvancedCyberHeart
   name: advanced cybernetic heart
   description: An advanced cybernetic heart with expanded storage capacity. Requires Tier 2 Civilian Services research.
@@ -97,6 +362,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -109,7 +378,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganHumanHeart
+  parent: BaseCyberHeart
   id: ExperimentalCyberHeart
   name: experimental cybernetic heart
   description: An experimental cybernetic heart with maximum storage capacity. Requires Tier 3 Civilian Services research.
@@ -130,6 +399,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -142,7 +415,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganHumanEyes
+  parent: BaseCyberEyes
   id: RudimentaryCyberEyes
   name: rudimentary cybernetic eyes
   description: A basic cybernetic eyes with limited storage capacity.
@@ -165,6 +438,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -173,7 +450,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanEyes
+  parent: BaseCyberEyes
   id: BasicCyberEyes
   name: basic cybernetic eyes
   description: A standard cybernetic eyes with improved storage capacity. Requires Tier 1 Civilian Services research.
@@ -192,6 +469,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -200,7 +481,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanEyes
+  parent: BaseCyberEyes
   id: AdvancedCyberEyes
   name: advanced cybernetic eyes
   description: An advanced cybernetic eyes with expanded storage capacity. Requires Tier 2 Civilian Services research.
@@ -219,6 +500,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -227,7 +512,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanEyes
+  parent: BaseCyberEyes
   id: ExperimentalCyberEyes
   name: experimental cybernetic eyes
   description: An experimental cybernetic eyes with maximum storage capacity. Requires Tier 3 Civilian Services research.
@@ -246,6 +531,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -258,7 +547,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganHumanLungs
+  parent: BaseCyberLungs
   id: RudimentaryCyberLungs
   name: rudimentary cybernetic lungs
   description: A basic cybernetic lungs with limited storage capacity.
@@ -283,6 +572,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -291,7 +584,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanLungs
+  parent: BaseCyberLungs
   id: BasicCyberLungs
   name: basic cybernetic lungs
   description: A standard cybernetic lungs with improved storage capacity. Requires Tier 1 Civilian Services research.
@@ -316,6 +609,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -324,7 +621,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanLungs
+  parent: BaseCyberLungs
   id: AdvancedCyberLungs
   name: advanced cybernetic lungs
   description: An advanced cybernetic lungs with expanded storage capacity. Requires Tier 2 Civilian Services research.
@@ -349,6 +646,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -357,7 +658,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanLungs
+  parent: BaseCyberLungs
   id: ExperimentalCyberLungs
   name: experimental cybernetic lungs
   description: An experimental cybernetic lungs with maximum storage capacity. Requires Tier 3 Civilian Services research.
@@ -382,6 +683,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -394,7 +699,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganHumanStomach
+  parent: BaseCyberStomach
   id: RudimentaryCyberStomach
   name: rudimentary cybernetic stomach
   description: A basic cybernetic stomach with limited storage capacity.
@@ -415,6 +720,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -423,7 +732,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanStomach
+  parent: BaseCyberStomach
   id: BasicCyberStomach
   name: basic cybernetic stomach
   description: A standard cybernetic stomach with improved storage capacity. Requires Tier 1 Civilian Services research.
@@ -444,6 +753,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -452,7 +765,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanStomach
+  parent: BaseCyberStomach
   id: AdvancedCyberStomach
   name: advanced cybernetic stomach
   description: An advanced cybernetic stomach with expanded storage capacity. Requires Tier 2 Civilian Services research.
@@ -473,6 +786,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -481,7 +798,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanStomach
+  parent: BaseCyberStomach
   id: ExperimentalCyberStomach
   name: experimental cybernetic stomach
   description: An experimental cybernetic stomach with maximum storage capacity. Requires Tier 3 Civilian Services research.
@@ -502,6 +819,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -514,7 +835,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganHumanLiver
+  parent: BaseCyberLiver
   id: RudimentaryCyberLiver
   name: rudimentary cybernetic liver
   description: A basic cybernetic liver with limited storage capacity.
@@ -535,6 +856,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -543,7 +868,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanLiver
+  parent: BaseCyberLiver
   id: BasicCyberLiver
   name: basic cybernetic liver
   description: A standard cybernetic liver with improved storage capacity. Requires Tier 1 Civilian Services research.
@@ -564,6 +889,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -572,7 +901,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanLiver
+  parent: BaseCyberLiver
   id: AdvancedCyberLiver
   name: advanced cybernetic liver
   description: An advanced cybernetic liver with expanded storage capacity. Requires Tier 2 Civilian Services research.
@@ -593,6 +922,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -601,7 +934,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanLiver
+  parent: BaseCyberLiver
   id: ExperimentalCyberLiver
   name: experimental cybernetic liver
   description: An experimental cybernetic liver with maximum storage capacity. Requires Tier 3 Civilian Services research.
@@ -622,6 +955,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -634,7 +971,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganHumanKidneys
+  parent: BaseCyberKidneys
   id: RudimentaryCyberKidneys
   name: rudimentary cybernetic kidneys
   description: A basic cybernetic kidneys with limited storage capacity.
@@ -657,6 +994,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -665,7 +1006,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanKidneys
+  parent: BaseCyberKidneys
   id: BasicCyberKidneys
   name: basic cybernetic kidneys
   description: A standard cybernetic kidneys with improved storage capacity. Requires Tier 1 Civilian Services research.
@@ -688,6 +1029,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -696,7 +1041,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanKidneys
+  parent: BaseCyberKidneys
   id: AdvancedCyberKidneys
   name: advanced cybernetic kidneys
   description: An advanced cybernetic kidneys with expanded storage capacity. Requires Tier 2 Civilian Services research.
@@ -719,6 +1064,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -727,7 +1076,7 @@
   - type: CyberOrganEfficiency
 
 - type: entity
-  parent: OrganHumanKidneys
+  parent: BaseCyberKidneys
   id: ExperimentalCyberKidneys
   name: experimental cybernetic kidneys
   description: An experimental cybernetic kidneys with maximum storage capacity. Requires Tier 3 Civilian Services research.
@@ -750,6 +1099,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -766,7 +1119,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganDionaLungs
+  parent: BaseDionaCyberLungs
   id: RudimentaryCyberNymphLungs
   name: rudimentary cyber-nymph lungs
   description: A basic cybernetic diona lungs with limited storage capacity. Larger than standard cyber-organs to compensate for Diona's unique physiology.
@@ -789,6 +1142,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -801,7 +1158,7 @@
     incompatibleCostMultiplier: 2.0
 
 - type: entity
-  parent: OrganDionaLungs
+  parent: BaseDionaCyberLungs
   id: BasicCyberNymphLungs
   name: basic cyber-nymph lungs
   description: A standard cybernetic diona lungs with improved storage capacity. Requires Tier 1 Civilian Services research.
@@ -824,6 +1181,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -836,7 +1197,7 @@
     incompatibleCostMultiplier: 2.0
 
 - type: entity
-  parent: OrganDionaLungs
+  parent: BaseDionaCyberLungs
   id: AdvancedCyberNymphLungs
   name: advanced cyber-nymph lungs
   description: An advanced cybernetic diona lungs with expanded storage capacity. Requires Tier 2 Civilian Services research.
@@ -859,6 +1220,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -871,7 +1236,7 @@
     incompatibleCostMultiplier: 2.0
 
 - type: entity
-  parent: OrganDionaLungs
+  parent: BaseDionaCyberLungs
   id: ExperimentalCyberNymphLungs
   name: experimental cyber-nymph lungs
   description: An experimental cybernetic diona lungs with maximum storage capacity. Requires Tier 3 Civilian Services research.
@@ -894,6 +1259,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -910,7 +1279,7 @@
 # ============================================
 
 - type: entity
-  parent: OrganDionaStomach
+  parent: BaseDionaCyberStomach
   id: RudimentaryCyberNymphStomach
   name: rudimentary cyber-nymph stomach
   description: A basic cybernetic diona stomach with limited storage capacity. Larger than standard cyber-organs to compensate for Diona's unique physiology.
@@ -933,6 +1302,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -945,7 +1318,7 @@
     incompatibleCostMultiplier: 2.0
 
 - type: entity
-  parent: OrganDionaStomach
+  parent: BaseDionaCyberStomach
   id: BasicCyberNymphStomach
   name: basic cyber-nymph stomach
   description: A standard cybernetic diona stomach with improved storage capacity. Requires Tier 1 Civilian Services research.
@@ -968,6 +1341,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -980,7 +1357,7 @@
     incompatibleCostMultiplier: 2.0
 
 - type: entity
-  parent: OrganDionaStomach
+  parent: BaseDionaCyberStomach
   id: AdvancedCyberNymphStomach
   name: advanced cyber-nymph stomach
   description: An advanced cybernetic diona stomach with expanded storage capacity. Requires Tier 2 Civilian Services research.
@@ -1003,6 +1380,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance
@@ -1015,7 +1396,7 @@
     incompatibleCostMultiplier: 2.0
 
 - type: entity
-  parent: OrganDionaStomach
+  parent: BaseDionaCyberStomach
   id: ExperimentalCyberNymphStomach
   name: experimental cyber-nymph stomach
   description: An experimental cybernetic diona stomach with maximum storage capacity. Requires Tier 3 Civilian Services research.
@@ -1038,6 +1419,10 @@
     containers:
       storagebase: !type:Container
         ents: []
+  - type: UserInterface
+    interfaces:
+      enum.StorageUiKey.Key:
+        type: StorageBoundUserInterface
   - type: CyberLimbStorage
   - type: CyberLimbInspectable
   - type: CyberLimbMaintenance

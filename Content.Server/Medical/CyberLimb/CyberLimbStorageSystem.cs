@@ -18,6 +18,7 @@ using Robust.Shared.Containers;
 using Content.Shared.Popups;
 using Content.Server.Popups;
 using Content.Shared.Tag;
+using Robust.Shared.Prototypes;
 
 namespace Content.Server.Medical.CyberLimb;
 
@@ -37,6 +38,9 @@ public sealed class CyberLimbStorageSystem : EntitySystem
     [Dependency] private readonly PopupSystem _popup = default!;
     [Dependency] private readonly TagSystem _tag = default!;
 
+    private static readonly ProtoId<TagPrototype> BorgArmTag = "BorgArm";
+    private static readonly ProtoId<TagPrototype> BorgLegTag = "BorgLeg";
+
     public override void Initialize()
     {
         base.Initialize();
@@ -55,25 +59,19 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         // Ensure upkeep component exists for all cybernetics
         var upkeep = EnsureComp<CyberneticsUpkeepComponent>(uid);
         
-        // Cyborg arms and legs spawn with maintenance panels open
-        if (TryComp<BodyPartComponent>(uid, out var part))
+        // All cyberwear outside of a body should have maintenance panels open
+        // This allows access to storage before installation
+        if (!IsInBody(uid))
         {
-            if (part.PartType == BodyPartType.Arm || part.PartType == BodyPartType.Leg)
-            {
-                // Check if this is a cyborg arm/leg (has BorgArm or BorgLeg tag)
-                if (_tag.HasTag(uid, "BorgArm") || _tag.HasTag(uid, "BorgLeg"))
-                {
-                    upkeep.IsPanelUnscrewed = true;
-                    Dirty(uid, upkeep);
-                }
-            }
+            upkeep.IsPanelUnscrewed = true;
+            Dirty(uid, upkeep);
         }
         
         // Initialize stats (service time, low power mode, etc.)
         _stats.OnCyberLimbStartup(uid, component);
         
         // Add CyberArmActiveItemComponent to arms
-        if (TryComp<BodyPartComponent>(uid, out var part2) && part2.PartType == BodyPartType.Arm)
+        if (TryComp<BodyPartComponent>(uid, out var part) && part.PartType == BodyPartType.Arm)
         {
             EnsureComp<CyberArmActiveItemComponent>(uid);
             
@@ -90,6 +88,10 @@ public sealed class CyberLimbStorageSystem : EntitySystem
 
     private void OnContainerInsertAttempt(EntityUid uid, CyberLimbStorageComponent component, ContainerIsInsertingAttemptEvent args)
     {
+        // Allow insertion if cybernetic is not in a body (maintenance panel should be open)
+        if (!IsInBody(uid))
+            return;
+
         // Check if maintenance panel is open - if not, prevent insertion
         if (TryComp<CyberneticsUpkeepComponent>(uid, out var upkeep))
         {
@@ -109,6 +111,10 @@ public sealed class CyberLimbStorageSystem : EntitySystem
 
     private void OnContainerRemoveAttempt(EntityUid uid, CyberLimbStorageComponent component, ContainerIsRemovingAttemptEvent args)
     {
+        // Allow removal if cybernetic is not in a body (maintenance panel should be open)
+        if (!IsInBody(uid))
+            return;
+
         // Check if maintenance panel is open - if not, prevent removal
         if (TryComp<CyberneticsUpkeepComponent>(uid, out var upkeep))
         {
@@ -133,8 +139,9 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         if (args.UiKey is not StorageComponent.StorageUiKey.Key)
             return;
 
-        // Check if maintenance panel is closed and show popup
-        if (TryComp<CyberneticsUpkeepComponent>(uid, out var upkeep) && !upkeep.IsPanelUnscrewed)
+        // Only show popup if cybernetic is in a body AND panel is closed
+        // Cyberwear outside of a body should have open panels and allow access
+        if (IsInBody(uid) && TryComp<CyberneticsUpkeepComponent>(uid, out var upkeep) && !upkeep.IsPanelUnscrewed)
         {
             _popup.PopupEntity("The maintenance panel is closed.", uid, args.Actor, PopupType.MediumCaution);
         }
@@ -150,7 +157,7 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         if (ent.Comp.PartType == BodyPartType.Arm || ent.Comp.PartType == BodyPartType.Leg)
         {
             // Check if this is a cyborg arm/leg (has BorgArm or BorgLeg tag)
-            if (_tag.HasTag(ent, "BorgArm") || _tag.HasTag(ent, "BorgLeg"))
+            if (_tag.HasTag(ent, BorgArmTag) || _tag.HasTag(ent, BorgLegTag))
             {
                 if (TryComp<CyberneticsUpkeepComponent>(ent, out var upkeep))
                 {
@@ -242,8 +249,9 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         if (!TryComp<StorageComponent>(limb, out var storage))
             return false;
 
-        // Check if maintenance panel is open
-        if (TryComp<CyberneticsUpkeepComponent>(limb, out var upkeep) && !upkeep.IsPanelUnscrewed)
+        // Allow insertion if cybernetic is not in a body (maintenance panel should be open)
+        // Only check panel state if the cybernetic is installed in a body
+        if (IsInBody(limb) && TryComp<CyberneticsUpkeepComponent>(limb, out var upkeep) && !upkeep.IsPanelUnscrewed)
             return false;
 
         if (!TryComp<StackComponent>(item, out var stack))
@@ -357,6 +365,26 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         efficiency.CachedModuleCount = moduleCount;
         efficiency.NeedsRecalculation = false;
         Dirty(uid, efficiency);
+    }
+
+    /// <summary>
+    /// Checks if a cybernetic is currently installed in a body.
+    /// </summary>
+    private bool IsInBody(EntityUid uid)
+    {
+        // Check if it's a body part in a body
+        if (TryComp<BodyPartComponent>(uid, out var part))
+        {
+            return part.Body != null;
+        }
+
+        // Check if it's an organ in a body
+        if (TryComp<OrganComponent>(uid, out var organ))
+        {
+            return organ.Body != null;
+        }
+
+        return false;
     }
 }
 
