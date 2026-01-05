@@ -53,16 +53,7 @@ public sealed class CyberEyeEfficiencySystem : EntitySystem
         UpdateEyeEfficiency(uid, component);
     }
 
-    /// <summary>
-    /// Called by CyberOrganEfficiencySystem when storage changes for a cyber organ with eyes.
-    /// </summary>
-    public void OnEyeStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component)
-    {
-        if (!HasComp<EyeComponent>(uid))
-            return;
-
-        UpdateEyeEfficiency(uid, component);
-    }
+    // Storage change handler removed - organs no longer have storage
 
     /// <summary>
     /// Updates eye efficiency effects: vision range, telescopic mode, and HUD functionality.
@@ -78,8 +69,8 @@ public sealed class CyberEyeEfficiencySystem : EntitySystem
         // Apply vision range scaling
         ApplyVisionRangeScaling(body, finalEfficiency);
 
-        // Update HUD functionality from storage
-        UpdateHudFromStorage(eyeUid, body);
+        // Organs no longer have storage, so HUD functionality is removed
+        // UpdateHudFromStorage removed
 
         // Update telescopic range if efficiency >= 100%
         if (finalEfficiency >= 1.0f)
@@ -133,111 +124,6 @@ public sealed class CyberEyeEfficiencySystem : EntitySystem
         Dirty(eyeUid, eyeData);
     }
 
-    /// <summary>
-    /// Checks cyber-eyes storage for HUD items and applies corresponding components to the body.
-    /// </summary>
-    private void UpdateHudFromStorage(EntityUid eyeUid, EntityUid body)
-    {
-        if (!TryComp<StorageComponent>(eyeUid, out var storage))
-            return;
-
-        bool hasMedHud = false;
-        bool hasSecHud = false;
-        bool hasMedSecHud = false;
-        bool hasAdminGlasses = false;
-        bool hasNightVision = false;
-        bool hasFlashResistance = false;
-
-        // Check all items in storage
-        foreach (var item in storage.Container.ContainedEntities)
-        {
-            // Check for HUD items by tag
-            if (_tags.HasTag(item, HudMedicalTag))
-            {
-                hasMedHud = true;
-            }
-            else if (_tags.HasTag(item, HudSecurityTag))
-            {
-                hasSecHud = true;
-            }
-            else if (_tags.HasTag(item, MedSecHudTag))
-            {
-                hasMedSecHud = true;
-            }
-            else if (_tags.HasTag(item, AdminGlassesTag))
-            {
-                hasAdminGlasses = true;
-            }
-            else if (HasComp<NightVisionComponent>(item))
-            {
-                hasNightVision = true;
-            }
-            else if (HasComp<FlashImmunityComponent>(item))
-            {
-                hasFlashResistance = true;
-            }
-        }
-
-        // Apply HUD components to body
-        if (hasMedSecHud || (hasMedHud && hasSecHud))
-        {
-            // MedSec HUD: Add all HUD components
-            EnsureComp<ShowHealthBarsComponent>(body);
-            EnsureComp<ShowJobIconsComponent>(body);
-            EnsureComp<ShowMindShieldIconsComponent>(body);
-            EnsureComp<ShowCriminalRecordIconsComponent>(body);
-        }
-        else
-        {
-            if (hasMedHud)
-            {
-                EnsureComp<ShowHealthBarsComponent>(body);
-            }
-            else
-            {
-                RemComp<ShowHealthBarsComponent>(body);
-            }
-
-            if (hasSecHud)
-            {
-                EnsureComp<ShowJobIconsComponent>(body);
-                EnsureComp<ShowMindShieldIconsComponent>(body);
-                EnsureComp<ShowCriminalRecordIconsComponent>(body);
-            }
-            else
-            {
-                RemComp<ShowJobIconsComponent>(body);
-                RemComp<ShowMindShieldIconsComponent>(body);
-                RemComp<ShowCriminalRecordIconsComponent>(body);
-            }
-        }
-
-        // Admin glasses
-        if (hasAdminGlasses)
-        {
-            // Add admin vision component (this would need to be defined elsewhere)
-            // For now, we'll just ensure the component exists if it's a known type
-        }
-
-        // Night vision
-        if (hasNightVision)
-        {
-            EnsureComp<NightVisionComponent>(body);
-        }
-        else
-        {
-            RemComp<NightVisionComponent>(body);
-        }
-
-        // Flash resistance
-        if (hasFlashResistance)
-        {
-            EnsureComp<FlashImmunityComponent>(body);
-        }
-        else
-        {
-            RemComp<FlashImmunityComponent>(body);
-        }
-    }
+    // UpdateHudFromStorage removed - organs no longer have storage
 }
 

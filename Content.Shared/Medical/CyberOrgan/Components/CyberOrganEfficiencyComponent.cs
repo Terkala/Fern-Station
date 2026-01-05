@@ -8,29 +8,21 @@ namespace Content.Shared.Medical.CyberOrgan;
 
 /// <summary>
 /// Unified component for tracking efficiency on all cyber-organs (eyes, heart, lungs, stomach, liver, kidneys).
-/// Efficiency is pre-computed and cached when modules change.
+/// Efficiency is now a flat value based on quality level (Rudimentary=80%, Basic=100%, Advanced=120%, Experimental=140%).
 /// </summary>
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class CyberOrganEfficiencyComponent : Component
 {
     /// <summary>
-    /// Cached efficiency value. Recalculated only when modules change.
-    /// Base: 100% (1.0) for organs with required modules, 0% without.
-    /// Each additional module provides +10% efficiency.
+    /// Base efficiency value set in prototypes. Rudimentary=0.8, Basic=1.0, Advanced=1.2, Experimental=1.4.
+    /// </summary>
+    [DataField, ViewVariables, AutoNetworkedField]
+    public float BaseEfficiency = 1.0f;
+
+    /// <summary>
+    /// Cached efficiency value. Set directly from BaseEfficiency, no longer calculated from modules.
     /// </summary>
     [DataField, ViewVariables, AutoNetworkedField]
     public float CachedEfficiency = 1.0f;
-
-    /// <summary>
-    /// Cached count of efficiency-boosting modules.
-    /// </summary>
-    [DataField, ViewVariables, AutoNetworkedField]
-    public int CachedModuleCount = 0;
-
-    /// <summary>
-    /// Whether module counts need to be recalculated.
-    /// </summary>
-    [DataField, ViewVariables]
-    public bool NeedsRecalculation = true;
 }
 

@@ -114,11 +114,8 @@ public sealed class CyberKidneyEfficiencySystem : EntitySystem
                 ProcessPoisonEffects(body, finalEfficiency, KidneyUpdateInterval); // Use interval (1 second) for per-second rates
             }
 
-            // Process radiation removal if module is present
-            if (HasRadiationFilterModule(kidneyUid))
-            {
-                ProcessRadiationRemoval(body, finalEfficiency, KidneyUpdateInterval); // Use interval (1 second) for per-second rates
-            }
+            // Organs no longer have storage, so radiation filter module functionality is removed
+            // ProcessRadiationRemoval removed
         }
     }
 
@@ -156,36 +153,8 @@ public sealed class CyberKidneyEfficiencySystem : EntitySystem
         }
     }
 
-    /// <summary>
-    /// Processes radiation removal if radiation filter module is present.
-    /// </summary>
-    private void ProcessRadiationRemoval(EntityUid body, float efficiency, float frameTime)
-    {
-        // Check if body has radiation component
-        // This would need to integrate with the radiation system
-        // For now, we'll just calculate the removal rate
-        var removalRate = RadiationRemovalRatePer10Percent * (efficiency / 0.1f); // Per 10% efficiency above 0%
-        var removalAmount = removalRate * frameTime;
+    // ProcessRadiationRemoval removed - organs no longer have storage for radiation filter modules
 
-        // TODO: Integrate with radiation system to actually remove radiation
-        // This would require checking what radiation system exists
-    }
-
-    /// <summary>
-    /// Checks if a kidney has a radiation filter module.
-    /// </summary>
-    private bool HasRadiationFilterModule(EntityUid kidneyUid)
-    {
-        if (!TryComp<StorageComponent>(kidneyUid, out var storage))
-            return false;
-
-        foreach (var item in storage.Container.ContainedEntities)
-        {
-            if (HasComp<CyberKidneyRadiationFilterModuleComponent>(item))
-                return true;
-        }
-
-        return false;
-    }
+    // HasRadiationFilterModule removed - organs no longer have storage
 }
 

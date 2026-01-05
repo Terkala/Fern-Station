@@ -29,15 +29,19 @@ using Content.Shared.Damage.Systems;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Weapons.Melee;
 using Content.Shared.Stacks;
-using Content.Shared._Shitmed.Medical.Surgery.Effects.Step;
 using Content.Shared._Shitmed.Medical.Surgery;
+using Content.Shared._Shitmed.Medical.Surgery.Effects.Step;
 using Content.Shared._Shitmed.Medical.Surgery.Tools;
+using Content.Shared.DoAfter;
+using ShitmedSurgeryDoAfterEvent = Content.Shared._Shitmed.Medical.Surgery.SurgeryDoAfterEvent;
+using NewSurgeryDoAfterEvent = Content.Shared.Medical.Surgery.SurgeryDoAfterEvent;
 using Content.Shared._Shitmed.Cybernetics;
 using SharedCyberneticsFunctionalitySystem = Content.Shared._Shitmed.Cybernetics.SharedCyberneticsFunctionalitySystem;
 using ShitmedSurgerySteps = Content.Shared._Shitmed.Medical.Surgery.Steps;
 using ShitmedSurgeryUIKey = Content.Shared._Shitmed.Medical.Surgery.SurgeryUIKey;
 using Content.Shared.Medical.Surgery.Components;
 using Content.Shared.Medical.Surgery.Operations;
+using Content.Shared.Medical.Surgery.Prototypes;
 using Content.Server.Medical.Surgery.Operations;
 using Content.Shared.Implants.Components;
 using Content.Shared.UserInterface;
@@ -51,6 +55,7 @@ using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using Robust.Shared.Map;
 using Robust.Shared.GameObjects;
+using Robust.Shared.Audio.Systems;
 using System.Linq;
 
 namespace Content.Server.Medical.Surgery;
@@ -79,6 +84,9 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     [Dependency] private readonly DamageableSystem _damageable = default!;
     [Dependency] private readonly SharedContainerSystem _containers = default!;
     [Dependency] private readonly SharedInteractionSystem _interaction = default!;
+    [Dependency] private readonly MetaDataSystem _metaData = default!;
+    [Dependency] private readonly SharedAudioSystem _audio = default!;
+    [Dependency] private readonly RotateToFaceSystem _rotateToFace = default!;
     
     /// <summary>
     /// Tracks which method (primary/improvised) was selected for each step.
@@ -126,6 +134,12 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     /// </summary>
     private readonly Dictionary<EntityUid, TargetBodyPart?> _selectedTargetBodyParts = new();
 
+    /// <summary>
+    /// Tracks items in each surgeon's hands for dynamic step generation.
+    /// Key: User entity, Value: List of (item net entity, is implant, is organ, name)
+    /// </summary>
+    private readonly Dictionary<EntityUid, List<(NetEntity Item, bool IsImplant, bool IsOrgan, string Name)>> _userHandItems = new();
+
     private const float MaterialScanRange = 1.5f;
     private const float MaterialScanInterval = 0.5f;
 
@@ -142,6 +156,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             subs.Event<SurgeryOperationMethodSelectedMessage>(OnOperationMethodSelected);
             subs.Event<SurgeryLayerChangedMessage>(OnLayerChanged);
             subs.Event<SurgeryBodyPartSelectedMessage>(OnBodyPartSelected);
+            subs.Event<SurgeryHandItemsMessage>(OnHandItemsReceived);
             subs.Event<BoundUIOpenedEvent>(OnSurgeryUIOpened);
             subs.Event<BoundUIClosedEvent>(OnSurgeryUIClosed);
         });
@@ -160,6 +175,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         SubscribeLocalEvent<InRangeOverrideEvent>(OnInRangeOverride);
         SubscribeLocalEvent<UnskilledSurgeryPenaltyComponent, GetVerbsEvent<Verb>>(OnGetUnskilledPenaltyVerb);
         SubscribeLocalEvent<SurgeryTargetComponent, GetVerbsEvent<Verb>>(OnGetBodySurgeryVerb);
+        SubscribeLocalEvent<SurgeryLayerComponent, NewSurgeryDoAfterEvent>(OnSurgeryDoAfter);
     }
 
     /// <summary>
@@ -479,6 +495,36 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             _selectedBodyParts.Remove(part.Body.Value);
             _selectedTargetBodyParts.Remove(part.Body.Value);
         }
+        
+        // Clean up hand items tracking for the user who closed the UI
+        _userHandItems.Remove(args.Actor);
+    }
+
+    private void OnHandItemsReceived(Entity<SurgeryLayerComponent> ent, ref SurgeryHandItemsMessage msg)
+    {
+        // Store hand items for the user who sent the message
+        // We need to get the user from the message context
+        // For now, we'll track by the body entity that the UI is open on
+        // This will be updated when we have access to the user entity
+        
+        // Get the body entity from the body part
+        if (!TryComp<BodyPartComponent>(ent, out var part) || part.Body == null)
+            return;
+
+        // Find the user who has this UI open
+        if (!TryComp<UserInterfaceComponent>(part.Body.Value, out var uiComp))
+            return;
+
+        var actors = _ui.GetActors((part.Body.Value, uiComp), Content.Shared.Medical.Surgery.SurgeryUIKey.Key);
+        var actorList = actors.ToList();
+        if (actorList.Count > 0)
+        {
+            var user = actorList[0];
+            _userHandItems[user] = msg.HandItems;
+            
+            // Update UI to reflect new hand items
+            UpdateUI(ent);
+        }
     }
 
     private void OnSurgeryUIMessageAttempt(BoundUserInterfaceMessageAttempt args)
@@ -545,12 +591,111 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         if (msg.User != null)
             user = GetEntity(msg.User);
 
+        if (user == null)
+            return;
+
         // Validate step can be performed
         if (!CanPerformStep(ent, stepEntity, step, user))
             return;
 
-        // Execute the step (with user for medical skill check)
-        ExecuteStep(ent, stepEntity, step, user);
+        // Start doafter for the surgery step
+        StartSurgeryDoAfter(ent, stepEntity, step, user.Value);
+    }
+
+    /// <summary>
+    /// Starts a doafter for a surgery step execution.
+    /// </summary>
+    private void StartSurgeryDoAfter(Entity<SurgeryLayerComponent> bodyPart, EntityUid stepEntity, SurgeryStepComponent step, EntityUid user)
+    {
+        // Get body entity for doafter target
+        EntityUid? bodyEntity = null;
+        if (TryComp<BodyPartComponent>(bodyPart, out var part) && part.Body != null)
+        {
+            bodyEntity = part.Body.Value;
+        }
+
+        if (bodyEntity == null)
+            return;
+        
+        // Get body part from args.Target (it's passed as target in DoAfterArgs)
+        var targetBodyPart = bodyPart;
+
+        // Calculate duration
+        float duration = step.Duration;
+        
+        // Duration can be modified by tool speed in the future if needed
+        // For now, use the step's base duration
+
+        // Play start sound
+        if (TryComp<HandsComponent>(user, out var userHands))
+        {
+            foreach (var heldItem in _hands.EnumerateHeld(user, userHands))
+            {
+                if (TryComp<SurgeryToolComponent>(heldItem, out var tool) && tool.StartSound != null)
+                {
+                    _audio.PlayPvs(tool.StartSound, heldItem);
+                }
+            }
+        }
+
+        // Face the target
+        if (TryComp<TransformComponent>(bodyEntity.Value, out var xform))
+        {
+            _rotateToFace.TryFaceCoordinates(user, _transform.GetMapCoordinates(bodyEntity.Value, xform).Position);
+        }
+
+        // Create doafter event
+        var doAfterEvent = new NewSurgeryDoAfterEvent(GetNetEntity(stepEntity), GetNetEntity(bodyPart));
+        var doAfterArgs = new DoAfterArgs(EntityManager, user, TimeSpan.FromSeconds(duration), doAfterEvent, bodyEntity.Value, target: bodyPart)
+        {
+            BreakOnMove = true,
+            CancelDuplicate = true,
+            DuplicateCondition = DuplicateConditions.SameEvent,
+            NeedHand = true,
+            BreakOnHandChange = true,
+        };
+
+        if (!DoAfter.TryStartDoAfter(doAfterArgs))
+            return;
+
+        // Popup will be shown when step completes
+    }
+
+    /// <summary>
+    /// Handles doafter completion for surgery steps.
+    /// </summary>
+    private void OnSurgeryDoAfter(Entity<SurgeryLayerComponent> bodyPart, ref NewSurgeryDoAfterEvent args)
+    {
+        if (args.Cancelled || args.Handled)
+            return;
+
+        var stepEntity = GetEntity(args.Step);
+        if (!TryComp<SurgeryStepComponent>(stepEntity, out var step))
+            return;
+
+        var user = args.User;
+        if (user == null)
+            return;
+
+        // Get body part from args.Target (passed as target in DoAfterArgs)
+        var targetBodyPart = args.Target ?? bodyPart;
+
+        args.Handled = true;
+
+        // Play end sound from tools
+        if (TryComp<HandsComponent>(user, out var hands))
+        {
+            foreach (var heldItem in _hands.EnumerateHeld(user, hands))
+            {
+                if (TryComp<SurgeryToolComponent>(heldItem, out var tool) && tool.EndSound != null)
+                {
+                    _audio.PlayPvs(tool.EndSound, heldItem);
+                }
+            }
+        }
+
+        // Execute the step
+        ExecuteStep(targetBodyPart, stepEntity, step, user);
     }
 
     private void OnLayerChanged(Entity<SurgeryLayerComponent> ent, ref SurgeryLayerChangedMessage msg)
@@ -1162,136 +1307,246 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                 case SurgeryLayer.Skin:
                     var meta = MetaData(stepEntity);
                     var wasSkinRetracted = layer.SkinRetracted;
+                    var skinStepId = meta.EntityPrototype?.ID ?? "";
                     
                     // Handle cybernetics maintenance panel state changes (before skin retraction logic)
                     HandleCyberneticsMaintenanceSteps(bodyPart, stepEntity, step, meta);
                     
                     // Check if this is a step that closes skin (reverses retraction)
-                    if (meta.EntityPrototype?.ID.Contains("Close") == true)
+                    if (skinStepId.Contains("CloseSkin"))
                     {
-                        // Skin is being closed - remove skin penalty
-                        if (wasSkinRetracted)
+                        // Skin is being closed - check if this is the final step
+                        var progress = CompOrNull<SurgeryStepProgressComponent>(bodyPart);
+                        if (progress != null)
                         {
+                            var closeProgress = progress.SequenceProgress.GetValueOrDefault("CloseSkinSequence", -1);
+                            // If this is the last step (index 1), fully close skin
+                            if (closeProgress >= 0 && step.SequenceIndex == 1)
+                            {
+                                layer.SkinRetracted = false;
+                                RemoveSurgeryPenalty(bodyPart, FixedPoint2.New(1)); // Remove skin penalty
+                            }
+                        }
+                        else if (wasSkinRetracted)
+                        {
+                            // Fallback: if no progress tracking, just close
                             layer.SkinRetracted = false;
-                            RemoveSurgeryPenalty(bodyPart, FixedPoint2.New(1)); // Remove skin penalty
+                            RemoveSurgeryPenalty(bodyPart, FixedPoint2.New(1));
                         }
                         // Note: If bones are still sawed or tissue still retracted, those penalties remain
                         // This allows surgeons to close skin with broken ribs (penalty persists)
                     }
-                    else if (!wasSkinRetracted)
+                    else if (skinStepId.Contains("RetractSkin"))
                     {
-                        // Opening/retracting skin for the first time - apply +1 bio-rejection penalty
-                        layer.SkinRetracted = true;
-                        ApplySurgeryPenalty(bodyPart, FixedPoint2.New(1)); // +1 for skin
+                        // Retracting skin - check if this is the final step
+                        var progress = CompOrNull<SurgeryStepProgressComponent>(bodyPart);
+                        if (progress != null)
+                        {
+                            var retractProgress = progress.SequenceProgress.GetValueOrDefault("RetractSkinSequence", -1);
+                            // If this is the last step (index 1), fully retract skin
+                            if (retractProgress >= 0 && step.SequenceIndex == 1 && !wasSkinRetracted)
+                            {
+                                layer.SkinRetracted = true;
+                                ApplySurgeryPenalty(bodyPart, FixedPoint2.New(1)); // +1 for skin
+                            }
+                        }
+                        else if (!wasSkinRetracted)
+                        {
+                            // Fallback: if no progress tracking, just retract
+                            layer.SkinRetracted = true;
+                            ApplySurgeryPenalty(bodyPart, FixedPoint2.New(1)); // +1 for skin
+                        }
                     }
                     break;
                 case SurgeryLayer.Tissue:
                     var tissueMeta = MetaData(stepEntity);
-                    var wasTissueRetracted = layer.TissueRetracted;
-                    var wasBonesSawed = layer.BonesSawed;
+                    var tissueStepId = tissueMeta.EntityPrototype?.ID ?? "";
                     
-                    // Handle cybernetics maintenance panel state changes (for replace wiring step)
-                    HandleCyberneticsMaintenanceSteps(bodyPart, stepEntity, step, tissueMeta);
-                    
-                    // Check if this is a step that closes tissue (reverses retraction)
-                    if (tissueMeta.EntityPrototype?.ID.Contains("Close") == true)
+                    // Handle implant removal steps (tissue layer)
+                    if (tissueStepId.Contains("RemoveImplant") && !tissueStepId.Contains("Organ"))
                     {
-                        // Tissue is being closed - remove tissue penalty
-                        if (wasTissueRetracted)
+                        if (!TryComp<BodyPartComponent>(bodyPart, out var implantPartComp) || implantPartComp.Body == null)
+                            break;
+
+                        // Get implants in body part
+                        var implants = GetImplantsInBodyPart(bodyPart, SurgeryLayer.Tissue);
+                        if (implants.Count > 0)
                         {
-                            layer.TissueRetracted = false;
-                            RemoveSurgeryPenalty(bodyPart, FixedPoint2.New(1)); // Remove tissue penalty
-                        }
-                    }
-                    else if (!wasTissueRetracted)
-                    {
-                        // Retracting tissue for the first time - apply +1 bio-rejection penalty
-                        layer.TissueRetracted = true;
-                        ApplySurgeryPenalty(bodyPart, FixedPoint2.New(1)); // +1 for tissue
-                        
-                        // Apply unsanitary conditions penalty when going below skin level
-                        if (TryComp<BodyPartComponent>(bodyPart, out var part) && part.Body != null)
-                        {
-                            var cleanlinessSystem = EntitySystem.Get<RoomCleanlinessSystem>();
-                            cleanlinessSystem.ApplyUnsanitaryPenalty(part.Body.Value);
-                        }
-                    }
-                    
-                    // Check if this is a bone-sawing step by checking the step ID
-                    // Make sure it's not a smashing step
-                    if ((tissueMeta.EntityPrototype?.ID.Contains("Saw") == true ||
-                         tissueMeta.EntityPrototype?.ID.Contains("Skull") == true) &&
-                        tissueMeta.EntityPrototype?.ID.Contains("Smash") != true)
-                    {
-                        if (!wasBonesSawed && !layer.BonesSmashed)
-                        {
-                            layer.BonesSawed = true;
-                            // Apply +8 bio-rejection penalty when bones are sawed through
-                            ApplySurgeryPenalty(bodyPart, FixedPoint2.New(8)); // +8 for bones
-                        }
-                    }
-                    // Check if this is a bone-smashing step (crude surgery)
-                    else if (tissueMeta.EntityPrototype?.ID.Contains("Smash") == true ||
-                             tissueMeta.EntityPrototype?.ID.Contains("Crude") == true)
-                    {
-                        if (!wasBonesSawed && !layer.BonesSmashed)
-                        {
-                            // Calculate speed based on held item's blunt damage
-                            float speed = 1.0f; // Default speed (10 blunt = average)
-                            if (user != null && TryComp<HandsComponent>(user, out var hands))
+                            // Remove first implant (or could be more specific based on step metadata)
+                            var (implant, _, _) = implants[0];
+                            
+                            // Remove implant from body
+                            if (TryComp<ImplantedComponent>(implantPartComp.Body.Value, out var implanted))
                             {
-                                if (_hands.TryGetActiveItem((user.Value, hands), out var heldItem))
+                                if (implanted.ImplantContainer.Contains(implant))
                                 {
-                                    // Check if item is a melee weapon with damage
-                                    if (TryComp<MeleeWeaponComponent>(heldItem, out var melee))
+                                    _containers.Remove((implant, null, null), implanted.ImplantContainer);
+                                    
+                                    // Try to pick up the implant if user is available
+                                    if (user != null)
                                     {
-                                        // Get blunt damage from the melee weapon
-                                        if (melee.Damage.DamageDict.TryGetValue("Blunt", out var bluntDamage))
-                                        {
-                                            // 10 blunt = average speed (1.0), scale accordingly
-                                            speed = (float)bluntDamage / 10.0f;
-                                            if (speed < 0.1f) speed = 0.1f; // Minimum speed
-                                            if (speed > 3.0f) speed = 3.0f; // Maximum speed
-                                        }
+                                        _hands.TryPickupAnyHand(user.Value, implant);
                                     }
                                 }
                             }
+                        }
+                    }
+                    // Handle implant insertion steps (tissue layer)
+                    else if (tissueStepId.Contains("AddImplant") && !tissueStepId.Contains("Organ"))
+                    {
+                        if (!TryComp<BodyPartComponent>(bodyPart, out var addImplantPartComp) || addImplantPartComp.Body == null)
+                            break;
 
-                            layer.BonesSmashed = true;
-                            // Apply 2x penalty for smashed bones (+16 instead of +8)
-                            ApplySurgeryPenalty(bodyPart, FixedPoint2.New(16)); // +16 for smashed bones
-                            
-                            // Duration is affected by speed (faster with higher blunt damage)
-                            // This is handled by the step's duration field, but we could modify it here if needed
-                        }
-                    }
-                    // Check if this is a step that closes/mends bones (for sawed bones)
-                    else if (tissueMeta.EntityPrototype?.ID.Contains("Close") == true ||
-                             tissueMeta.EntityPrototype?.ID.Contains("Mend") == true)
-                    {
-                        // Bones are being closed (for sawed bones)
-                        if (wasBonesSawed)
+                        EntityUid? implantToAdd = null;
+                        
+                        // Look for implant in user's hands first
+                        if (user != null)
                         {
-                            layer.BonesSawed = false;
-                            RemoveSurgeryPenalty(bodyPart, FixedPoint2.New(8)); // Remove sawed bone penalty
-                        }
-                    }
-                    // Check if this is a bone repair step (for smashed bones - 5 stages)
-                    else if (tissueMeta.EntityPrototype?.ID.Contains("Repair") == true)
-                    {
-                        if (layer.BonesSmashed)
-                        {
-                            // Check if this is the final repair step (Stage 5)
-                            if (tissueMeta.EntityPrototype?.ID.Contains("Stage5") == true ||
-                                tissueMeta.EntityPrototype?.ID.Contains("Final") == true ||
-                                tissueMeta.EntityPrototype?.ID.Contains("Complete") == true)
+                            var hands = _hands.EnumerateHeld(user.Value);
+                            foreach (var hand in hands)
                             {
-                                // Final stage - remove smashed bone penalty
-                                layer.BonesSmashed = false;
-                                RemoveSurgeryPenalty(bodyPart, FixedPoint2.New(16)); // Remove smashed bone penalty
+                                if (HasComp<SubdermalImplantComponent>(hand) && !Tags.HasTag(hand, "Organ"))
+                                {
+                                    implantToAdd = hand;
+                                    break;
+                                }
                             }
-                            // Otherwise, it's an intermediate repair step (stages 1-4)
-                            // Don't remove penalty yet, just progress the repair
+                        }
+                        
+                        // If not found in hands, scan nearby items
+                        if (implantToAdd == null)
+                        {
+                            var xform = Transform(bodyPart);
+                            var nearbyEntities = _lookup.GetEntitiesInRange(xform.Coordinates, MaterialScanRange);
+                            foreach (var nearby in nearbyEntities)
+                            {
+                                if (HasComp<SubdermalImplantComponent>(nearby) && !Tags.HasTag(nearby, "Organ"))
+                                {
+                                    implantToAdd = nearby;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Add the implant if found
+                        if (implantToAdd != null && addImplantPartComp.Body != null)
+                        {
+                            var implanted = EnsureComp<ImplantedComponent>(addImplantPartComp.Body.Value);
+                            if (!implanted.ImplantContainer.Contains(implantToAdd.Value))
+                            {
+                                _containers.Insert((implantToAdd.Value, null, null), implanted.ImplantContainer);
+                            }
+                        }
+                    }
+                    // Existing tissue layer logic (bone sawing, etc.)
+                    else
+                    {
+                        var wasTissueRetracted = layer.TissueRetracted;
+                        var wasBonesSawed = layer.BonesSawed;
+                        
+                        // Handle cybernetics maintenance panel state changes (for replace wiring step)
+                        HandleCyberneticsMaintenanceSteps(bodyPart, stepEntity, step, tissueMeta);
+                        
+                        // Check if this is a step that closes tissue (reverses retraction)
+                        if (tissueMeta.EntityPrototype?.ID.Contains("Close") == true)
+                        {
+                            // Tissue is being closed - remove tissue penalty
+                            if (wasTissueRetracted)
+                            {
+                                layer.TissueRetracted = false;
+                                RemoveSurgeryPenalty(bodyPart, FixedPoint2.New(1)); // Remove tissue penalty
+                            }
+                        }
+                        else if (!wasTissueRetracted)
+                        {
+                            // Retracting tissue for the first time - apply +1 bio-rejection penalty
+                            layer.TissueRetracted = true;
+                            ApplySurgeryPenalty(bodyPart, FixedPoint2.New(1)); // +1 for tissue
+                            
+                            // Apply unsanitary conditions penalty when going below skin level
+                            if (TryComp<BodyPartComponent>(bodyPart, out var part) && part.Body != null)
+                            {
+                                var cleanlinessSystem = EntitySystem.Get<RoomCleanlinessSystem>();
+                                cleanlinessSystem.ApplyUnsanitaryPenalty(part.Body.Value);
+                            }
+                        }
+                        
+                        // Check if this is a bone-sawing step by checking the step ID
+                        // Make sure it's not a smashing step
+                        if ((tissueMeta.EntityPrototype?.ID.Contains("Saw") == true ||
+                             tissueMeta.EntityPrototype?.ID.Contains("Skull") == true) &&
+                            tissueMeta.EntityPrototype?.ID.Contains("Smash") != true)
+                        {
+                            if (!wasBonesSawed && !layer.BonesSmashed)
+                            {
+                                layer.BonesSawed = true;
+                                // Apply +8 bio-rejection penalty when bones are sawed through
+                                ApplySurgeryPenalty(bodyPart, FixedPoint2.New(8)); // +8 for bones
+                            }
+                        }
+                        // Check if this is a bone-smashing step (crude surgery)
+                        else if (tissueMeta.EntityPrototype?.ID.Contains("Smash") == true ||
+                                 tissueMeta.EntityPrototype?.ID.Contains("Crude") == true)
+                        {
+                            if (!wasBonesSawed && !layer.BonesSmashed)
+                            {
+                                // Calculate speed based on held item's blunt damage
+                                float speed = 1.0f; // Default speed (10 blunt = average)
+                                if (user != null && TryComp<HandsComponent>(user, out var hands))
+                                {
+                                    if (_hands.TryGetActiveItem((user.Value, hands), out var heldItem))
+                                    {
+                                        // Check if item is a melee weapon with damage
+                                        if (TryComp<MeleeWeaponComponent>(heldItem, out var melee))
+                                        {
+                                            // Get blunt damage from the melee weapon
+                                            if (melee.Damage.DamageDict.TryGetValue("Blunt", out var bluntDamage))
+                                            {
+                                                // 10 blunt = average speed (1.0), scale accordingly
+                                                speed = (float)bluntDamage / 10.0f;
+                                                if (speed < 0.1f) speed = 0.1f; // Minimum speed
+                                                if (speed > 3.0f) speed = 3.0f; // Maximum speed
+                                            }
+                                        }
+                                    }
+                                }
+
+                                layer.BonesSmashed = true;
+                                // Apply 2x penalty for smashed bones (+16 instead of +8)
+                                ApplySurgeryPenalty(bodyPart, FixedPoint2.New(16)); // +16 for smashed bones
+                                
+                                // Duration is affected by speed (faster with higher blunt damage)
+                                // This is handled by the step's duration field, but we could modify it here if needed
+                            }
+                        }
+                        // Check if this is a step that closes/mends bones (for sawed bones)
+                        else if (tissueMeta.EntityPrototype?.ID.Contains("Close") == true ||
+                                 tissueMeta.EntityPrototype?.ID.Contains("Mend") == true)
+                        {
+                            // Bones are being closed (for sawed bones)
+                            if (wasBonesSawed)
+                            {
+                                layer.BonesSawed = false;
+                                RemoveSurgeryPenalty(bodyPart, FixedPoint2.New(8)); // Remove sawed bone penalty
+                            }
+                        }
+                        // Check if this is a bone repair step (for smashed bones - 5 stages)
+                        else if (tissueMeta.EntityPrototype?.ID.Contains("Repair") == true)
+                        {
+                            if (layer.BonesSmashed)
+                            {
+                                // Check if this is the final repair step (Stage 5)
+                                if (tissueMeta.EntityPrototype?.ID.Contains("Stage5") == true ||
+                                    tissueMeta.EntityPrototype?.ID.Contains("Final") == true ||
+                                    tissueMeta.EntityPrototype?.ID.Contains("Complete") == true)
+                                {
+                                    // Final stage - remove smashed bone penalty
+                                    layer.BonesSmashed = false;
+                                    RemoveSurgeryPenalty(bodyPart, FixedPoint2.New(16)); // Remove smashed bone penalty
+                                }
+                                // Otherwise, it's an intermediate repair step (stages 1-4)
+                                // Don't remove penalty yet, just progress the repair
+                            }
                         }
                     }
                     break;
@@ -1299,8 +1554,84 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                     var organMeta = MetaData(stepEntity);
                     var organStepId = organMeta.EntityPrototype?.ID ?? "";
                     
+                    // Handle organ implant removal steps
+                    if (organStepId.Contains("RemoveOrganImplant"))
+                    {
+                        if (!TryComp<BodyPartComponent>(bodyPart, out var organImplantPartComp) || organImplantPartComp.Body == null)
+                            break;
+
+                        // Get organ implants in body part
+                        var organImplants = GetImplantsInBodyPart(bodyPart, SurgeryLayer.Organ);
+                        if (organImplants.Count > 0)
+                        {
+                            // Remove first organ implant
+                            var (implant, _, _) = organImplants[0];
+                            
+                            // Remove implant from body
+                            if (TryComp<ImplantedComponent>(organImplantPartComp.Body.Value, out var implanted))
+                            {
+                                if (implanted.ImplantContainer.Contains(implant))
+                                {
+                                    _containers.Remove((implant, null, null), implanted.ImplantContainer);
+                                    
+                                    // Try to pick up the implant if user is available
+                                    if (user != null)
+                                    {
+                                        _hands.TryPickupAnyHand(user.Value, implant);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Handle organ implant insertion steps
+                    else if (organStepId.Contains("AddOrganImplant"))
+                    {
+                        if (!TryComp<BodyPartComponent>(bodyPart, out var addOrganImplantPartComp) || addOrganImplantPartComp.Body == null)
+                            break;
+
+                        EntityUid? organImplantToAdd = null;
+                        
+                        // Look for organ implant in user's hands first
+                        if (user != null)
+                        {
+                            var hands = _hands.EnumerateHeld(user.Value);
+                            foreach (var hand in hands)
+                            {
+                                if (HasComp<SubdermalImplantComponent>(hand) && Tags.HasTag(hand, "Organ"))
+                                {
+                                    organImplantToAdd = hand;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // If not found in hands, scan nearby items
+                        if (organImplantToAdd == null)
+                        {
+                            var xform = Transform(bodyPart);
+                            var nearbyEntities = _lookup.GetEntitiesInRange(xform.Coordinates, MaterialScanRange);
+                            foreach (var nearby in nearbyEntities)
+                            {
+                                if (HasComp<SubdermalImplantComponent>(nearby) && Tags.HasTag(nearby, "Organ"))
+                                {
+                                    organImplantToAdd = nearby;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Add the organ implant if found
+                        if (organImplantToAdd != null && addOrganImplantPartComp.Body != null)
+                        {
+                            var implanted = EnsureComp<ImplantedComponent>(addOrganImplantPartComp.Body.Value);
+                            if (!implanted.ImplantContainer.Contains(organImplantToAdd.Value))
+                            {
+                                _containers.Insert((organImplantToAdd.Value, null, null), implanted.ImplantContainer);
+                            }
+                        }
+                    }
                     // Handle organ removal steps
-                    if (organStepId.Contains("RemoveOrgan") || organStepId.Contains("Remove") && step.TargetOrganSlot != null)
+                    else if (organStepId.Contains("RemoveOrgan") && !organStepId.Contains("Implant"))
                     {
                         if (!TryComp<BodyPartComponent>(bodyPart, out var organPartComp) || organPartComp.Body == null)
                             break;
@@ -1346,12 +1677,13 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                         }
                     }
                     // Handle organ insertion steps
-                    else if (organStepId.Contains("InsertOrgan") || organStepId.Contains("Insert") && step.TargetOrganSlot != null)
+                    else if (organStepId.Contains("InsertOrgan") && !organStepId.Contains("Implant"))
                     {
                         if (!TryComp<BodyPartComponent>(bodyPart, out var insertPartComp) || insertPartComp.Body == null)
                             break;
                         
                         EntityUid? organToInsert = null;
+                        var targetSlot = step.TargetOrganSlot;
                         
                         // Look for organ in user's hands first
                         if (user != null)
@@ -1362,7 +1694,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                                 if (TryComp<OrganComponent>(hand, out var organ))
                                 {
                                     // Check if this organ matches the target slot
-                                    if (step.TargetOrganSlot == null || organ.SlotId == step.TargetOrganSlot)
+                                    if (targetSlot == null || organ.SlotId == targetSlot)
                                     {
                                         organToInsert = hand;
                                         break;
@@ -1381,7 +1713,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                                 if (TryComp<OrganComponent>(nearby, out var organ))
                                 {
                                     // Check if this organ matches the target slot
-                                    if (step.TargetOrganSlot == null || organ.SlotId == step.TargetOrganSlot)
+                                    if (targetSlot == null || organ.SlotId == targetSlot)
                                     {
                                         organToInsert = nearby;
                                         break;
@@ -1395,6 +1727,11 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                         if (organToInsert != null)
                         {
                             TryInstallImplant(organToInsert.Value, insertPartComp.Body.Value, bodyPart, user);
+                        }
+                        else if (targetSlot != null && user.HasValue)
+                        {
+                            // Organ not found but slot specified - show message
+                            _popup.PopupEntity(Loc.GetString("surgery-organ-not-found", ("slot", targetSlot)), user.Value, user.Value);
                         }
                     }
                     
@@ -1477,12 +1814,446 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             RaiseLocalEvent(user.Value, ref stepEvent);
         }
 
+        // Track step progress for bidirectional operations
+        TrackStepProgress(bodyPart, stepEntity, step);
+
         // Update UI - ensure layer component exists
         if (TryComp<SurgeryLayerComponent>(bodyPart, out var layerForUI))
         {
             UpdateUI((bodyPart, layerForUI));
         }
     }
+
+    /// <summary>
+    /// Tracks step completion progress for bidirectional sequences.
+    /// </summary>
+    private void TrackStepProgress(EntityUid bodyPart, EntityUid stepEntity, SurgeryStepComponent step)
+    {
+        var progress = EnsureComp<SurgeryStepProgressComponent>(bodyPart);
+        var stepMeta = MetaData(stepEntity);
+        var stepId = stepMeta.EntityPrototype?.ID ?? "";
+
+        // Track completed step
+        if (!progress.CompletedSteps.Contains(stepId))
+        {
+            progress.CompletedSteps.Add(stepId);
+        }
+
+        // If this step belongs to a sequence, update sequence progress
+        if (!string.IsNullOrEmpty(step.SequenceId) && step.SequenceIndex >= 0)
+        {
+            var currentProgress = progress.SequenceProgress.GetValueOrDefault(step.SequenceId, -1);
+            
+            // Update progress to the completed step index
+            if (step.SequenceIndex > currentProgress)
+            {
+                progress.SequenceProgress[step.SequenceId] = step.SequenceIndex;
+            }
+
+            // Initialize sequence steps mapping if needed
+            if (!progress.SequenceSteps.ContainsKey(step.SequenceId))
+            {
+                var sequenceProtoId = new ProtoId<SurgerySequencePrototype>(step.SequenceId);
+                if (_prototypes.TryIndex(sequenceProtoId, out var sequence))
+                {
+                    var stepIds = sequence.ForwardSteps.Select(s => s.ToString()).ToList();
+                    progress.SequenceSteps[step.SequenceId] = stepIds;
+                }
+            }
+        }
+
+        Dirty(bodyPart, progress);
+    }
+
+    /// <summary>
+    /// Generates dynamic surgery steps based on current state, implants, organs, and hand items.
+    /// </summary>
+    private (List<NetEntity> SkinSteps, List<NetEntity> TissueSteps, List<NetEntity> OrganSteps) GenerateDynamicSteps(
+        EntityUid selectedPart,
+        SurgeryLayerComponent selectedLayer,
+        EntityUid? evalUser)
+    {
+        var skinSteps = new List<NetEntity>();
+        var tissueSteps = new List<NetEntity>();
+        var organSteps = new List<NetEntity>();
+
+        // Get step progress component
+        var progress = CompOrNull<SurgeryStepProgressComponent>(selectedPart);
+        if (progress == null)
+        {
+            progress = EnsureComp<SurgeryStepProgressComponent>(selectedPart);
+        }
+
+        // Get hand items for the user
+        List<(NetEntity Item, bool IsImplant, bool IsOrgan, string Name)> handItems = new();
+        if (evalUser != null && _userHandItems.TryGetValue(evalUser.Value, out var items))
+        {
+            handItems = items;
+        }
+
+        // SKIN LAYER STEPS
+        GenerateSkinLayerSteps(selectedPart, selectedLayer, progress, skinSteps);
+
+        // TISSUE LAYER STEPS
+        if (selectedLayer.SkinRetracted)
+        {
+            GenerateTissueLayerSteps(selectedPart, selectedLayer, progress, handItems, tissueSteps);
+        }
+
+        // ORGAN LAYER STEPS
+        if (selectedLayer.TissueRetracted && (selectedLayer.BonesSawed || selectedLayer.BonesSmashed))
+        {
+            GenerateOrganLayerSteps(selectedPart, selectedLayer, progress, handItems, organSteps);
+        }
+
+        return (skinSteps, tissueSteps, organSteps);
+    }
+
+    /// <summary>
+    /// Generates steps for the skin layer: Retract Skin, Close Skin (if retract started), Mend Brute/Burn.
+    /// </summary>
+    private void GenerateSkinLayerSteps(
+        EntityUid selectedPart,
+        SurgeryLayerComponent selectedLayer,
+        SurgeryStepProgressComponent progress,
+        List<NetEntity> skinSteps)
+    {
+        // Retract Skin sequence - always available if not fully retracted
+        var retractProgress = progress.SequenceProgress.GetValueOrDefault("RetractSkinSequence", -1);
+        var closeProgress = progress.SequenceProgress.GetValueOrDefault("CloseSkinSequence", -1);
+        
+        // Get available steps for bidirectional sequence
+        var retractSteps = GetAvailableStepsForSequence("RetractSkinSequence", "CloseSkinSequence", retractProgress, closeProgress, 2);
+        foreach (var step in retractSteps)
+        {
+            skinSteps.Add(GetNetEntity(step));
+        }
+
+        // Mend Brute Damage - repeatable healing step
+        if (TrySpawnStep("SurgeryStepTreatBruteWounds", out var bruteStep))
+        {
+            skinSteps.Add(GetNetEntity(bruteStep));
+        }
+
+        // Mend Burn Damage - repeatable healing step
+        if (TrySpawnStep("SurgeryStepTreatBurnWounds", out var burnStep))
+        {
+            skinSteps.Add(GetNetEntity(burnStep));
+        }
+    }
+
+    /// <summary>
+    /// Generates steps for the tissue layer: Retract/Mend Tissue sequences, Remove/Add Implant.
+    /// </summary>
+    private void GenerateTissueLayerSteps(
+        EntityUid selectedPart,
+        SurgeryLayerComponent selectedLayer,
+        SurgeryStepProgressComponent progress,
+        List<(NetEntity Item, bool IsImplant, bool IsOrgan, string Name)> handItems,
+        List<NetEntity> tissueSteps)
+    {
+        // Retract/Mend Tissue bidirectional sequence
+        var retractTissueProgress = progress.SequenceProgress.GetValueOrDefault("RetractTissueSequence", -1);
+        var mendProgress = progress.SequenceProgress.GetValueOrDefault("MendTissueSequence", -1);
+        
+        var tissueSequenceSteps = GetAvailableStepsForSequence("RetractTissueSequence", "MendTissueSequence", retractTissueProgress, mendProgress, 3);
+        foreach (var step in tissueSequenceSteps)
+        {
+            tissueSteps.Add(GetNetEntity(step));
+        }
+
+        // Remove Implant steps - one for each tissue layer implant
+        var implants = GetImplantsInBodyPart(selectedPart, SurgeryLayer.Tissue);
+        foreach (var (implant, name, _) in implants)
+        {
+            // Spawn a "Remove Implant" step for each implant
+            if (TrySpawnStep("SurgeryStepRemoveImplant", out var removeStep))
+            {
+                // Update step name to include implant name
+                var meta = MetaData(removeStep);
+                _metaData.SetEntityName(removeStep, $"Remove Implant {name}", meta);
+                tissueSteps.Add(GetNetEntity(removeStep));
+            }
+        }
+
+        // Add Implant steps - only if surgeon has implant in hand
+        foreach (var (itemNetEntity, isImplant, isOrgan, name) in handItems)
+        {
+            if (isImplant && !isOrgan) // Tissue layer implant (no Organ tag)
+            {
+                if (TrySpawnStep("SurgeryStepAddImplant", out var addStep))
+                {
+                    // Update step name to include implant name
+                    var meta = MetaData(addStep);
+                    _metaData.SetEntityName(addStep, $"Add Implant {name}", meta);
+                    tissueSteps.Add(GetNetEntity(addStep));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Generates steps for the organ layer: Remove/Add Organ, Remove/Add Organ Implant.
+    /// </summary>
+    private void GenerateOrganLayerSteps(
+        EntityUid selectedPart,
+        SurgeryLayerComponent selectedLayer,
+        SurgeryStepProgressComponent progress,
+        List<(NetEntity Item, bool IsImplant, bool IsOrgan, string Name)> handItems,
+        List<NetEntity> organSteps)
+    {
+        // Remove Organ steps - one for each organ
+        var organs = GetOrgansInBodyPart(selectedPart);
+        foreach (var (organ, slotId, name) in organs)
+        {
+            // Spawn step and set target organ slot
+            if (TrySpawnStep("SurgeryStepRemoveOrgan", out var removeStep))
+            {
+                // Set the target organ slot on the step component
+                if (TryComp<SurgeryStepComponent>(removeStep, out var stepComp))
+                {
+                    stepComp.TargetOrganSlot = slotId;
+                    Dirty(removeStep, stepComp);
+                }
+                // Update step name to include organ name
+                var meta = MetaData(removeStep);
+                _metaData.SetEntityName(removeStep, $"Remove Organ {name}", meta);
+                organSteps.Add(GetNetEntity(removeStep));
+            }
+        }
+
+        // Add Organ steps - show for all empty organ slots, even without organ in hand
+        var emptySlots = GetEmptyOrganSlots(selectedPart);
+        foreach (var slotId in emptySlots)
+        {
+            // Check if surgeon has matching organ in hand
+            EntityUid? organInHand = null;
+            string? organName = null;
+            foreach (var (itemNetEntity, _, isOrgan, name) in handItems)
+            {
+                if (isOrgan)
+                {
+                    var itemEntity = GetEntity(itemNetEntity);
+                    if (TryComp<OrganComponent>(itemEntity, out var organComp) && organComp.SlotId == slotId)
+                    {
+                        organInHand = itemEntity;
+                        organName = name;
+                        break;
+                    }
+                }
+            }
+
+            // Show step even without organ in hand (as per requirements)
+            // Spawn step and set target organ slot
+            if (TrySpawnStep("NewSurgeryStepInsertOrgan", out var addStep))
+            {
+                // Set the target organ slot on the step component
+                if (TryComp<SurgeryStepComponent>(addStep, out var stepComp))
+                {
+                    stepComp.TargetOrganSlot = slotId;
+                    Dirty(addStep, stepComp);
+                }
+                // Update step name - use organ name if in hand, otherwise use slot ID
+                var displayName = organName ?? slotId;
+                var meta = MetaData(addStep);
+                _metaData.SetEntityName(addStep, $"Add Organ {displayName}", meta);
+                organSteps.Add(GetNetEntity(addStep));
+            }
+        }
+
+        // Remove Organ Implant steps - one for each organ layer implant
+        var organImplants = GetImplantsInBodyPart(selectedPart, SurgeryLayer.Organ);
+        foreach (var (implant, name, _) in organImplants)
+        {
+            if (TrySpawnStep("SurgeryStepRemoveOrganImplant", out var removeStep))
+            {
+                // Update step name to include implant name
+                var meta = MetaData(removeStep);
+                _metaData.SetEntityName(removeStep, $"Remove Organ Implant {name}", meta);
+                organSteps.Add(GetNetEntity(removeStep));
+            }
+        }
+
+        // Add Organ Implant steps - only if surgeon has organ implant in hand
+        foreach (var (itemNetEntity, isImplant, isOrgan, name) in handItems)
+        {
+            if (isImplant && isOrgan) // Organ layer implant (has Organ tag)
+            {
+                if (TrySpawnStep("SurgeryStepAddOrganImplant", out var addStep))
+                {
+                    // Update step name to include implant name
+                    var meta = MetaData(addStep);
+                    _metaData.SetEntityName(addStep, $"Add Organ Implant {name}", meta);
+                    organSteps.Add(GetNetEntity(addStep));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets available steps for a bidirectional sequence.
+    /// Returns next step in forward direction OR reverse steps if forward is partially complete.
+    /// </summary>
+    private List<EntityUid> GetAvailableStepsForSequence(
+        string forwardSequenceId,
+        string reverseSequenceId,
+        int forwardProgress,
+        int reverseProgress,
+        int maxSteps)
+    {
+        var availableSteps = new List<EntityUid>();
+
+        var forwardProtoId = new ProtoId<SurgerySequencePrototype>(forwardSequenceId);
+        var reverseProtoId = new ProtoId<SurgerySequencePrototype>(reverseSequenceId);
+
+        if (!_prototypes.TryIndex(forwardProtoId, out var forwardSequence) ||
+            !_prototypes.TryIndex(reverseProtoId, out var reverseSequence))
+        {
+            return availableSteps;
+        }
+
+        // If forward sequence is partially complete, show next forward step AND reverse steps
+        if (forwardProgress >= 0 && forwardProgress < maxSteps - 1)
+        {
+            // Show next forward step
+            var nextForwardIndex = forwardProgress + 1;
+            if (nextForwardIndex < forwardSequence.ForwardSteps.Count)
+            {
+                var stepProtoId = forwardSequence.ForwardSteps[nextForwardIndex];
+                var stepEntity = Spawn(stepProtoId);
+                if (Exists(stepEntity))
+                {
+                    availableSteps.Add(stepEntity);
+                }
+            }
+
+            // Also show reverse steps (can reverse mid-sequence)
+            // Show reverse steps starting from the step that corresponds to current forward progress
+            // If forward progress is 0 (step 1 done), show reverse step 1 (which is step 2 of close)
+            // Reverse steps are in reverse order, so index 0 is the last step
+            var reverseStepIndex = maxSteps - 1 - forwardProgress - 1; // Convert forward progress to reverse index
+            if (reverseStepIndex >= 0 && reverseStepIndex < reverseSequence.ReverseSteps.Count)
+            {
+                var reverseStepProtoId = reverseSequence.ReverseSteps[reverseStepIndex];
+                var reverseStepEntity = Spawn(reverseStepProtoId);
+                if (Exists(reverseStepEntity))
+                {
+                    availableSteps.Add(reverseStepEntity);
+                }
+            }
+        }
+        // If reverse sequence is partially complete, show next reverse step AND forward steps
+        else if (reverseProgress >= 0 && reverseProgress < maxSteps - 1)
+        {
+            // Show next reverse step
+            var nextReverseIndex = reverseProgress + 1;
+            if (nextReverseIndex < reverseSequence.ReverseSteps.Count)
+            {
+                var stepProtoId = reverseSequence.ReverseSteps[nextReverseIndex];
+                var stepEntity = Spawn(stepProtoId);
+                if (Exists(stepEntity))
+                {
+                    availableSteps.Add(stepEntity);
+                }
+            }
+
+            // Also show forward steps (can reverse the reversal)
+            // Convert reverse progress to forward index
+            var forwardStepIndex = maxSteps - 1 - reverseProgress - 1;
+            if (forwardStepIndex >= 0 && forwardStepIndex < forwardSequence.ForwardSteps.Count)
+            {
+                var forwardStepProtoId = forwardSequence.ForwardSteps[forwardStepIndex];
+                var forwardStepEntity = Spawn(forwardStepProtoId);
+                if (Exists(forwardStepEntity))
+                {
+                    availableSteps.Add(forwardStepEntity);
+                }
+            }
+        }
+        // If neither started, show first forward step
+        else if (forwardProgress < 0 && reverseProgress < 0)
+        {
+            if (forwardSequence.ForwardSteps.Count > 0)
+            {
+                var stepProtoId = forwardSequence.ForwardSteps[0];
+                var stepEntity = Spawn(stepProtoId);
+                if (Exists(stepEntity))
+                {
+                    availableSteps.Add(stepEntity);
+                }
+            }
+        }
+        // If forward complete but reverse not, show reverse steps
+        else if (forwardProgress >= maxSteps - 1 && reverseProgress < maxSteps - 1)
+        {
+            // Show next reverse step
+            var nextReverseIndex = reverseProgress + 1;
+            if (nextReverseIndex < reverseSequence.ReverseSteps.Count)
+            {
+                var stepProtoId = reverseSequence.ReverseSteps[nextReverseIndex];
+                var stepEntity = Spawn(stepProtoId);
+                if (Exists(stepEntity))
+                {
+                    availableSteps.Add(stepEntity);
+                }
+            }
+        }
+        // If reverse complete but forward not, show forward steps
+        else if (reverseProgress >= maxSteps - 1 && forwardProgress < maxSteps - 1)
+        {
+            // Show next forward step
+            var nextForwardIndex = forwardProgress + 1;
+            if (nextForwardIndex < forwardSequence.ForwardSteps.Count)
+            {
+                var stepProtoId = forwardSequence.ForwardSteps[nextForwardIndex];
+                var stepEntity = Spawn(stepProtoId);
+                if (Exists(stepEntity))
+                {
+                    availableSteps.Add(stepEntity);
+                }
+            }
+        }
+
+        return availableSteps;
+    }
+
+    /// <summary>
+    /// Tries to get a step from a sequence by index.
+    /// </summary>
+    private bool TryGetSequenceStep(string sequenceId, int stepIndex, bool isReverse, out EntityUid stepEntity)
+    {
+        stepEntity = EntityUid.Invalid;
+
+        var sequenceProtoId = new ProtoId<SurgerySequencePrototype>(sequenceId);
+        if (!_prototypes.TryIndex(sequenceProtoId, out var sequence))
+            return false;
+
+        var steps = isReverse ? sequence.ReverseSteps : sequence.ForwardSteps;
+        if (stepIndex < 0 || stepIndex >= steps.Count)
+            return false;
+
+        var stepProtoId = steps[stepIndex];
+        stepEntity = Spawn(stepProtoId);
+        return Exists(stepEntity);
+    }
+
+    /// <summary>
+    /// Tries to spawn a step by prototype ID.
+    /// </summary>
+    private bool TrySpawnStep(string stepId, out EntityUid stepEntity)
+    {
+        stepEntity = EntityUid.Invalid;
+        try
+        {
+            stepEntity = Spawn(stepId);
+            return Exists(stepEntity) && HasComp<SurgeryStepComponent>(stepEntity);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
 
     public void UpdateUI(Entity<SurgeryLayerComponent> ent)
     {
@@ -1529,10 +2300,30 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             selectedLayer = selectedLayerComp;
         }
 
-        // Get all surgery steps and filter by layer and part type
-        var skinSteps = new List<NetEntity>();
-        var tissueSteps = new List<NetEntity>();
-        var organSteps = new List<NetEntity>();
+        // Get user for dynamic step generation
+        EntityUid? evalUser = null;
+        EntityUid? bodyEntity = null;
+        if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartComp) && selectedPartComp.Body != null)
+        {
+            bodyEntity = selectedPartComp.Body.Value;
+        }
+        else if (TryComp<BodyPartComponent>(uid, out var originalPart) && originalPart.Body != null)
+        {
+            bodyEntity = originalPart.Body.Value;
+        }
+        
+        if (bodyEntity != null && TryComp<UserInterfaceComponent>(bodyEntity, out var uiComp))
+        {
+            var actors = _ui.GetActors((bodyEntity.Value, uiComp), Content.Shared.Medical.Surgery.SurgeryUIKey.Key);
+            var actorList = actors.ToList();
+            if (actorList.Count > 0)
+            {
+                evalUser = actorList[0];
+            }
+        }
+
+        // Generate dynamic steps based on current state, implants, organs, and hand items
+        var (skinSteps, tissueSteps, organSteps) = GenerateDynamicSteps(selectedPart, selectedLayer, evalUser);
 
         // Only scan for surgical items if the UI is actually open (performance optimization)
         // This prevents expensive spatial queries when UpdateUI is called from other places
@@ -1557,34 +2348,10 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             isCyberLimb = partComp.PartType == BodyPartType.Arm || partComp.PartType == BodyPartType.Leg;
         }
 
-        // Use cached step data instead of spawning entities
-        foreach (var (stepId, stepData) in _cachedStepData)
+        // Add cybernetics maintenance steps if applicable
+        // Use cached step data for maintenance steps only
+        if (hasCybernetics)
         {
-            // For cybernetic arms/legs, only allow maintenance steps - block all other surgeries
-            if (isCyberLimb)
-            {
-                bool isMaintenanceStepCheck = stepId.Contains("Cybernetics") || stepId.Contains("Maintenance");
-                if (!isMaintenanceStepCheck)
-                {
-                    continue; // Block all non-maintenance steps for cybernetic limbs
-                }
-            }
-            
-            // For cybernetics maintenance steps, only show if this part has cybernetics
-            bool isMaintenanceStep = stepId.Contains("Cybernetics") || stepId.Contains("Maintenance");
-            if (isMaintenanceStep)
-            {
-                if (!hasCybernetics)
-                {
-                    continue; // Don't show maintenance steps if no cybernetics
-                }
-                
-                // For organ-specific maintenance, check if this is the right organ
-                // (This will be handled by the surgery system showing steps on the correct part)
-            }
-            
-            // Check if step is valid for the selected part type
-            // Get part type from selected part's BodyPartComponent or SurgeryLayerComponent
             BodyPartType? selectedPartType = null;
             if (TryComp<BodyPartComponent>(selectedPart, out var partTypeComp))
             {
@@ -1594,132 +2361,49 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             {
                 selectedPartType = selectedLayer.PartType;
             }
-            
-            if (selectedPartType != null && stepData.ValidPartTypes.Count > 0)
+
+            foreach (var (cachedStepId, stepData) in _cachedStepData)
             {
-                if (!stepData.ValidPartTypes.Contains(selectedPartType.Value))
-                {
+                // Only process cybernetics maintenance steps
+                bool isMaintenanceStep = cachedStepId.Contains("Cybernetics") || cachedStepId.Contains("Maintenance");
+                if (!isMaintenanceStep)
                     continue;
-                }
-            }
 
-            // Step requirements are now optional - show all steps even if requirements aren't met
-            // This allows surgeons to skip steps (e.g., close skin without mending bones)
-            // Complications come from using bad tools or bad conditions, not randomness
-
-            // For organ steps, check if the target organ slot exists on the selected body part
-            if (stepData.Layer == SurgeryLayer.Organ && stepData.TargetOrganSlot != null)
-            {
-                // Check if the selected body part has the target organ slot
-                if (!TryComp<BodyPartComponent>(selectedPart, out var organPartComp))
+                // Check if step is valid for the selected part type
+                if (selectedPartType != null && stepData.ValidPartTypes.Count > 0)
                 {
-                    continue;
-                }
-
-                // Check if the organ slot exists on the selected body part
-                // If the slot doesn't exist (e.g., Diona has no heart slot), don't show the step
-                if (!organPartComp.Organs.ContainsKey(stepData.TargetOrganSlot))
-                {
-                    // Organ slot doesn't exist - this species doesn't have this organ
-                    continue;
-                }
-
-                // Special case: Slimes only have "core" and "lungs" organs
-                // Only allow core removal, not other organ surgeries
-                if (IsSlimeBody(selectedPart))
-                {
-                    // Only show organ steps for "core" removal, hide all other organ steps
-                    if (stepData.TargetOrganSlot != "core")
-                    {
+                    if (!stepData.ValidPartTypes.Contains(selectedPartType.Value))
                         continue;
-                    }
                 }
-            }
 
-            // For slimes, hide generic organ steps (no TargetOrganSlot) unless they're for core
-            if (stepData.Layer == SurgeryLayer.Organ && IsSlimeBody(selectedPart) && stepData.TargetOrganSlot == null)
-            {
-                // Check if this is a core-specific step by checking if selected body part has core slot
-                if (!TryComp<BodyPartComponent>(selectedPart, out var slimePartComp) ||
-                    !slimePartComp.Organs.ContainsKey("core"))
+                // Spawn maintenance step entity
+                var stepEntity = Spawn(stepData.StepId);
+                var stepNetEntity = GetNetEntity(stepEntity);
+                
+                if (!TryComp<SurgeryStepComponent>(stepEntity, out var stepComp))
                 {
+                    Del(stepEntity);
                     continue;
                 }
-            }
-
-            // Check item requirements for plasteel surgeries
-            if (stepId.Contains("PlasteelBonePlating"))
-            {
-                // Check if PlasteelBones item is available
-                if (!availableItems.ContainsKey("PlasteelBones") || availableItems["PlasteelBones"] < 1)
+                
+                switch (stepData.Layer)
                 {
-                    continue; // Don't show step if item isn't available
+                    case SurgeryLayer.Skin:
+                        skinSteps.Add(stepNetEntity);
+                        break;
+                    case SurgeryLayer.Tissue:
+                        tissueSteps.Add(stepNetEntity);
+                        break;
+                    case SurgeryLayer.Organ:
+                        organSteps.Add(stepNetEntity);
+                        break;
                 }
             }
-            else if (stepId.Contains("DermalPlasteelWeave") || stepId.Contains("DermalReinforcement"))
-            {
-                // Check if DurathreadWovenSkin or PlasteelReinforcedSkin item is available
-                bool hasDermalItem = (availableItems.ContainsKey("DurathreadWovenSkin") && availableItems["DurathreadWovenSkin"] > 0) ||
-                                     (availableItems.ContainsKey("PlasteelReinforcedSkin") && availableItems["PlasteelReinforcedSkin"] > 0);
-                if (!hasDermalItem)
-                {
-                    continue; // Don't show step if item isn't available
-                }
-            }
-
-            // Spawn entity only when needed for UI (we need NetEntity for the UI)
-            // This is still necessary but much less frequent than before
-            var stepEntity = Spawn(stepData.StepId);
-            var stepNetEntity = GetNetEntity(stepEntity);
-            
-            if (!TryComp<SurgeryStepComponent>(stepEntity, out var stepComp))
-            {
-                Del(stepEntity);
-                continue;
-            }
-            
-            switch (stepData.Layer)
-            {
-                case SurgeryLayer.Skin:
-                    skinSteps.Add(stepNetEntity);
-                    break;
-                case SurgeryLayer.Tissue:
-                    tissueSteps.Add(stepNetEntity);
-                    break;
-                case SurgeryLayer.Organ:
-                    organSteps.Add(stepNetEntity);
-                    break;
-            }
-            
-            // Keep entity alive for UI, it will be cleaned up when UI closes
-            // Alternatively, we could store just the prototype ID and spawn on demand
         }
 
         // Evaluate operation availability - get first user with UI open
+        // (evalUser and bodyEntity are already defined above, reuse them)
         var stepOperationInfo = new Dictionary<NetEntity, SurgeryStepOperationInfo>();
-        EntityUid? evalUser = null;
-        
-        // Get the body entity to find UI
-        EntityUid? bodyEntity = null;
-        if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartComp) && selectedPartComp.Body != null)
-        {
-            bodyEntity = selectedPartComp.Body.Value;
-        }
-        else if (TryComp<BodyPartComponent>(uid, out var originalPart) && originalPart.Body != null)
-        {
-            bodyEntity = originalPart.Body.Value;
-        }
-        
-        if (bodyEntity != null && TryComp<UserInterfaceComponent>(bodyEntity, out var uiComp))
-        {
-            // Get first user with UI open
-            var actors = _ui.GetActors((bodyEntity.Value, uiComp), Content.Shared.Medical.Surgery.SurgeryUIKey.Key);
-            var actorList = actors.ToList();
-            if (actorList.Count > 0)
-            {
-                evalUser = actorList[0];
-            }
-        }
 
         // Evaluate operation info for all steps
         foreach (var stepNetEntity in skinSteps.Concat(tissueSteps).Concat(organSteps))
@@ -2453,6 +3137,100 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         if (!HasDamageGroup(args.Body, group, out var _)
             && !HasDamageGroup(args.Part, group, out var _))
             args.Cancelled = true;
+    }
+
+    /// <summary>
+    /// Gets all implants in a body part or the body entity.
+    /// Filters by layer: tissue layer implants don't have Organ tag, organ layer implants have Organ tag.
+    /// </summary>
+    public List<(EntityUid Implant, string Name, bool IsOrganLayer)> GetImplantsInBodyPart(EntityUid bodyPart, SurgeryLayer layer)
+    {
+        var implants = new List<(EntityUid, string, bool)>();
+        
+        // Get the body entity
+        EntityUid? bodyEntity = null;
+        if (TryComp<BodyPartComponent>(bodyPart, out var partComp))
+        {
+            bodyEntity = partComp.Body;
+        }
+        else if (HasComp<BodyComponent>(bodyPart))
+        {
+            bodyEntity = bodyPart;
+        }
+
+        if (bodyEntity == null)
+            return implants;
+
+        // Get implants from the body entity's ImplantedComponent
+        if (!TryComp<ImplantedComponent>(bodyEntity.Value, out var implanted))
+            return implants;
+
+        foreach (var implant in implanted.ImplantContainer.ContainedEntities)
+        {
+            if (!HasComp<SubdermalImplantComponent>(implant))
+                continue;
+
+            // Check if this is an organ layer implant (has Organ tag)
+            bool isOrganLayer = Tags.HasTag(implant, "Organ");
+            
+            // Filter by layer
+            if (layer == SurgeryLayer.Tissue && isOrganLayer)
+                continue; // Skip organ implants in tissue layer
+            if (layer == SurgeryLayer.Organ && !isOrganLayer)
+                continue; // Skip tissue implants in organ layer
+
+            var name = MetaData(implant).EntityName;
+            implants.Add((implant, name, isOrganLayer));
+        }
+
+        return implants;
+    }
+
+    /// <summary>
+    /// Gets all organs in a body part with their slot IDs and names.
+    /// </summary>
+    public List<(EntityUid Organ, string SlotId, string Name)> GetOrgansInBodyPart(EntityUid bodyPart)
+    {
+        var organs = new List<(EntityUid, string, string)>();
+
+        if (!TryComp<BodyPartComponent>(bodyPart, out var partComp))
+            return organs;
+
+        var organEntities = _body.GetPartOrgans(bodyPart, partComp);
+        foreach (var (organUid, organ) in organEntities)
+        {
+            var slotId = organ.SlotId ?? "";
+            var name = MetaData(organUid).EntityName;
+            organs.Add((organUid, slotId, name));
+        }
+
+        return organs;
+    }
+
+    /// <summary>
+    /// Gets all empty organ slots in a body part.
+    /// </summary>
+    public List<string> GetEmptyOrganSlots(EntityUid bodyPart)
+    {
+        var emptySlots = new List<string>();
+
+        if (!TryComp<BodyPartComponent>(bodyPart, out var partComp))
+            return emptySlots;
+
+        // Get all organs to find which slots are occupied
+        var existingOrgans = GetOrgansInBodyPart(bodyPart);
+        var occupiedSlots = existingOrgans.Select(o => o.SlotId).ToHashSet();
+
+        // Check all organ slots defined in the body part
+        foreach (var (slotId, _) in partComp.Organs)
+        {
+            if (!occupiedSlots.Contains(slotId))
+            {
+                emptySlots.Add(slotId);
+            }
+        }
+
+        return emptySlots;
     }
 }
 

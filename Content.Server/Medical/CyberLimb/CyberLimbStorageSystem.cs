@@ -24,7 +24,7 @@ namespace Content.Server.Medical.CyberLimb;
 
 /// <summary>
 /// System that handles cyber limb storage with non-stacking behavior and module count caching.
-/// Also handles cyber-organ module counting and efficiency calculation.
+/// Organs no longer have storage, so this system only processes limbs.
 /// </summary>
 public sealed class CyberLimbStorageSystem : EntitySystem
 {
@@ -205,11 +205,7 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         component.NeedsRecalculation = true;
         RecalculateModuleCounts(uid, component, storage);
         
-        // Also recalculate organ efficiency if this is a cyber-organ
-        if (HasComp<OrganComponent>(uid) && TryComp<CyberLimbStorageComponent>(uid, out var cyberStorage))
-        {
-            RecalculateOrganEfficiency(uid, cyberStorage, storage);
-        }
+        // Organs no longer have storage, so organ efficiency recalculation is removed
 
         // Dispatch to other systems
         _stats.OnLimbStorageChanged(uid, component, ref args);
@@ -232,11 +228,7 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         _moduleSystem.OnModuleRemoved(uid, component, ref args);
         _upkeep.OnBatteryChanged(uid, component, ref args);
         
-        // Also recalculate organ efficiency if this is a cyber-organ
-        if (HasComp<OrganComponent>(uid) && TryComp<CyberLimbStorageComponent>(uid, out var cyberStorage))
-        {
-            RecalculateOrganEfficiency(uid, cyberStorage, storage);
-        }
+        // Organs no longer have storage, so organ efficiency recalculation is removed
     }
 
     /// <summary>
@@ -337,35 +329,7 @@ public sealed class CyberLimbStorageSystem : EntitySystem
         return 1.0f + (manipulatorCount - 1) * 0.1f;
     }
 
-    /// <summary>
-    /// Recalculates organ module counts and efficiency for a cyber-organ.
-    /// Uses manipulator modules (same as cyber-limbs) - each manipulator adds 10% efficiency.
-    /// </summary>
-    public void RecalculateOrganEfficiency(EntityUid uid, CyberLimbStorageComponent storage, StorageComponent? storageComp = null)
-    {
-        if (!Resolve(uid, ref storageComp))
-            return;
-
-        if (!TryComp<CyberOrganEfficiencyComponent>(uid, out var efficiency))
-            return;
-
-        // Count manipulator modules (same component used for cyber-limbs)
-        int moduleCount = 0;
-
-        foreach (var item in storageComp.Container.ContainedEntities)
-        {
-            if (HasComp<CyberLimbManipulatorModuleComponent>(item))
-            {
-                moduleCount++;
-            }
-        }
-
-        // Calculate and cache efficiency
-        efficiency.CachedEfficiency = _organEfficiency.CalculateEfficiency(moduleCount);
-        efficiency.CachedModuleCount = moduleCount;
-        efficiency.NeedsRecalculation = false;
-        Dirty(uid, efficiency);
-    }
+    // RecalculateOrganEfficiency removed - organs no longer have storage
 
     /// <summary>
     /// Checks if a cybernetic is currently installed in a body.

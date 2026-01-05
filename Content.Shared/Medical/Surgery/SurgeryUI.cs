@@ -221,3 +221,21 @@ public sealed class SurgeryOperationMethodSelectedMessage : BoundUserInterfaceMe
     }
 }
 
+/// <summary>
+/// Message sent from client to server with items currently in the surgeon's hands.
+/// Used to determine which "Add Implant/Organ" steps should be shown.
+/// </summary>
+[Serializable, NetSerializable]
+public sealed class SurgeryHandItemsMessage : BoundUserInterfaceMessage
+{
+    /// <summary>
+    /// List of items in hands. Each item has its NetEntity and whether it's an implant or organ.
+    /// </summary>
+    public List<(NetEntity Item, bool IsImplant, bool IsOrgan, string Name)> HandItems = new();
+
+    public SurgeryHandItemsMessage(List<(NetEntity, bool, bool, string)> handItems)
+    {
+        HandItems = handItems;
+    }
+}
+

@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Surgery sequence prototypes for bidirectional operations
+# These define step sequences that can be reversed mid-operation
+
+# Retract Skin ↔ Close Skin sequence
+- type: surgerySequence
+  id: RetractSkinSequence
+  layer: Skin
+  forwardSteps:
+    - SurgeryStepRetractSkin1
+    - SurgeryStepRetractSkin2
+  reverseSteps:
+    - SurgeryStepCloseSkin2
+    - SurgeryStepCloseSkin1
+  pairedSequence: CloseSkinSequence
+
+- type: surgerySequence
+  id: CloseSkinSequence
+  layer: Skin
+  forwardSteps:
+    - SurgeryStepCloseSkin1
+    - SurgeryStepCloseSkin2
+  reverseSteps:
+    - SurgeryStepRetractSkin2
+    - SurgeryStepRetractSkin1
+  pairedSequence: RetractSkinSequence
+
+# Retract Tissue ↔ Mend Tissue sequence
+- type: surgerySequence
+  id: RetractTissueSequence
+  layer: Tissue
+  forwardSteps:
+    - SurgeryStepRetractTissue1
+    - SurgeryStepSawBonesTorso
+    - SurgeryStepRetractTissue2
+  reverseSteps:
+    - SurgeryStepMendTissue2
+    - SurgeryStepMendBones
+    - SurgeryStepMendTissue1
+  pairedSequence: MendTissueSequence
+
+- type: surgerySequence
+  id: MendTissueSequence
+  layer: Tissue
+  forwardSteps:
+    - SurgeryStepMendTissue1
+    - SurgeryStepMendBones
+    - SurgeryStepMendTissue2
+  reverseSteps:
+    - SurgeryStepRetractTissue2
+    - SurgeryStepSawBonesTorso
+    - SurgeryStepRetractTissue1
+  pairedSequence: RetractTissueSequence

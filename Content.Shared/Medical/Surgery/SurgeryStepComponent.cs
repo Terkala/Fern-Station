@@ -92,6 +92,32 @@ public sealed partial class SurgeryStepComponent : Component
     /// </summary>
     [DataField]
     public ProtoId<SurgeryOperationPrototype>? OperationId;
+
+    /// <summary>
+    /// Which sequence this step belongs to (e.g., "RetractSkinSequence").
+    /// Used for bidirectional operations.
+    /// </summary>
+    [DataField]
+    public string? SequenceId;
+
+    /// <summary>
+    /// Position of this step within its sequence (0-based).
+    /// Used to determine next available step in forward or reverse direction.
+    /// </summary>
+    [DataField]
+    public int SequenceIndex = -1;
+
+    /// <summary>
+    /// Whether this step can be reversed by a paired reverse step.
+    /// </summary>
+    [DataField]
+    public bool IsReversible = false;
+
+    /// <summary>
+    /// For implant steps: which implant slot/container this targets.
+    /// </summary>
+    [DataField]
+    public string? TargetImplantSlot;
 }
 
 /// <summary>

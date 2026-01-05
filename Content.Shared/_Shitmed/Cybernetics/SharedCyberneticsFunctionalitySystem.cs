@@ -124,6 +124,11 @@ public sealed class SharedCyberneticsFunctionalitySystem : EntitySystem
                 }
             }
         }
+
+        // Evaluate power-drawing modules (server-side only)
+        // Raise an event that server-side systems can subscribe to
+        var ev = new EvaluatePowerDrawModulesEvent(body);
+        RaiseLocalEvent(body, ref ev);
     }
 
     /// <summary>

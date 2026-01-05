@@ -10,6 +10,7 @@ using Content.Shared.Medical.CyberLimb.Modules;
 using Content.Shared.Medical.Integrity;
 using Content.Shared._Shitmed.Cybernetics;
 using Content.Shared.Storage;
+using Content.Shared.Implants.Components;
 using Content.Server.Power.Components;
 using Content.Server.Power.EntitySystems;
 using Robust.Shared.Containers;
@@ -28,6 +29,7 @@ public sealed class CyberLimbStatsSystem : EntitySystem
     [Dependency] private readonly CyberLimbLowPowerModeSystem _lowPowerMode = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly BatterySystem _battery = default!;
+    [Dependency] private readonly SharedCyberneticsFunctionalitySystem _cyberneticsFunctionality = default!;
 
     private const float BatteryUpdateInterval = 1.0f; // Update every 1 second instead of every tick
     private const float ServiceTimeUpdateInterval = 1.0f; // Update every 1 second
@@ -239,13 +241,44 @@ public sealed class CyberLimbStatsSystem : EntitySystem
             // Calculate total capacity (sum of all battery modules)
             var totalCapacity = totalBattery;
             
-            // Calculate power draw: watts = (totalCapacity / BaselineDurationSeconds) * cyberneticsCount
+            // Calculate base power draw from limbs: watts = (totalCapacity / BaselineDurationSeconds) * cyberneticsCount
             // Where BaselineDurationSeconds = 20 minutes (1200 seconds)
             var wattsPerCybernetic = totalCapacity / CyberneticsUpkeepComponent.BaselineDurationSeconds;
-            stats.CachedPowerDrawWatts = wattsPerCybernetic * cyberLimbs.Count;
+            var basePowerDraw = wattsPerCybernetic * cyberLimbs.Count;
             
-            // Update BatteryComponent max charge
-            _battery.SetMaxCharge(body, totalCapacity, battery);
+            // Add power draw from cyber-implants
+            float implantPowerDraw = 0f;
+            if (TryComp<ImplantedComponent>(body, out var implanted))
+            {
+                foreach (var implantEntity in implanted.ImplantContainer.ContainedEntities)
+                {
+                    if (TryComp<CyberImplantPowerDrawComponent>(implantEntity, out var powerDraw))
+                    {
+                        implantPowerDraw += powerDraw.PowerDrawWatts;
+                    }
+                }
+            }
+            stats.CachedPowerDrawWatts = basePowerDraw + implantPowerDraw;
+            
+            // Add battery capacity from cyber-implants
+            float implantBatteryCapacity = 0f;
+            if (TryComp<ImplantedComponent>(body, out var implantedForBattery))
+            {
+                foreach (var implantEntity in implantedForBattery.ImplantContainer.ContainedEntities)
+                {
+                    if (TryComp<CyberImplantBatteryComponent>(implantEntity, out var implantBattery))
+                    {
+                        implantBatteryCapacity += implantBattery.MaxCharge;
+                    }
+                }
+            }
+            var totalCapacityWithImplants = totalCapacity + implantBatteryCapacity;
+            
+            // Update BatteryComponent max charge (including implant batteries)
+            _battery.SetMaxCharge(body, totalCapacityWithImplants, battery);
+            
+            // After updating battery capacity, trigger re-evaluation of power-drawing modules
+            _cyberneticsFunctionality.EvaluateAllCybernetics(body);
             
             // Initialize battery charge if not set and BatteryComponent is empty
             if (battery.CurrentCharge == 0f && totalCapacity > 0f)
@@ -421,6 +454,10 @@ public sealed class CyberLimbStatsSystem : EntitySystem
 
             // Recalculate final efficiency for all limbs
             RecalculateAllLimbEfficiency(body);
+
+            // Re-evaluate power-drawing modules when battery depletion state changes
+            var powerDrawSystem = EntitySystem.Get<CyberLimbPowerDrawSystem>();
+            powerDrawSystem.EvaluateAllPowerDrawModules(body);
         }
     }
 

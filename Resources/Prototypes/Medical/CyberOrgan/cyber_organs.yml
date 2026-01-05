@@ -280,24 +280,10 @@
     size: Normal
     shape:
     - 0,0,1,1  # 2x2 = 4 slots
-  - type: Storage
-    grid:
-    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 0.8
 
 # ============================================
 # BASIC CYBER-ORGANS (Tier 1 Civilian, 3x2 storage)
@@ -317,24 +303,10 @@
     size: Large
     shape:
     - 0,0,2,1  # 3x2 = 6 slots
-  - type: Storage
-    grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.0
 
 # ============================================
 # ADVANCED CYBER-ORGANS (Tier 2 Civilian, 4x2 storage)
@@ -354,24 +326,10 @@
     size: Large
     shape:
     - 0,0,3,1  # 4x2 = 8 slots
-  - type: Storage
-    grid:
-    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.2
 
 # ============================================
 # EXPERIMENTAL CYBER-ORGANS (Tier 3 Civilian, 5x2 storage)
@@ -391,24 +349,10 @@
     size: Huge
     shape:
     - 0,0,4,1  # 5x2 = 10 slots
-  - type: Storage
-    grid:
-    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.4
 
 # ============================================
 # CYBER-EYES
@@ -430,24 +374,10 @@
     size: Normal
     shape:
     - 0,0,1,1  # 2x2 = 4 slots
-  - type: Storage
-    grid:
-    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 0.8
 
 - type: entity
   parent: BaseCyberEyes
@@ -461,24 +391,10 @@
     layers:
       - state: eyeball-l
       - state: eyeball-r
-  - type: Storage
-    grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.0
 
 - type: entity
   parent: BaseCyberEyes
@@ -492,24 +408,10 @@
     layers:
       - state: eyeball-l
       - state: eyeball-r
-  - type: Storage
-    grid:
-    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.2
 
 - type: entity
   parent: BaseCyberEyes
@@ -523,24 +425,10 @@
     layers:
       - state: eyeball-l
       - state: eyeball-r
-  - type: Storage
-    grid:
-    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.4
 
 # ============================================
 # CYBER-LUNGS
@@ -562,26 +450,10 @@
     size: Large
     shape:
     - 0,0,1,4  # 2x5 bounding box = 10 slots area (8 slots actual storage)
-  - type: Storage
-    grid:
-    - 0,0,2,2  # 2x2 square for gas processing module
-    - 0,3,2,1  # First row of width 2
-    - 0,4,2,1  # Second row of width 2
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 0.8
 
 - type: entity
   parent: BaseCyberLungs
@@ -599,26 +471,10 @@
     size: Huge
     shape:
     - 0,0,2,4  # 3x5 bounding box = 10 slots (actual 10 slots used)
-  - type: Storage
-    grid:
-    - 0,0,2,2  # 2x2 square for gas processing module
-    - 0,3,3,1  # First row of width 3
-    - 0,4,3,1  # Second row of width 3
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.0
 
 - type: entity
   parent: BaseCyberLungs
@@ -636,26 +492,10 @@
     size: Huge
     shape:
     - 0,0,3,4  # 4x5 bounding box = 12 slots (actual 12 slots used)
-  - type: Storage
-    grid:
-    - 0,0,2,2  # 2x2 square for gas processing module
-    - 0,3,4,1  # First row of width 4
-    - 0,4,4,1  # Second row of width 4
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.2
 
 - type: entity
   parent: BaseCyberLungs
@@ -673,26 +513,10 @@
     size: Huge
     shape:
     - 0,0,4,4  # 5x5 bounding box = 14 slots (actual 14 slots used)
-  - type: Storage
-    grid:
-    - 0,0,2,2  # 2x2 square for gas processing module
-    - 0,3,5,1  # First row of width 5
-    - 0,4,5,1  # Second row of width 5
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.4
 
 # ============================================
 # CYBER-STOMACH
@@ -712,24 +536,10 @@
     size: Normal
     shape:
     - 0,0,1,1  # 2x2 = 4 slots
-  - type: Storage
-    grid:
-    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 0.8
 
 - type: entity
   parent: BaseCyberStomach
@@ -745,24 +555,10 @@
     size: Large
     shape:
     - 0,0,2,1  # 3x2 = 6 slots
-  - type: Storage
-    grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.0
 
 - type: entity
   parent: BaseCyberStomach
@@ -778,24 +574,10 @@
     size: Large
     shape:
     - 0,0,3,1  # 4x2 = 8 slots
-  - type: Storage
-    grid:
-    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.2
 
 - type: entity
   parent: BaseCyberStomach
@@ -811,24 +593,10 @@
     size: Huge
     shape:
     - 0,0,4,1  # 5x2 = 10 slots
-  - type: Storage
-    grid:
-    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.4
 
 # ============================================
 # CYBER-LIVER
@@ -848,24 +616,10 @@
     size: Normal
     shape:
     - 0,0,1,1  # 2x2 = 4 slots
-  - type: Storage
-    grid:
-    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 0.8
 
 - type: entity
   parent: BaseCyberLiver
@@ -881,24 +635,10 @@
     size: Large
     shape:
     - 0,0,2,1  # 3x2 = 6 slots
-  - type: Storage
-    grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.0
 
 - type: entity
   parent: BaseCyberLiver
@@ -914,24 +654,10 @@
     size: Large
     shape:
     - 0,0,3,1  # 4x2 = 8 slots
-  - type: Storage
-    grid:
-    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.2
 
 - type: entity
   parent: BaseCyberLiver
@@ -947,24 +673,10 @@
     size: Huge
     shape:
     - 0,0,4,1  # 5x2 = 10 slots
-  - type: Storage
-    grid:
-    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.4
 
 # ============================================
 # CYBER-KIDNEYS
@@ -986,24 +698,10 @@
     size: Normal
     shape:
     - 0,0,1,1  # 2x2 = 4 slots
-  - type: Storage
-    grid:
-    - 0,0,2,2  # 2 rows x 2 columns = 4 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 0.8
 
 - type: entity
   parent: BaseCyberKidneys
@@ -1021,24 +719,10 @@
     size: Large
     shape:
     - 0,0,2,1  # 3x2 = 6 slots
-  - type: Storage
-    grid:
-    - 0,0,3,2  # 2 rows x 3 columns = 6 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.0
 
 - type: entity
   parent: BaseCyberKidneys
@@ -1056,24 +740,10 @@
     size: Large
     shape:
     - 0,0,3,1  # 4x2 = 8 slots
-  - type: Storage
-    grid:
-    - 0,0,4,2  # 2 rows x 4 columns = 8 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.2
 
 - type: entity
   parent: BaseCyberKidneys
@@ -1091,24 +761,10 @@
     size: Huge
     shape:
     - 0,0,4,1  # 5x2 = 10 slots
-  - type: Storage
-    grid:
-    - 0,0,5,2  # 2 rows x 5 columns = 10 slots
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.4
 
 # ============================================
 # CYBER-NYMPH ORGANS (Diona-specific, 2x size with disconnected grids)
@@ -1133,25 +789,10 @@
     shape:
     - 0,0,1,4  # 2x5 bounding box = 10 slots area (8 slots actual storage)
     heldPrefix: lungs
-  - type: Storage
-    grid:
-    - 0,0,2,2  # First 2x2 grid
-    - 0,3,2,2  # Second 2x2 grid (disconnected, 1 row gap)
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 0.8
   - type: OrganCompatibility
     compatibleSpecies:
       - Diona
@@ -1172,25 +813,10 @@
     shape:
     - 0,0,2,4  # 3x5 bounding box = 15 slots area (12 slots actual storage)
     heldPrefix: lungs
-  - type: Storage
-    grid:
-    - 0,0,3,2  # First 3x2 grid
-    - 0,3,3,2  # Second 3x2 grid (disconnected, 1 row gap)
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.0
   - type: OrganCompatibility
     compatibleSpecies:
       - Diona
@@ -1211,25 +837,10 @@
     shape:
     - 0,0,3,4  # 4x5 bounding box = 20 slots area (16 slots actual storage)
     heldPrefix: lungs
-  - type: Storage
-    grid:
-    - 0,0,4,2  # First 4x2 grid
-    - 0,3,4,2  # Second 4x2 grid (disconnected, 1 row gap)
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.2
   - type: OrganCompatibility
     compatibleSpecies:
       - Diona
@@ -1250,25 +861,10 @@
     shape:
     - 0,0,4,4  # 5x5 bounding box = 25 slots area (20 slots actual storage)
     heldPrefix: lungs
-  - type: Storage
-    grid:
-    - 0,0,5,2  # First 5x2 grid
-    - 0,3,5,2  # Second 5x2 grid (disconnected, 1 row gap)
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.4
   - type: OrganCompatibility
     compatibleSpecies:
       - Diona
@@ -1293,25 +889,10 @@
     shape:
     - 0,0,1,4  # 2x5 bounding box = 10 slots area (8 slots actual storage)
     heldPrefix: stomach
-  - type: Storage
-    grid:
-    - 0,0,2,2  # First 2x2 grid
-    - 0,3,2,2  # Second 2x2 grid (disconnected, 1 row gap)
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 0.8
   - type: OrganCompatibility
     compatibleSpecies:
       - Diona
@@ -1332,25 +913,10 @@
     shape:
     - 0,0,2,4  # 3x5 bounding box = 15 slots area (12 slots actual storage)
     heldPrefix: stomach
-  - type: Storage
-    grid:
-    - 0,0,3,2  # First 3x2 grid
-    - 0,3,3,2  # Second 3x2 grid (disconnected, 1 row gap)
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.0
   - type: OrganCompatibility
     compatibleSpecies:
       - Diona
@@ -1371,25 +937,10 @@
     shape:
     - 0,0,3,4  # 4x5 bounding box = 20 slots area (16 slots actual storage)
     heldPrefix: stomach
-  - type: Storage
-    grid:
-    - 0,0,4,2  # First 4x2 grid
-    - 0,3,4,2  # Second 4x2 grid (disconnected, 1 row gap)
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.2
   - type: OrganCompatibility
     compatibleSpecies:
       - Diona
@@ -1410,25 +961,10 @@
     shape:
     - 0,0,4,4  # 5x5 bounding box = 25 slots area (20 slots actual storage)
     heldPrefix: stomach
-  - type: Storage
-    grid:
-    - 0,0,5,2  # First 5x2 grid
-    - 0,3,5,2  # Second 5x2 grid (disconnected, 1 row gap)
-    maxItemSize: Small
-  - type: ContainerContainer
-    containers:
-      storagebase: !type:Container
-        ents: []
-  - type: UserInterface
-    interfaces:
-      enum.StorageUiKey.Key:
-        type: StorageBoundUserInterface
-  - type: CyberLimbStorage
-  - type: CyberLimbInspectable
-  - type: CyberLimbMaintenance
   - type: CyberneticIntegrity
     baseIntegrityCost: 1.0
   - type: CyberOrganEfficiency
+    baseEfficiency: 1.4
   - type: OrganCompatibility
     compatibleSpecies:
       - Diona

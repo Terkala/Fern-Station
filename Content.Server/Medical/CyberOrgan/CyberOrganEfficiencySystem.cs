@@ -30,125 +30,28 @@ public sealed class CyberOrganEfficiencySystem : EntitySystem
 
         // Single subscription point to avoid duplicate subscriptions across multiple systems
         SubscribeLocalEvent<CyberOrganEfficiencyComponent, ComponentStartup>(OnEfficiencyStartup);
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, EntInsertedIntoContainerMessage>(OnStorageInserted);
-        SubscribeLocalEvent<CyberOrganEfficiencyComponent, EntRemovedFromContainerMessage>(OnStorageRemoved);
+        // Storage subscriptions removed - organs no longer have storage
     }
 
     /// <summary>
-    /// Centralized handler that dispatches to the appropriate organ-specific system.
+    /// Centralized handler that sets efficiency from BaseEfficiency field.
     /// </summary>
     private void OnEfficiencyStartup(EntityUid uid, CyberOrganEfficiencyComponent component, ComponentStartup args)
     {
-        // Dispatch to appropriate system based on organ type
-        if (HasComp<LungComponent>(uid))
-        {
-            _lungEfficiency.OnLungEfficiencyStartup(uid, component);
-        }
-        else if (HasComp<HeartComponent>(uid))
-        {
-            _heartEfficiency.OnHeartEfficiencyStartup(uid, component);
-        }
-        else if (HasComp<StomachComponent>(uid))
-        {
-            _stomachEfficiency.OnStomachEfficiencyStartup(uid, component);
-        }
-        else if (HasComp<EyeComponent>(uid))
-        {
-            _eyeEfficiency.OnEyeEfficiencyStartup(uid, component);
-        }
-        // Kidneys don't need startup, they work continuously via Update()
+        // Set efficiency directly from BaseEfficiency (no module-based calculation)
+        component.CachedEfficiency = component.BaseEfficiency;
+        Dirty(uid, component);
     }
 
-    /// <summary>
-    /// Centralized handler for container insertion events that dispatches to the appropriate organ-specific system.
-    /// </summary>
-    private void OnStorageInserted(EntityUid uid, CyberOrganEfficiencyComponent component, ref EntInsertedIntoContainerMessage args)
-    {
-        // Dispatch to appropriate system based on organ type
-        if (HasComp<LungComponent>(uid))
-        {
-            // Lungs don't need storage change handling
-        }
-        else if (HasComp<HeartComponent>(uid))
-        {
-            _heartEfficiency.OnHeartStorageChanged(uid, component);
-        }
-        else if (HasComp<StomachComponent>(uid))
-        {
-            _stomachEfficiency.OnStomachStorageChanged(uid, component);
-        }
-        else if (HasComp<EyeComponent>(uid))
-        {
-            _eyeEfficiency.OnEyeStorageChanged(uid, component);
-        }
-        // Kidneys don't need storage change handling
-    }
 
     /// <summary>
-    /// Centralized handler for container removal events that dispatches to the appropriate organ-specific system.
-    /// </summary>
-    private void OnStorageRemoved(EntityUid uid, CyberOrganEfficiencyComponent component, ref EntRemovedFromContainerMessage args)
-    {
-        // Dispatch to appropriate system based on organ type
-        if (HasComp<LungComponent>(uid))
-        {
-            // Lungs don't need storage change handling
-        }
-        else if (HasComp<HeartComponent>(uid))
-        {
-            _heartEfficiency.OnHeartStorageChanged(uid, component);
-        }
-        else if (HasComp<StomachComponent>(uid))
-        {
-            _stomachEfficiency.OnStomachStorageChanged(uid, component);
-        }
-        else if (HasComp<EyeComponent>(uid))
-        {
-            _eyeEfficiency.OnEyeStorageChanged(uid, component);
-        }
-        // Kidneys don't need storage change handling
-    }
-
-    /// <summary>
-    /// Calculates efficiency based on module count.
-    /// Base: 100% (1.0) for first module, +10% for each additional.
-    /// Returns 0% if no modules (for organs that require modules).
-    /// </summary>
-    public float CalculateEfficiency(int moduleCount)
-    {
-        if (moduleCount == 0)
-            return 0f; // No modules = 0% efficiency
-
-        // Base 100% for first module, +10% for each additional
-        return 1.0f + (moduleCount - 1) * 0.1f;
-    }
-
-    /// <summary>
-    /// Gets the final efficiency for an organ, applying battery and service time penalties.
-    /// Final efficiency = (base + module_bonus) * battery_penalty * service_time_penalty
+    /// Gets the final efficiency for an organ.
+    /// Organs no longer have battery or service time penalties - they use flat efficiency values.
     /// </summary>
     public float GetFinalEfficiency(EntityUid organ, CyberOrganEfficiencyComponent efficiency)
     {
-        var baseEfficiency = efficiency.CachedEfficiency;
-
-        // Get battery penalty from body (shared across all cyber parts)
-        float batteryPenalty = 1.0f;
-        if (TryComp<BodyPartComponent>(organ, out var part) && part.Body != null)
-        {
-            if (TryComp<CyberLimbStatsComponent>(part.Body.Value, out var bodyStats))
-            {
-                batteryPenalty = bodyStats.CachedEfficiencyPenalty;
-            }
-        }
-
-        // Get service time penalty from this specific organ's storage
-        float serviceTimePenalty = 1.0f;
-        if (TryComp<CyberLimbStorageComponent>(organ, out var storage))
-        {
-            serviceTimePenalty = storage.IsServiceTimeExpired ? 0.5f : 1.0f;
-        }
-
-        return baseEfficiency * batteryPenalty * serviceTimePenalty;
+        // Organs use flat efficiency values - no penalties
+        return efficiency.CachedEfficiency;
     }
 }
 

@@ -37,16 +37,7 @@ public sealed class CyberStomachEfficiencySystem : EntitySystem
         UpdateStomachEfficiency(uid, component);
     }
 
-    /// <summary>
-    /// Called by CyberOrganEfficiencySystem when storage changes for a cyber organ with stomach.
-    /// </summary>
-    public void OnStomachStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component)
-    {
-        if (!HasComp<StomachComponent>(uid))
-            return;
-
-        UpdateStomachEfficiency(uid, component);
-    }
+    // Storage change handler removed - organs no longer have storage
 
     /// <summary>
     /// Updates stomach efficiency effects: size scaling and module effects.
@@ -62,8 +53,7 @@ public sealed class CyberStomachEfficiencySystem : EntitySystem
         // Apply stomach size scaling
         ApplyStomachSizeScaling(stomachUid, finalEfficiency);
 
-        // Update poison filter and species metabolism
-        UpdateStomachModules(stomachUid, body);
+        // Organs no longer have storage, so module effects are removed
     }
 
     /// <summary>
@@ -82,30 +72,7 @@ public sealed class CyberStomachEfficiencySystem : EntitySystem
         // MaxVolume is stored in the solution, not the stomach component
     }
 
-    /// <summary>
-    /// Updates stomach module effects: poison filter and species metabolism.
-    /// </summary>
-    private void UpdateStomachModules(EntityUid stomachUid, EntityUid body)
-    {
-        if (!TryComp<StorageComponent>(stomachUid, out var storage))
-            return;
-
-        ProtoId<EntityPrototype>? targetSpecies = null;
-
-        foreach (var item in storage.Container.ContainedEntities)
-        {
-            if (TryComp<CyberStomachSpeciesMetabolismModuleComponent>(item, out var speciesModule))
-            {
-                targetSpecies = speciesModule.TargetSpecies;
-            }
-        }
-
-        // Apply poison filter (grants SpecialDigestible whitelist like rats)
-        // TODO: Implement SpecialDigestible component/flag
-
-        // Apply species metabolism (adds species tag for food digestion)
-        // TODO: Implement species tag addition for food digestion
-    }
+    // UpdateStomachModules removed - organs no longer have storage
 
     /// <summary>
     /// Gets the chemical multiplier for food digestion based on stomach efficiency.
@@ -123,37 +90,19 @@ public sealed class CyberStomachEfficiencySystem : EntitySystem
 
     /// <summary>
     /// Checks if stomach has poison filter module.
+    /// Organs no longer have storage, so this always returns false.
     /// </summary>
     public bool HasPoisonFilter(EntityUid stomachUid)
     {
-        if (!TryComp<StorageComponent>(stomachUid, out var storage))
-            return false;
-
-        foreach (var item in storage.Container.ContainedEntities)
-        {
-            if (HasComp<CyberStomachPoisonFilterModuleComponent>(item))
-                return true;
-        }
-
         return false;
     }
 
     /// <summary>
     /// Gets the target species for metabolism if species metabolism module is present.
+    /// Organs no longer have storage, so this always returns null.
     /// </summary>
     public ProtoId<EntityPrototype>? GetTargetSpecies(EntityUid stomachUid)
     {
-        if (!TryComp<StorageComponent>(stomachUid, out var storage))
-            return null;
-
-        foreach (var item in storage.Container.ContainedEntities)
-        {
-            if (TryComp<CyberStomachSpeciesMetabolismModuleComponent>(item, out var speciesModule))
-            {
-                return speciesModule.TargetSpecies;
-            }
-        }
-
         return null;
     }
 }

@@ -39,16 +39,7 @@ public sealed class CyberHeartEfficiencySystem : EntitySystem
         UpdateHeartEfficiency(uid, component);
     }
 
-    /// <summary>
-    /// Called by CyberOrganEfficiencySystem when storage changes for a cyber organ with heart.
-    /// </summary>
-    public void OnHeartStorageChanged(EntityUid uid, CyberOrganEfficiencyComponent component)
-    {
-        if (!HasComp<HeartComponent>(uid))
-            return;
-
-        UpdateHeartEfficiency(uid, component);
-    }
+    // Storage change handler removed - organs no longer have storage
 
     /// <summary>
     /// Updates heart efficiency effects: stamina regeneration.

@@ -99,12 +99,11 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         if (!args.CanAccess || !args.CanInteract)
             return;
 
-        // Collect all cybernetics with storage (both body parts and organs)
+        // Collect all cybernetics with storage (only body parts, organs no longer have storage)
         var cyberneticsWithStorage = new List<(EntityUid Uid, string Name, bool IsPanelOpen)>();
         var allParts = _body.GetBodyChildren(uid, component);
-        var allOrgans = _body.GetBodyOrgans(uid, component);
         
-        // Check body parts
+        // Check body parts (organs no longer have storage)
         foreach (var (partUid, _) in allParts)
         {
             // Check if this is a cyber part with storage
@@ -118,22 +117,6 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
             var isPanelOpen = TryComp<CyberneticsUpkeepComponent>(partUid, out var upkeep) && upkeep.IsPanelUnscrewed;
             
             cyberneticsWithStorage.Add((partUid, partName, isPanelOpen));
-        }
-
-        // Check organs
-        foreach (var (organUid, _) in allOrgans)
-        {
-            // Check if this is a cyber organ with storage
-            if (!HasComp<CyberneticsComponent>(organUid))
-                continue;
-
-            if (!TryComp<StorageComponent>(organUid, out _))
-                continue;
-
-            var organName = MetaData(organUid).EntityName ?? "cybernetics";
-            var isPanelOpen = TryComp<CyberneticsUpkeepComponent>(organUid, out var upkeep) && upkeep.IsPanelUnscrewed;
-            
-            cyberneticsWithStorage.Add((organUid, organName, isPanelOpen));
         }
 
         if (cyberneticsWithStorage.Count == 0)
@@ -188,9 +171,8 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
         // Collect all cybernetics with storage (both body parts and organs)
         var cybernetics = new List<CyberneticData>();
         var allParts = _body.GetBodyChildren(body, bodyComp);
-        var allOrgans = _body.GetBodyOrgans(body, bodyComp);
 
-        // Check body parts
+        // Check body parts (organs no longer have storage)
         foreach (var (partUid, _) in allParts)
         {
             if (!HasComp<CyberneticsComponent>(partUid))
@@ -203,21 +185,6 @@ public sealed class CyberneticsUpkeepSystem : EntitySystem
             var isPanelOpen = TryComp<CyberneticsUpkeepComponent>(partUid, out var upkeep) && upkeep.IsPanelUnscrewed;
 
             cybernetics.Add(new CyberneticData(GetNetEntity(partUid), partName, isPanelOpen));
-        }
-
-        // Check organs
-        foreach (var (organUid, _) in allOrgans)
-        {
-            if (!HasComp<CyberneticsComponent>(organUid))
-                continue;
-
-            if (!TryComp<StorageComponent>(organUid, out _))
-                continue;
-
-            var organName = MetaData(organUid).EntityName ?? "cybernetics";
-            var isPanelOpen = TryComp<CyberneticsUpkeepComponent>(organUid, out var upkeep) && upkeep.IsPanelUnscrewed;
-
-            cybernetics.Add(new CyberneticData(GetNetEntity(organUid), organName, isPanelOpen));
         }
 
         if (cybernetics.Count == 0)

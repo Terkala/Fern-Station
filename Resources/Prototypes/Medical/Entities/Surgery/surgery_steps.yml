@@ -12,43 +12,64 @@
 
 # ===== SKIN LAYER STEPS =====
 
-# Retract skin on torso
+# Retract Skin Sequence - Step 1
 - type: entity
   parent: SurgeryStepBase
-  id: SurgeryStepRetractSkinTorso
-  name: Retract Skin (Torso)
+  id: SurgeryStepRetractSkin1
+  name: Retract Skin (Step 1/2)
   categories: [ HideSpawnMenu ]
   components:
   - type: SurgeryStep
     layer: Skin
-    validPartTypes:
-      - Torso
+    sequenceId: RetractSkinSequence
+    sequenceIndex: 0
+    isReversible: true
+    operationId: RetractTissue
     duration: 2.0
 
-# Retract skin on arm
+# Retract Skin Sequence - Step 2
 - type: entity
   parent: SurgeryStepBase
-  id: SurgeryStepRetractSkinArm
-  name: Retract Skin (Arm)
+  id: SurgeryStepRetractSkin2
+  name: Retract Skin (Step 2/2)
   categories: [ HideSpawnMenu ]
   components:
   - type: SurgeryStep
     layer: Skin
-    validPartTypes:
-      - Arm
+    sequenceId: RetractSkinSequence
+    sequenceIndex: 1
+    isReversible: true
+    operationId: RetractTissue
     duration: 2.0
 
-# Retract skin on head
+# Close Skin Sequence - Step 1
 - type: entity
   parent: SurgeryStepBase
-  id: SurgeryStepRetractSkinHead
-  name: Retract Skin (Head)
+  id: SurgeryStepCloseSkin1
+  name: Close Skin (Step 1/2)
   categories: [ HideSpawnMenu ]
   components:
   - type: SurgeryStep
     layer: Skin
-    validPartTypes:
-      - Head
+    sequenceId: CloseSkinSequence
+    sequenceIndex: 0
+    isReversible: true
+    operationId: ProperlyRetractTissue
+    duration: 2.0
+
+# Close Skin Sequence - Step 2
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepCloseSkin2
+  name: Close Skin (Step 2/2)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    sequenceId: CloseSkinSequence
+    sequenceIndex: 1
+    isReversible: true
+    operationId: ProperlyRetractTissue
     duration: 2.0
 
 # Treat brute wounds (skin level)
@@ -93,21 +114,24 @@
 
 # ===== TISSUE LAYER STEPS =====
 
-# Retract tissue (requires skin retracted)
+# Retract Tissue Sequence - Step 1
 - type: entity
   parent: SurgeryStepBase
-  id: SurgeryStepRetractTissue
-  name: Retract Tissue
+  id: SurgeryStepRetractTissue1
+  name: Retract Tissue (Step 1/3)
   categories: [ HideSpawnMenu ]
   components:
   - type: SurgeryStep
     layer: Tissue
+    sequenceId: RetractTissueSequence
+    sequenceIndex: 0
+    isReversible: true
     operationId: RetractTissue
     requirements:
       requiresSkinRetracted: true
     duration: 2.5
 
-# Saw through bones (torso) - requires tissue retracted
+# Retract Tissue Sequence - Step 2 (Saw Bones)
 - type: entity
   parent: SurgeryStepBase
   id: SurgeryStepSawBonesTorso
@@ -116,6 +140,9 @@
   components:
   - type: SurgeryStep
     layer: Tissue
+    sequenceId: RetractTissueSequence
+    sequenceIndex: 1
+    isReversible: true
     operationId: BoneRemoval
     validPartTypes:
       - Torso
@@ -123,6 +150,71 @@
       requiresSkinRetracted: true
       requiresTissueRetracted: true
     duration: 4.0
+
+# Retract Tissue Sequence - Step 3
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRetractTissue2
+  name: Retract Tissue (Step 3/3)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    sequenceId: RetractTissueSequence
+    sequenceIndex: 2
+    isReversible: true
+    operationId: RetractTissue
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+      requiresBonesSawed: true
+    duration: 2.5
+
+# Mend Tissue Sequence - Step 1
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepMendTissue1
+  name: Mend Tissue (Step 1/3)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    sequenceId: MendTissueSequence
+    sequenceIndex: 0
+    isReversible: true
+    operationId: ProperlyRetractTissue
+    duration: 2.5
+
+# Mend Tissue Sequence - Step 2 (Mend Bones)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepMendBones
+  name: Mend Bones
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    sequenceId: MendTissueSequence
+    sequenceIndex: 1
+    isReversible: true
+    operationId: MendBones
+    duration: 3.0
+
+# Mend Tissue Sequence - Step 3
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepMendTissue2
+  name: Mend Tissue (Step 3/3)
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    sequenceId: MendTissueSequence
+    sequenceIndex: 2
+    isReversible: true
+    operationId: ProperlyRetractTissue
+    duration: 2.5
+
 
 # Saw through skull (head) - requires tissue retracted
 - type: entity
@@ -263,7 +355,7 @@
       requiresBonesSawed: true
     duration: 3.0
 
-# Remove organ
+# Remove organ (generic - dynamically named per organ)
 - type: entity
   parent: SurgeryStepBase
   id: SurgeryStepRemoveOrgan
@@ -273,6 +365,84 @@
   - type: SurgeryStep
     layer: Organ
     operationId: RemoveOrgan
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+      requiresBonesSawed: true
+    duration: 2.0
+
+# Insert organ (generic - dynamically named per organ)
+- type: entity
+  parent: SurgeryStepBase
+  id: NewSurgeryStepInsertOrgan
+  name: Insert Organ
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Organ
+    operationId: InsertOrgan
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+      requiresBonesSawed: true
+    duration: 2.0
+
+# Remove implant (generic - dynamically named per implant)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRemoveImplant
+  name: Remove Implant
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    operationId: RemoveOrgan
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+    duration: 2.0
+
+# Add implant (generic - dynamically named per implant)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepAddImplant
+  name: Add Implant
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Tissue
+    operationId: InsertOrgan
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+    duration: 2.0
+
+# Remove organ implant (generic - dynamically named per implant)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRemoveOrganImplant
+  name: Remove Organ Implant
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Organ
+    operationId: RemoveOrgan
+    requirements:
+      requiresSkinRetracted: true
+      requiresTissueRetracted: true
+      requiresBonesSawed: true
+    duration: 2.0
+
+# Add organ implant (generic - dynamically named per implant)
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepAddOrganImplant
+  name: Add Organ Implant
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Organ
+    operationId: InsertOrgan
     requirements:
       requiresSkinRetracted: true
       requiresTissueRetracted: true

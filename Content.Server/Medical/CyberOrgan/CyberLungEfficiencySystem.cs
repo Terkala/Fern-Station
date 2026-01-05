@@ -43,27 +43,10 @@ public sealed class CyberLungEfficiencySystem : EntitySystem
     }
 
     /// <summary>
-    /// Initializes gas processing module and sets default gas if not set.
+    /// Initializes gas processing - organs no longer have storage, so this just sets default gas.
     /// </summary>
     private void InitializeGasProcessing(EntityUid lungUid)
     {
-        if (!TryComp<StorageComponent>(lungUid, out var storage))
-            return;
-
-        // Find gas processing module
-        EntityUid? gasModule = null;
-        foreach (var item in storage.Container.ContainedEntities)
-        {
-            if (HasComp<CyberLungGasProcessingModuleComponent>(item))
-            {
-                gasModule = item;
-                break;
-            }
-        }
-
-        if (gasModule == null)
-            return;
-
         // Initialize data component if not present
         if (!TryComp<CyberLungDataComponent>(lungUid, out var lungData))
         {
@@ -76,29 +59,13 @@ public sealed class CyberLungEfficiencySystem : EntitySystem
 
     /// <summary>
     /// Handles multitool activation on gas processing module to select gas type.
+    /// Note: Organs no longer have storage, so this functionality may need to be reworked.
     /// </summary>
     private void OnGasModuleActivated(EntityUid uid, CyberLungGasProcessingModuleComponent component, ActivateInWorldEvent args)
     {
-        // Find the lung that contains this module
-        if (!TryComp<ContainerManagerComponent>(uid, out var container))
-            return;
-
-        // The module should be in a storage container of a lung
-        // We need to find which lung contains this module
-        // For now, we'll use a simple approach: check all entities with LungComponent and CyberLungDataComponent
-        var query = EntityQueryEnumerator<LungComponent, CyberLungDataComponent, StorageComponent>();
-        while (query.MoveNext(out var lungUid, out _, out var lungData, out var storage))
-        {
-            if (storage.Container.ContainedEntities.Any(e => e == uid))
-            {
-                // Open UI to select gas type
-                // TODO: Implement gas selection UI
-                // For now, cycle through common gases
-                CycleGasType(lungUid, lungData);
-                args.Handled = true;
-                return;
-            }
-        }
+        // Organs no longer have storage, so gas module activation needs to be handled differently
+        // For now, this is a placeholder - gas selection would need to be done via a different method
+        args.Handled = true;
     }
 
     /// <summary>
@@ -162,13 +129,8 @@ public sealed class CyberLungEfficiencySystem : EntitySystem
             var finalEfficiency = _organEfficiency.GetFinalEfficiency(lungUid, efficiency);
             var selectedGas = lungData.SelectedGas ?? Gas.Oxygen;
 
-            // Check for internal gas tank in storage
-            if (!TryComp<StorageComponent>(lungUid, out var storage))
-                continue;
-
-            // Find gas tank (this would need to check for a gas tank component)
-            // TODO: Implement gas tank detection and breathing logic
-            // For now, this is a placeholder
+            // Organs no longer have storage, so internal gas tank breathing needs to be reworked
+            // TODO: Implement gas tank detection via a different method if needed
         }
     }
 }
