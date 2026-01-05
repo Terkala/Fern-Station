@@ -388,11 +388,11 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         var body = part.Body.Value;
 
         // Initialize selected body part to the one that was clicked (or default to torso)
-        EntityUid selectedPart = ent;
-        TargetBodyPart? selectedTargetPart = _body.GetTargetBodyPart(ent.Comp);
+        EntityUid selectedPart = ent.Owner;
+        TargetBodyPart? selectedTargetPart = _body.GetTargetBodyPart(part);
         
         // If this isn't the torso, try to find torso as default
-        if (ent.Comp.PartType != BodyPartType.Torso)
+        if (part.PartType != BodyPartType.Torso)
         {
             var torsoParts = _body.GetBodyChildrenOfType(body, BodyPartType.Torso);
             var torso = torsoParts.FirstOrDefault();
@@ -705,10 +705,9 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         _bodyPartCurrentLayer[selectedPart.Value] = targetLayer;
 
         // Update UI with the new selected body part
-        if (TryComp<SurgeryLayerComponent>(selectedPart.Value, out var layerComp))
-        {
-            UpdateUI((selectedPart.Value, layerComp));
-        }
+        // Always use the original body part (ent) which has SurgeryLayerComponent
+        // UpdateUI will look up the selected part from _selectedBodyParts dictionary
+        UpdateUI(ent);
     }
 
     private void OnOperationMethodSelected(Entity<SurgeryLayerComponent> ent, ref SurgeryOperationMethodSelectedMessage msg)
@@ -1478,7 +1477,11 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             RaiseLocalEvent(user.Value, ref stepEvent);
         }
 
-        UpdateUI((bodyPart, layer!));
+        // Update UI - ensure layer component exists
+        if (TryComp<SurgeryLayerComponent>(bodyPart, out var layerForUI))
+        {
+            UpdateUI((bodyPart, layerForUI));
+        }
     }
 
     public void UpdateUI(Entity<SurgeryLayerComponent> ent)
@@ -1487,10 +1490,13 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
 
         // Get the body from the body part to find the selected body part
         EntityUid selectedPart = uid;
-        TargetBodyPart? selectedTargetPart = _body.GetTargetBodyPart(layer);
+        TargetBodyPart? selectedTargetPart = null;
         
         if (TryComp<BodyPartComponent>(uid, out var part) && part.Body != null)
         {
+            // Initialize target from the original part
+            selectedTargetPart = _body.GetTargetBodyPart(part);
+            
             // Check if there's a selected body part for this body
             if (_selectedBodyParts.TryGetValue(part.Body.Value, out var storedSelectedPart))
             {
@@ -1501,19 +1507,26 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                 {
                     selectedTargetPart = storedTargetPart;
                 }
-                else if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartComp))
+                else if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartCompForTarget))
                 {
-                    selectedTargetPart = _body.GetTargetBodyPart(selectedPartComp);
+                    selectedTargetPart = _body.GetTargetBodyPart(selectedPartCompForTarget);
                 }
             }
         }
 
         // Get the layer component for the selected body part
-        if (!TryComp<SurgeryLayerComponent>(selectedPart, out var selectedLayer))
+        // Use selected part's layer if available, otherwise use original part's layer for layer state
+        // But always use selected part for filtering steps (part type, organ slots, etc.)
+        SurgeryLayerComponent selectedLayer;
+        if (!TryComp<SurgeryLayerComponent>(selectedPart, out var selectedLayerComp))
         {
-            // Fallback to original if selected doesn't have layer component
+            // Selected part doesn't have layer component - use original part's layer for layer state
+            // But keep selectedPart for filtering steps
             selectedLayer = layer;
-            selectedPart = uid;
+        }
+        else
+        {
+            selectedLayer = selectedLayerComp;
         }
 
         // Get all surgery steps and filter by layer and part type
@@ -1571,9 +1584,20 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             }
             
             // Check if step is valid for the selected part type
-            if (selectedLayer.PartType != null && stepData.ValidPartTypes.Count > 0)
+            // Get part type from selected part's BodyPartComponent or SurgeryLayerComponent
+            BodyPartType? selectedPartType = null;
+            if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartComp))
             {
-                if (!stepData.ValidPartTypes.Contains(selectedLayer.PartType.Value))
+                selectedPartType = selectedPartComp.PartType;
+            }
+            else if (selectedLayer.PartType != null)
+            {
+                selectedPartType = selectedLayer.PartType;
+            }
+            
+            if (selectedPartType != null && stepData.ValidPartTypes.Count > 0)
+            {
+                if (!stepData.ValidPartTypes.Contains(selectedPartType.Value))
                 {
                     continue;
                 }
@@ -1737,15 +1761,17 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             currentLayer = storedLayer;
         }
 
-        // Get the body entity to send state to
-        EntityUid? bodyEntity = null;
-        if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartComp2) && selectedPartComp2.Body != null)
+        // Get the body entity to send state to (reuse the one found earlier)
+        if (bodyEntity == null)
         {
-            bodyEntity = selectedPartComp2.Body.Value;
-        }
-        else if (TryComp<BodyPartComponent>(uid, out var originalPart2) && originalPart2.Body != null)
-        {
-            bodyEntity = originalPart2.Body.Value;
+            if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartCompForBody) && selectedPartCompForBody.Body != null)
+            {
+                bodyEntity = selectedPartCompForBody.Body.Value;
+            }
+            else if (TryComp<BodyPartComponent>(uid, out var originalPartForBody) && originalPartForBody.Body != null)
+            {
+                bodyEntity = originalPartForBody.Body.Value;
+            }
         }
 
         if (bodyEntity == null)

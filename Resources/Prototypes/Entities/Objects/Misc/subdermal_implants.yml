@@ -40,6 +40,13 @@
   abstract: true
   components:
   - type: SubdermalImplant
+  - type: Item
+    size: Tiny
+    shape:
+    - 0,0,0,0
+  - type: Sprite
+    sprite: _Shitmed/Medical/cyber_implant.rsi
+    state: generic
   - type: Tag
     tags:
     - SubdermalImplant
@@ -104,6 +111,17 @@
         collection: BikeHorn
         params:
           variation: 0.125
+    - type: EmitSoundOnUse
+      sound:
+        collection: BikeHorn
+        params:
+          variation: 0.125
+    - type: UseDelay
+      delay: 0.5
+    - type: Sprite
+      layers:
+      - state: generic
+      - state: bike_horn_icon
     - type: Tag
       tags:
       - BikeHorn
@@ -234,6 +252,10 @@
     - type: TriggerImplantAction
     - type: RandomTeleport
     - type: ScramImplant
+    - type: Sprite
+      layers:
+      - state: generic
+      - state: bike_horn_icon # TODO: Change to scram icon
 
 - type: entity
   parent: BaseSubdermalImplant

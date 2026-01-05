@@ -24,6 +24,7 @@ namespace Content.Shared.Medical.Cyber;
 public sealed class SharedCyberneticsFunctionalitySystem : EntitySystem
 {
     [Dependency] private readonly SharedBodySystem _body = default!;
+    [Dependency] private readonly SharedCyberneticsAbilitySystem _cyberneticsAbility = default!;
 
     public override void Initialize()
     {
@@ -131,6 +132,9 @@ public sealed class SharedCyberneticsFunctionalitySystem : EntitySystem
                 }
             }
         }
+        
+        // Process ability grants (self-contained module)
+        _cyberneticsAbility.EvaluateAllCyberneticAbilities(body);
     }
 
     /// <summary>

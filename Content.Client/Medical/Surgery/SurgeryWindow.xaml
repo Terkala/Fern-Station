@@ -10,87 +10,91 @@ SPDX-License-Identifier: MIT
     x:Class="Content.Client.Medical.Surgery.SurgeryWindow"
     Title="{Loc 'surgery-window-title'}">
     <BoxContainer Orientation="Vertical" Margin="5">
-        <Label Text="{Loc 'surgery-window-select-body-part'}" Margin="0 0 0 5"/>
         <PanelContainer Margin="0 0 0 5">
+            <SpriteView OverrideDirection="South"
+                        Scale="2.0 2.0"
+                        Name="SpriteView"
+                        Access="Public"
+                        SetSize="96 96"/>
             <PanelContainer
                 Name="PartView"
-                SetSize="57 96"
-                Margin="18 0 0 0"
+                SetSize="114 192"
+                Margin="36 0 0 0"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Left">
                 <PanelContainer
-                    SetSize="15 33"
-                    Margin="4 0 0 0"
+                    SetSize="30 66"
+                    Margin="8 0 0 0"
                     HorizontalAlignment="Left">
                     <TextureButton
                         Name="RightArmButton"
-                        MinSize="15 25"
+                        MinSize="30 50"
                         StyleClasses="TargetDollButtonRightArm"
                         VerticalAlignment="Top">
                     </TextureButton>
                     <TextureButton
                         Name="RightHandButton"
-                        MinSize="15 15"
+                        MinSize="30 30"
                         VerticalAlignment="Bottom"
                         StyleClasses="TargetDollButtonRightHand">
                     </TextureButton>
                 </PanelContainer>
                 <PanelContainer
-                    SetSize="43 75"
+                    SetSize="86 150"
                     Margin="0 0 0 0"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
                     <TextureButton
                         Name="HeadButton"
-                        MinSize="28 23"
+                        MinSize="56 46"
                         VerticalAlignment="Top"
                         HorizontalAlignment="Center"
                         StyleClasses="TargetDollButtonHead">
                     </TextureButton>
                     <TextureButton
                         Name="ChestButton"
-                        SetSize="28 30"
-                        Margin="0 18 0 0"
+                        SetSize="56 60"
+                        Margin="0 36 0 0"
                         VerticalAlignment="Top"
                         HorizontalAlignment="Center"
                         StyleClasses="TargetDollButtonChest">
                     </TextureButton>
                     <PanelContainer
-                        MinSize="38 35"
+                        MinSize="76 70"
                         VerticalAlignment="Bottom"
                         HorizontalAlignment="Center">
                         <PanelContainer
-                            MinSize="20 30"
+                            MinSize="40 60"
                             VerticalAlignment="Bottom"
                             HorizontalAlignment="Right">
                             <TextureButton
                                 Name="LeftLegButton"
-                                MinSize="15 28"
+                                MinSize="30 56"
                                 VerticalAlignment="Top"
                                 HorizontalAlignment="Left"
                                 StyleClasses="TargetDollButtonLeftLeg">
                             </TextureButton>
                             <TextureButton
                                 Name="LeftFootButton"
-                                MinSize="20 10"
+                                MinSize="40 20"
                                 VerticalAlignment="Bottom"
                                 StyleClasses="TargetDollButtonLeftFoot">
                             </TextureButton>
                         </PanelContainer>
                         <PanelContainer
-                            MinSize="20 30"
+                            MinSize="40 60"
                             VerticalAlignment="Bottom"
                             HorizontalAlignment="Left">
                             <TextureButton
                                 Name="RightLegButton"
-                                MinSize="15 28"
+                                MinSize="30 56"
                                 VerticalAlignment="Top"
                                 HorizontalAlignment="Right"
                                 StyleClasses="TargetDollButtonRightLeg">
                             </TextureButton>
                             <TextureButton
                                 Name="RightFootButton"
-                                MinSize="20 10"
+                                MinSize="40 20"
                                 VerticalAlignment="Bottom"
                                 HorizontalAlignment="Center"
                                 StyleClasses="TargetDollButtonRightFoot">
@@ -99,18 +103,18 @@ SPDX-License-Identifier: MIT
                     </PanelContainer>
                 </PanelContainer>
                 <PanelContainer
-                    SetSize="15 33"
-                    Margin="0 0 4 0"
+                    SetSize="30 66"
+                    Margin="0 0 8 0"
                     HorizontalAlignment="Right">
                     <TextureButton
                         Name="LeftArmButton"
-                        MinSize="15 25"
+                        MinSize="30 50"
                         StyleClasses="TargetDollButtonLeftArm"
                         VerticalAlignment="Top">
                     </TextureButton>
                     <TextureButton
                         Name="LeftHandButton"
-                        MinSize="15 15"
+                        MinSize="30 30"
                         VerticalAlignment="Bottom"
                         StyleClasses="TargetDollButtonLeftHand">
                     </TextureButton>
@@ -125,7 +129,6 @@ SPDX-License-Identifier: MIT
             <Button Name="OrganTabButton" Text="{Loc 'surgery-window-layer-organ'}" HorizontalExpand="True"/>
         </BoxContainer>
         <PanelContainer StyleClasses="LowDivider" Margin="0 10 0 10"/>
-        <Label Name="StatusLabel" Text="{Loc 'surgery-window-status-ready'}" Margin="0 0 0 5"/>
         <ScrollContainer Name="StepsContainer" VerticalExpand="True" HorizontalExpand="True" Margin="0 0 0 5"/>
     </BoxContainer>
 </controls:FancyWindow>

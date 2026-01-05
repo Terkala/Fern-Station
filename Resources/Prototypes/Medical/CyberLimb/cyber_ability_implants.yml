@@ -1,0 +1,82 @@
+# SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+#
+# SPDX-License-Identifier: MIT
+
+# Cybernetic implants that grant abilities via subdermal implants
+# These are body parts (not organs) that can exist at different tissue layers
+# They use tag-based configuration: add Grants[SubdermalImplantId] tag to specify which implant to spawn
+
+# Base prototype for ability-granting cybernetic implants
+- type: entity
+  id: BaseCyberneticAbilityImplant
+  parent: BaseItem
+  abstract: true
+  components:
+  - type: Cybernetics
+  - type: BodyPart
+    partType: Other
+    size: Tiny
+  - type: CyberneticIntegrity
+    baseIntegrityCost: 0.5
+
+# Examples of ability-granting cybernetic implants
+
+- type: entity
+  parent: BaseCyberneticAbilityImplant
+  id: ScramImplantCybernetics
+  name: scram cybernetic implant
+  description: A cybernetic implant that grants scram teleport functionality.
+  components:
+  - type: Tag
+    tags:
+    - GrantsScramImplant
+
+- type: entity
+  parent: BaseCyberneticAbilityImplant
+  id: EmpImplantCybernetics
+  name: EMP cybernetic implant
+  description: A cybernetic implant that grants EMP functionality.
+  components:
+  - type: Tag
+    tags:
+    - GrantsEmpImplant
+
+- type: entity
+  parent: BaseCyberneticAbilityImplant
+  id: MicroBombImplantCybernetics
+  name: micro-bomb cybernetic implant
+  description: A cybernetic implant that grants micro-bomb functionality.
+  components:
+  - type: Tag
+    tags:
+    - GrantsMicroBombImplant
+
+- type: entity
+  parent: BaseCyberneticAbilityImplant
+  id: RadioImplantCybernetics
+  name: radio cybernetic implant
+  description: A cybernetic implant that grants radio channel access.
+  components:
+  - type: Tag
+    tags:
+    - GrantsRadioImplant
+
+- type: entity
+  parent: BaseCyberneticAbilityImplant
+  id: LightImplantCybernetics
+  name: light cybernetic implant
+  description: A cybernetic implant that grants light functionality.
+  components:
+  - type: Tag
+    tags:
+    - GrantsLightImplant
+
+- type: entity
+  parent: BaseCyberneticAbilityImplant
+  id: BikeHornImplantCybernetics
+  name: bike horn cybernetic implant
+  description: A cybernetic implant that grants bike horn functionality.
+  components:
+  - type: Tag
+    tags:
+    - GrantsBikeHornImplant

@@ -859,6 +859,23 @@
 - type: Tag
   id: GrenadeFlashBang
 
+- type: Tag
+  id: GrantsBikeHornImplant
+
+- type: Tag
+  id: GrantsEmpImplant
+
+- type: Tag
+  id: GrantsLightImplant
+
+- type: Tag
+  id: GrantsMicroBombImplant
+
+- type: Tag
+  id: GrantsRadioImplant
+
+- type: Tag
+  id: GrantsScramImplant
 
 - type: Tag
   id: HudMedical

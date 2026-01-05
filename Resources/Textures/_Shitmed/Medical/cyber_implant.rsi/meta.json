@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "license": "CC-BY-SA-3.0",
+  "copyright": "Placeholder Borg Sprites Created by EmoGarbage404 (github) for Space Station 14. Generic Layered inhands by mubururu_ (github).",
+  "size": {
+    "x": 32,
+    "y": 32
+  },
+  "states": [
+    {
+      "name": "generic"
+    },
+	{
+      "name": "bike_horn_icon"
+    },
+    {
+      "name": "base-icon-inhand-left",
+      "directions": 4
+    },
+    {
+      "name": "base-icon-inhand-right",
+      "directions": 4
+    },
+    {
+      "name": "base-module-inhand-left",
+      "directions": 4
+    },
+    {
+      "name": "base-module-inhand-right",
+      "directions": 4
+    },
+    {
+      "name": "base-part-inhand-left",
+      "directions": 4
+    },
+    {
+      "name": "base-part-inhand-right",
+      "directions": 4
+    }
+  ]
+}
