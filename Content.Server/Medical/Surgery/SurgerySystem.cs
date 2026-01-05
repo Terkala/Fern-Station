@@ -1586,9 +1586,9 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             // Check if step is valid for the selected part type
             // Get part type from selected part's BodyPartComponent or SurgeryLayerComponent
             BodyPartType? selectedPartType = null;
-            if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartComp))
+            if (TryComp<BodyPartComponent>(selectedPart, out var partTypeComp))
             {
-                selectedPartType = selectedPartComp.PartType;
+                selectedPartType = partTypeComp.PartType;
             }
             else if (selectedLayer.PartType != null)
             {
