@@ -41,6 +41,9 @@
     isReversible: true
     operationId: RetractTissue
     duration: 2.0
+    applyPenalty: 1
+    layerStateChanges:
+      setSkinRetracted: true
 
 # Close Skin Sequence - Step 1
 - type: entity
@@ -71,6 +74,9 @@
     isReversible: true
     operationId: ProperlyRetractTissue
     duration: 2.0
+    removePenaltyStepId: SurgeryStepRetractSkin2
+    layerStateChanges:
+      setSkinRetracted: false
 
 # Treat brute wounds (skin level)
 - type: entity
@@ -130,6 +136,10 @@
     requirements:
       requiresSkinRetracted: true
     duration: 2.5
+    applyPenalty: 1
+    layerStateChanges:
+      setTissueRetracted: true
+    triggersUnsanitaryPenalty: true
 
 # Retract Tissue Sequence - Step 2 (Saw Bones)
 - type: entity
@@ -150,6 +160,9 @@
       requiresSkinRetracted: true
       requiresTissueRetracted: true
     duration: 4.0
+    applyPenalty: 4
+    layerStateChanges:
+      setBonesSawed: true
 
 # Retract Tissue Sequence - Step 3
 - type: entity
@@ -199,6 +212,9 @@
     isReversible: true
     operationId: MendBones
     duration: 3.0
+    removePenaltyStepId: SurgeryStepSawBonesTorso
+    layerStateChanges:
+      setBonesSawed: false
 
 # Mend Tissue Sequence - Step 3
 - type: entity
@@ -214,6 +230,9 @@
     isReversible: true
     operationId: ProperlyRetractTissue
     duration: 2.5
+    removePenaltyStepId: SurgeryStepRetractTissue1
+    layerStateChanges:
+      setTissueRetracted: false
 
 
 # Saw through skull (head) - requires tissue retracted
@@ -232,6 +251,9 @@
       requiresSkinRetracted: true
       requiresTissueRetracted: true
     duration: 4.0
+    applyPenalty: 4
+    layerStateChanges:
+      setBonesSawed: true
 
 # Treat unsanitary conditions - resets patient to current room cleanliness level
 - type: entity
@@ -263,6 +285,9 @@
       requiresSkinRetracted: true
       requiresTissueRetracted: true
     duration: 4.0
+    applyPenalty: 8
+    layerStateChanges:
+      setBonesSmashed: true
 
 # ===== BONE REPAIR STEPS (For Smashed Bones) =====
 
@@ -320,6 +345,9 @@
   - type: SurgeryStep
     layer: Tissue
     duration: 3.0
+    removePenaltyStepId: SurgeryStepSmashBonesTorso
+    layerStateChanges:
+      setBonesSmashed: false
 
 # ===== ORGAN LAYER STEPS =====
 

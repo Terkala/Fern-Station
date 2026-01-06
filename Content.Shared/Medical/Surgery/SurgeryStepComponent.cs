@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 using Content.Shared.Body.Part;
+using Content.Shared.FixedPoint;
 using Content.Shared.Medical.Surgery.Operations;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
@@ -118,6 +119,36 @@ public sealed partial class SurgeryStepComponent : Component
     /// </summary>
     [DataField]
     public string? TargetImplantSlot;
+
+    /// <summary>
+    /// Integrity penalty to apply when this step completes.
+    /// Only applied if this is the final step in a sequence (or if not part of a sequence).
+    /// </summary>
+    [DataField]
+    public FixedPoint2? ApplyPenalty;
+
+    /// <summary>
+    /// ID of the surgery step that applied the penalty to remove when this step completes.
+    /// The penalty amount is looked up from the referenced step's ApplyPenalty value.
+    /// This ensures the penalty value is only defined in one place and can't get out of sync.
+    /// Only removed if this is the final step in a sequence (or if not part of a sequence).
+    /// </summary>
+    [DataField]
+    public EntProtoId? RemovePenaltyStepId;
+
+    /// <summary>
+    /// Layer state changes that occur when this step completes.
+    /// Only applied if this is the final step in a sequence (or if not part of a sequence).
+    /// </summary>
+    [DataField]
+    public SurgeryLayerStateChanges? LayerStateChanges;
+
+    /// <summary>
+    /// Whether this step triggers the unsanitary conditions penalty check.
+    /// Typically true for steps that go below skin level for the first time.
+    /// </summary>
+    [DataField]
+    public bool TriggersUnsanitaryPenalty = false;
 }
 
 /// <summary>
@@ -143,6 +174,37 @@ public sealed record SurgeryLayerRequirements
     /// </summary>
     [DataField]
     public bool RequiresBonesSawed = false;
+}
+
+/// <summary>
+/// Layer state changes that occur when a surgery step completes.
+/// </summary>
+[DataRecord]
+public sealed record SurgeryLayerStateChanges
+{
+    /// <summary>
+    /// Whether to set skin retracted state (true = retracted, false = not retracted, null = no change).
+    /// </summary>
+    [DataField]
+    public bool? SetSkinRetracted;
+
+    /// <summary>
+    /// Whether to set tissue retracted state (true = retracted, false = not retracted, null = no change).
+    /// </summary>
+    [DataField]
+    public bool? SetTissueRetracted;
+
+    /// <summary>
+    /// Whether to set bones sawed state (true = sawed, false = not sawed, null = no change).
+    /// </summary>
+    [DataField]
+    public bool? SetBonesSawed;
+
+    /// <summary>
+    /// Whether to set bones smashed state (true = smashed, false = not smashed, null = no change).
+    /// </summary>
+    [DataField]
+    public bool? SetBonesSmashed;
 }
 
 
