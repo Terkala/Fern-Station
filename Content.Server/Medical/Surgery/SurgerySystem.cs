@@ -163,6 +163,9 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
 
         SubscribeLocalEvent<SurgeryPlasteelBonePlatingEffectComponent, SurgeryStepEvent>(OnPlasteelBonePlatingStep);
         SubscribeLocalEvent<SurgeryDermalPlasteelWeaveEffectComponent, SurgeryStepEvent>(OnDermalPlasteelWeaveStep);
+        SubscribeLocalEvent<SurgeryDurathreadWeaveEffectComponent, SurgeryStepEvent>(OnDurathreadWeaveStep);
+        SubscribeLocalEvent<SurgeryPlasteelWeaveEffectComponent, SurgeryStepEvent>(OnPlasteelWeaveStep);
+        SubscribeLocalEvent<SurgeryRemoveDermalReinforcementEffectComponent, SurgeryStepEvent>(OnRemoveDermalReinforcementStep);
         
         // Note: SurgeryTendWoundsEffectComponent subscriptions are handled by Shitmed SharedSurgerySystem
         // to avoid duplicate subscriptions
@@ -1536,6 +1539,33 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         if (TrySpawnStep("SurgeryStepTreatBurnWounds", out var burnStep))
         {
             skinSteps.Add(GetNetEntity(burnStep));
+        }
+
+        // Add Durathread Weave - only if component doesn't exist
+        if (!HasComp<DermalPlasteelWeaveComponent>(selectedPart))
+        {
+            if (TrySpawnStep("SurgeryStepAddDurathreadWeave", out var durathreadStep))
+            {
+                skinSteps.Add(GetNetEntity(durathreadStep));
+            }
+        }
+
+        // Add Plasteel Weave - only if component doesn't exist
+        if (!HasComp<DermalPlasteelWeaveComponent>(selectedPart))
+        {
+            if (TrySpawnStep("SurgeryStepAddPlasteelWeave", out var plasteelStep))
+            {
+                skinSteps.Add(GetNetEntity(plasteelStep));
+            }
+        }
+
+        // Remove Dermal Reinforcement - only if component exists
+        if (HasComp<DermalPlasteelWeaveComponent>(selectedPart))
+        {
+            if (TrySpawnStep("SurgeryStepRemoveDermalReinforcement", out var removeStep))
+            {
+                skinSteps.Add(GetNetEntity(removeStep));
+            }
         }
     }
 
@@ -2941,6 +2971,82 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         }
 
         _popup.PopupEntity("Dermal reinforcement successfully applied.", args.Part, args.User, PopupType.Medium);
+    }
+
+    /// <summary>
+    /// Consumes DurathreadWovenSkin item, adds component, and applies integrity cost.
+    /// </summary>
+    private void OnDurathreadWeaveStep(Entity<SurgeryDurathreadWeaveEffectComponent> ent, ref SurgeryStepEvent args)
+    {
+        if (!args.Complete)
+            return;
+
+        // Find and consume DurathreadWovenSkin item
+        if (!TryConsumeSurgicalItem(args.Part, "DurathreadWovenSkin", args.User))
+        {
+            _popup.PopupEntity("No Durathread Woven Skin item nearby.", args.Part, args.User, PopupType.Medium);
+            return;
+        }
+
+        // Add dermal plasteel weave component
+        EnsureComp<DermalPlasteelWeaveComponent>(args.Part);
+
+        // Apply integrity cost (1 integrity)
+        if (TryComp<BodyPartComponent>(args.Part, out var part) && part.Body != null)
+        {
+            var integrity = EnsureComp<IntegrityComponent>(part.Body.Value);
+            _integrity.AddIntegrityUsage(part.Body.Value, FixedPoint2.New(1), integrity);
+        }
+
+        _popup.PopupEntity("Durathread weave successfully applied.", args.Part, args.User, PopupType.Medium);
+    }
+
+    /// <summary>
+    /// Consumes PlasteelReinforcedSkin item, adds component, and applies integrity cost.
+    /// </summary>
+    private void OnPlasteelWeaveStep(Entity<SurgeryPlasteelWeaveEffectComponent> ent, ref SurgeryStepEvent args)
+    {
+        if (!args.Complete)
+            return;
+
+        // Find and consume PlasteelReinforcedSkin item
+        if (!TryConsumeSurgicalItem(args.Part, "PlasteelReinforcedSkin", args.User))
+        {
+            _popup.PopupEntity("No Plasteel Reinforced Skin item nearby.", args.Part, args.User, PopupType.Medium);
+            return;
+        }
+
+        // Add dermal plasteel weave component
+        EnsureComp<DermalPlasteelWeaveComponent>(args.Part);
+
+        // Apply integrity cost (1 integrity)
+        if (TryComp<BodyPartComponent>(args.Part, out var part) && part.Body != null)
+        {
+            var integrity = EnsureComp<IntegrityComponent>(part.Body.Value);
+            _integrity.AddIntegrityUsage(part.Body.Value, FixedPoint2.New(1), integrity);
+        }
+
+        _popup.PopupEntity("Plasteel weave successfully applied.", args.Part, args.User, PopupType.Medium);
+    }
+
+    /// <summary>
+    /// Removes DermalPlasteelWeaveComponent from the body part.
+    /// </summary>
+    private void OnRemoveDermalReinforcementStep(Entity<SurgeryRemoveDermalReinforcementEffectComponent> ent, ref SurgeryStepEvent args)
+    {
+        if (!args.Complete)
+            return;
+
+        // Remove dermal plasteel weave component
+        if (HasComp<DermalPlasteelWeaveComponent>(args.Part))
+        {
+            RemComp<DermalPlasteelWeaveComponent>(args.Part);
+            _popup.PopupEntity("Dermal reinforcement successfully removed.", args.Part, args.User, PopupType.Medium);
+        }
+        else
+        {
+            _popup.PopupEntity("No dermal reinforcement found to remove.", args.Part, args.User, PopupType.Medium);
+        }
     }
 
     /// <summary>

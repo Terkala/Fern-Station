@@ -2082,6 +2082,7 @@
     - SynthLungs
     - SynthEyes
     - SynthStomach
+    - SynthHead
     - SynthLeftLeg
     - SynthRightLeg
     - SynthLeftFoot

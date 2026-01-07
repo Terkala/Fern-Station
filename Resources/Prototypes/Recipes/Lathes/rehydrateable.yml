@@ -187,6 +187,13 @@
     Biomass: 3
 
 - type: latheRecipe
+  id: SynthHead
+  result: BioSynthHead
+  completetime: 10
+  materials:
+    Biomass: 6
+
+- type: latheRecipe
   id: PizzaLeftArm
   result: PizzaLeftArm
   completetime: 30

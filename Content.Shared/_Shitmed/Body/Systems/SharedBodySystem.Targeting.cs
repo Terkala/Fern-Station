@@ -31,6 +31,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Content.Shared.Inventory;
+using Content.Shared._Shitmed.Cybernetics;
 
 // Namespace has set accessors, leaving it on the default.
 namespace Content.Shared.Body.Systems;
@@ -238,7 +239,19 @@ public partial class SharedBodySystem
             && !partEnt.Comp.Enabled
             && damageable.TotalDamage >= partEnt.Comp.SeverIntegrity
             && _severingDamageTypes.Any(damageType => delta.DamageDict.TryGetValue(damageType, out var value) && value > 0))
-            severed = true;
+        {
+            // Special case: Cybernetic hands and feet cannot be severed from their parent limb.
+            // They are generated as part of a cyber-limb and should remain as a single unit.
+            if ((partEnt.Comp.PartType == BodyPartType.Hand || partEnt.Comp.PartType == BodyPartType.Foot)
+                && HasComp<CyberneticsComponent>(partEnt))
+            {
+                severed = false;
+            }
+            else
+            {
+                severed = true;
+            }
+        }
 
         CheckBodyPart(partEnt, GetTargetBodyPart(partEnt), severed, damageable);
 

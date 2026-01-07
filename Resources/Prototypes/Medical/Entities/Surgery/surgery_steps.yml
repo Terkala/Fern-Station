@@ -118,6 +118,57 @@
     healMultiplier: 0.07
   - type: SurgeryRepeatableStep
 
+# Add Durathread Weave - Skin layer, all limbs, head, and torso
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepAddDurathreadWeave
+  name: Apply Durathread Weave
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    validPartTypes:
+      - Arm
+      - Leg
+      - Head
+      - Torso
+    duration: 4.0
+  - type: SurgeryDurathreadWeaveEffect
+
+# Add Plasteel Weave - Skin layer, all limbs, head, and torso
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepAddPlasteelWeave
+  name: Apply Plasteel Weave
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    validPartTypes:
+      - Arm
+      - Leg
+      - Head
+      - Torso
+    duration: 4.0
+  - type: SurgeryPlasteelWeaveEffect
+
+# Remove Dermal Reinforcement - Skin layer, only appears if already implanted
+- type: entity
+  parent: SurgeryStepBase
+  id: SurgeryStepRemoveDermalReinforcement
+  name: Remove Dermal Reinforcement
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: SurgeryStep
+    layer: Skin
+    validPartTypes:
+      - Arm
+      - Leg
+      - Head
+      - Torso
+    duration: 3.0
+  - type: SurgeryRemoveDermalReinforcementEffect
+
 # ===== TISSUE LAYER STEPS =====
 
 # Retract Tissue Sequence - Step 1
