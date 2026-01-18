@@ -123,7 +123,8 @@ SPDX-License-Identifier: MIT
                         </TextureButton>
                     </PanelContainer>
                 </PanelContainer>
-            </BoxContainer>
+            </PanelContainer>
+        </BoxContainer>
         <PanelContainer StyleClasses="LowDivider" Margin="0 5 0 5"/>
         <Label Text="{Loc 'surgery-window-select-layer'}" Margin="0 0 0 5"/>
         <BoxContainer Orientation="Horizontal" SeparationOverride="5" HorizontalExpand="True">

@@ -1,31 +1,23 @@
-// SPDX-FileCopyrightText: 2024 Tadeo <td12233a@gmail.com>
-// SPDX-FileCopyrightText: 2025 taydeo <td12233a@gmail.com>
+// SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
 //
-// SPDX-License-Identifier: AGPL-3.0-or-later AND MIT
+// SPDX-License-Identifier: MIT
+
+using Robust.Shared.GameObjects;
 
 namespace Content.Shared._Shitmed.Targeting;
+
+/// <summary>
+/// Stub system for SharedTargetingSystem - kept for compatibility with _Shitmed files.
+/// The actual targeting system has been removed and replaced with the new system.
+/// This system does nothing and is only present to prevent compilation errors.
+/// </summary>
 public abstract class SharedTargetingSystem : EntitySystem
 {
     /// <summary>
-    /// Returns all Valid target body parts as an array.
+    /// Stub method - returns empty list.
     /// </summary>
-    public static TargetBodyPart[] GetValidParts()
+    public static List<TargetBodyPart> GetValidParts()
     {
-        var parts = new[]
-        {
-            TargetBodyPart.Head,
-            TargetBodyPart.Torso,
-            //TargetBodyPart.Groin,
-            TargetBodyPart.LeftArm,
-            TargetBodyPart.LeftHand,
-            TargetBodyPart.LeftLeg,
-            TargetBodyPart.LeftFoot,
-            TargetBodyPart.RightArm,
-            TargetBodyPart.RightHand,
-            TargetBodyPart.RightLeg,
-            TargetBodyPart.RightFoot,
-        };
-
-        return parts;
+        return new List<TargetBodyPart>();
     }
 }

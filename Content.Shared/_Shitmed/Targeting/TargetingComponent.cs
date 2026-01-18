@@ -1,16 +1,17 @@
-// SPDX-FileCopyrightText: 2024 Tadeo <td12233a@gmail.com>
-// SPDX-FileCopyrightText: 2025 taydeo <td12233a@gmail.com>
+// SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
 //
-// SPDX-License-Identifier: AGPL-3.0-or-later AND MIT
+// SPDX-License-Identifier: MIT
 
-using Robust.Shared.Audio;
-using Robust.Shared.GameObjects;
+using System.Collections.Generic;
 using Robust.Shared.GameStates;
+using Robust.Shared.Serialization;
 
 namespace Content.Shared._Shitmed.Targeting;
 
 /// <summary>
-/// Controls entity limb targeting for actions.
+/// Stub component for TargetingComponent - kept for compatibility with _Shitmed files.
+/// The actual targeting system has been removed and replaced with the new system.
+/// This component does nothing and is only present to prevent compilation errors.
 /// </summary>
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class TargetingComponent : Component
@@ -55,10 +56,4 @@ public sealed partial class TargetingComponent : Component
         { TargetBodyPart.RightLeg, TargetIntegrity.Healthy },
         { TargetBodyPart.RightFoot, TargetIntegrity.Healthy }
     };
-
-    /// <summary>
-    /// What noise does the entity play when swapping targets?
-    /// </summary>
-    [DataField]
-    public string SwapSound = "/Audio/Effects/toggleoncombat.ogg";
 }

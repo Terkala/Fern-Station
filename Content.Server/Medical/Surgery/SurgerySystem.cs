@@ -9,8 +9,8 @@ using Content.Shared.Body.Part;
 using Content.Shared.Body.Systems;
 using Content.Shared.Medical.Surgery;
 using SSSharedSurgerySystem = Content.Shared.Medical.Surgery.SharedSurgerySystem;
-using Content.Shared.Medical.Integrity;
-using Content.Server.Medical.Integrity;
+using Content.Shared.Medical.Surgery.Integrity;
+using Content.Server.Medical.Surgery.Integrity;
 using Content.Shared.Medical.Surgery.Skill;
 using Content.Shared.Medical.Surgery.Equipment;
 using Content.Shared.Medical.Compatibility;
@@ -1303,8 +1303,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         }
 
         // Handle special step types (implants, organs) that don't use layer state changes
-        var stepMeta = MetaData(stepEntity);
-        var stepId = stepMeta.EntityPrototype?.ID ?? "";
+        // stepMeta and stepId are already declared earlier in this function
         
         // Handle implant and organ operations (these don't use layer state changes from YAML)
         HandleImplantAndOrganOperations(bodyPart, stepEntity, step, stepId, user);

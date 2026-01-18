@@ -8,6 +8,7 @@ using Content.Shared.Body.Organ;
 using Content.Shared.Body.Part;
 using Content.Shared.Medical.Compatibility;
 using Content.Shared.Medical.Surgery;
+using Content.Server.Medical.Surgery;
 using Content.Server.Mindshield;
 using Content.Server.Body.Systems;
 
@@ -19,7 +20,7 @@ namespace Content.Server.Medical.Compatibility;
 /// </summary>
 public sealed class DonorSpeciesSystem : EntitySystem
 {
-    [Dependency] private readonly SharedSurgerySystem _surgery = default!;
+    [Dependency] private readonly SurgerySystem _surgery = default!;
     [Dependency] private readonly MindShieldSystem _mindShield = default!;
     [Dependency] private readonly BodySystem _bodySystem = default!;
 

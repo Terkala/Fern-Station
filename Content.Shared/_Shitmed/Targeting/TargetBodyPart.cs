@@ -1,18 +1,13 @@
-// SPDX-FileCopyrightText: 2024 Tadeo <td12233a@gmail.com>
-// SPDX-FileCopyrightText: 2025 taydeo <td12233a@gmail.com>
+// SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
 //
-// SPDX-License-Identifier: AGPL-3.0-or-later AND MIT
+// SPDX-License-Identifier: MIT
 
 namespace Content.Shared._Shitmed.Targeting;
 
-
 /// <summary>
-/// Represents and enum of possible target parts.
+/// Stub enum for TargetBodyPart - kept for compatibility with _Shitmed files.
+/// The actual targeting system has been removed and replaced with the new system.
 /// </summary>
-/// <remarks>
-/// To get all body parts as an Array, use static
-/// method in SharedTargetingSystem GetValidParts.
-/// </remarks>
 [Flags]
 public enum TargetBodyPart : ushort
 {
@@ -27,10 +22,5 @@ public enum TargetBodyPart : ushort
     LeftFoot = 1 << 8,
     RightLeg = 1 << 9,
     RightFoot = 1 << 10,
-
-    Hands = LeftHand | RightHand,
-    Arms = LeftArm | RightArm,
-    Legs = LeftLeg | RightLeg,
-    Feet = LeftFoot | RightFoot,
-    All = Head | Torso | Groin | LeftArm | LeftHand | RightArm | RightHand | LeftLeg | LeftFoot | RightLeg | RightFoot,
+    All = Head | Torso | Groin | LeftArm | LeftHand | RightArm | RightHand | LeftLeg | LeftFoot | RightLeg | RightFoot
 }

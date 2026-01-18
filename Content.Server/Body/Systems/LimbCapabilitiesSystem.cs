@@ -10,7 +10,7 @@ using Content.Shared.FixedPoint;
 using Content.Shared.Prying.Components;
 using Content.Shared.Weapons.Melee;
 using Robust.Shared.Containers;
-using Content.Server.Medical.Integrity;
+using Content.Server.Medical.Surgery.Integrity;
 
 namespace Content.Server.Body.Systems;
 

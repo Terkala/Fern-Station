@@ -37,7 +37,7 @@ using Content.Shared.Humanoid;
 using Content.Shared.Humanoid.Prototypes;
 using Content.Shared.IdentityManagement;
 using Content.Shared.MedicalScanner;
-using Content.Shared.Medical.Integrity;
+using Content.Shared.Medical.Surgery.Integrity;
 using Content.Shared.Medical.Biosynthetic;
 using Content.Shared.Medical.Surgery;
 using Content.Shared.Medical.Surgery.Components;

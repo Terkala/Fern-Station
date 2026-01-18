@@ -105,111 +105,195 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
         }
         _highlightLayerIds.Clear();
 
-        // Add highlight for selected body part
+        // Add highlight for selected body part(s)
         if (_selectedBodyPart.HasValue)
         {
             var part = _selectedBodyPart.Value;
-            string enumName = Enum.GetName(typeof(TargetBodyPart), part) ?? "torso";
-            string partName = enumName.ToLowerInvariant();
-            string layerId = $"surgery-highlight-{partName}";
             
-            // Map part names to texture names
-            partName = partName switch
+            // Determine which parts to highlight
+            // If an arm or hand is selected, highlight all arms and hands
+            // If a leg or foot is selected, highlight all legs and feet
+            // Otherwise, highlight just the selected part
+            List<TargetBodyPart> partsToHighlight = new();
+            
+            if (part == TargetBodyPart.LeftArm || part == TargetBodyPart.RightArm || 
+                part == TargetBodyPart.LeftHand || part == TargetBodyPart.RightHand)
             {
-                "torso" => "torso",
-                "head" => "head",
-                "leftarm" => "leftarm",
-                "lefthand" => "lefthand",
-                "rightarm" => "rightarm",
-                "righthand" => "righthand",
-                "leftleg" => "leftleg",
-                "leftfoot" => "leftfoot",
-                "rightleg" => "rightleg",
-                "rightfoot" => "rightfoot",
-                _ => "torso"
+                // Highlight all arms and hands
+                partsToHighlight.AddRange(new[]
+                {
+                    TargetBodyPart.LeftArm,
+                    TargetBodyPart.LeftHand,
+                    TargetBodyPart.RightArm,
+                    TargetBodyPart.RightHand
+                });
+            }
+            else if (part == TargetBodyPart.LeftLeg || part == TargetBodyPart.RightLeg || 
+                     part == TargetBodyPart.LeftFoot || part == TargetBodyPart.RightFoot)
+            {
+                // Highlight all legs and feet
+                partsToHighlight.AddRange(new[]
+                {
+                    TargetBodyPart.LeftLeg,
+                    TargetBodyPart.LeftFoot,
+                    TargetBodyPart.RightLeg,
+                    TargetBodyPart.RightFoot
+                });
+            }
+            else
+            {
+                // Highlight just the selected part
+                partsToHighlight.Add(part);
+            }
+            
+            // Add highlights for all parts
+            foreach (var partToHighlight in partsToHighlight)
+            {
+                AddHighlightForPart(spriteEntity, sprite, partToHighlight);
+            }
+        }
+    }
+    
+    private void AddHighlightForPart(EntityUid spriteEntity, SpriteComponent sprite, TargetBodyPart part)
+    {
+        string enumName = Enum.GetName(typeof(TargetBodyPart), part) ?? "torso";
+        string partName = enumName.ToLowerInvariant();
+        string layerId = $"surgery-highlight-{partName}";
+        
+        // Map part names to texture names
+        partName = partName switch
+        {
+            "torso" => "torso",
+            "head" => "head",
+            "leftarm" => "leftarm",
+            "lefthand" => "lefthand",
+            "rightarm" => "rightarm",
+            "righthand" => "righthand",
+            "leftleg" => "leftleg",
+            "leftfoot" => "leftfoot",
+            "rightleg" => "rightleg",
+            "rightfoot" => "rightfoot",
+            _ => "torso"
+        };
+        
+        // Create highlight layer using hover texture with red tint
+        var highlightPath = new ResPath($"/Textures/_Shitmed/Interface/Targeting/Doll/{partName}_hover.png");
+        var highlightSpec = new SpriteSpecifier.Texture(highlightPath);
+        
+        try
+        {
+            var highlightTexture = _spriteSystem.Frame0(highlightSpec);
+            var layerIndex = _spriteSystem.AddTextureLayer((spriteEntity, sprite), highlightTexture);
+            _spriteSystem.LayerMapSet((spriteEntity, sprite), layerId, layerIndex);
+            
+            // Get the offset from the corresponding body part layer to position highlight correctly
+            Vector2 highlightOffset = Vector2.Zero;
+            HumanoidVisualLayers? bodyPartLayer = part switch
+            {
+                TargetBodyPart.Head => HumanoidVisualLayers.Head,
+                TargetBodyPart.Torso => HumanoidVisualLayers.Chest,
+                TargetBodyPart.LeftArm => HumanoidVisualLayers.LArm,
+                TargetBodyPart.LeftHand => HumanoidVisualLayers.LHand,
+                TargetBodyPart.RightArm => HumanoidVisualLayers.RArm,
+                TargetBodyPart.RightHand => HumanoidVisualLayers.RHand,
+                TargetBodyPart.LeftLeg => HumanoidVisualLayers.LLeg,
+                TargetBodyPart.LeftFoot => HumanoidVisualLayers.LFoot,
+                TargetBodyPart.RightLeg => HumanoidVisualLayers.RLeg,
+                TargetBodyPart.RightFoot => HumanoidVisualLayers.RFoot,
+                _ => null
             };
             
-            // Create highlight layer using hover texture with red tint
-            var highlightPath = new ResPath($"/Textures/_Shitmed/Interface/Targeting/Doll/{partName}_hover.png");
-            var highlightSpec = new SpriteSpecifier.Texture(highlightPath);
-            
-            try
+            // Find the body part layer and get its offset
+            // Try multiple approaches to find the correct layer offset
+            bool foundOffset = false;
+            if (bodyPartLayer.HasValue)
             {
-                var highlightTexture = _spriteSystem.Frame0(highlightSpec);
-                var layerIndex = _spriteSystem.AddTextureLayer((spriteEntity, sprite), highlightTexture);
-                _spriteSystem.LayerMapSet((spriteEntity, sprite), layerId, layerIndex);
-                
-                // Get the offset from the corresponding body part layer to position highlight correctly
-                Vector2 highlightOffset = Vector2.Zero;
-                HumanoidVisualLayers? bodyPartLayer = part switch
+                // First try: Look up by HumanoidVisualLayers enum
+                if (_spriteSystem.LayerMapTryGet((spriteEntity, sprite), bodyPartLayer.Value, out var bodyPartLayerIndex, false))
                 {
-                    TargetBodyPart.Head => HumanoidVisualLayers.Head,
-                    TargetBodyPart.Torso => HumanoidVisualLayers.Chest,
-                    TargetBodyPart.LeftArm => HumanoidVisualLayers.LArm,
-                    TargetBodyPart.LeftHand => HumanoidVisualLayers.LHand,
-                    TargetBodyPart.RightArm => HumanoidVisualLayers.RArm,
-                    TargetBodyPart.RightHand => HumanoidVisualLayers.RHand,
-                    TargetBodyPart.LeftLeg => HumanoidVisualLayers.LLeg,
-                    TargetBodyPart.LeftFoot => HumanoidVisualLayers.LFoot,
-                    TargetBodyPart.RightLeg => HumanoidVisualLayers.RLeg,
-                    TargetBodyPart.RightFoot => HumanoidVisualLayers.RFoot,
-                    _ => null
-                };
-                
-                // Find the body part layer and get its offset
-                // Try multiple approaches to find the correct layer offset
-                bool foundOffset = false;
-                if (bodyPartLayer.HasValue)
-                {
-                    // First try: Look up by HumanoidVisualLayers enum
-                    if (_spriteSystem.LayerMapTryGet((spriteEntity, sprite), bodyPartLayer.Value, out var bodyPartLayerIndex, false))
+                    if (_spriteSystem.TryGetLayer((spriteEntity, sprite), bodyPartLayerIndex, out var bodyPartLayerData, false))
                     {
-                        if (_spriteSystem.TryGetLayer((spriteEntity, sprite), bodyPartLayerIndex, out var bodyPartLayerData, false))
-                        {
-                            highlightOffset = bodyPartLayerData.Offset;
-                            foundOffset = true;
-                        }
-                    }
-                    
-                    // Second try: If enum lookup failed, try finding by layer name string
-                    if (!foundOffset)
-                    {
-                        var layerName = bodyPartLayer.Value.ToString();
-                        if (_spriteSystem.LayerMapTryGet((spriteEntity, sprite), layerName, out var namedLayerIndex, false))
-                        {
-                            if (_spriteSystem.TryGetLayer((spriteEntity, sprite), namedLayerIndex, out var namedLayerData, false))
-                            {
-                                highlightOffset = namedLayerData.Offset;
-                                foundOffset = true;
-                            }
-                        }
+                        highlightOffset = bodyPartLayerData.Offset;
+                        foundOffset = true;
                     }
                 }
                 
-                // If we still didn't find an offset, the hover texture should have its own offset baked in
-                // Apply the offset we found (or zero if not found)
-                _spriteSystem.LayerSetOffset((spriteEntity, sprite), layerIndex, highlightOffset);
-                
-                // Set color - try different approaches
-                // Color constructor is (R, G, B, A) with values 0-255
-                // If red shows as grey, try: BGR format, or the texture might be white/grey and needs different handling
-                // Try pure red first with full opacity
-                var redColor = new Color(255, 0, 0, 255);
-                _spriteSystem.LayerSetColor((spriteEntity, sprite), layerIndex, redColor);
-                _highlightLayerIds[part] = layerId;
+                // Second try: If enum lookup failed, try finding by layer name string
+                if (!foundOffset)
+                {
+                    var layerName = bodyPartLayer.Value.ToString();
+                    if (_spriteSystem.LayerMapTryGet((spriteEntity, sprite), layerName, out var namedLayerIndex, false))
+                    {
+                        if (_spriteSystem.TryGetLayer((spriteEntity, sprite), namedLayerIndex, out var namedLayerData, false))
+                        {
+                            highlightOffset = namedLayerData.Offset;
+                            foundOffset = true;
+                        }
+                    }
+                }
             }
-            catch
-            {
-                // If hover texture doesn't exist, skip highlighting for this part
-            }
+            
+            // If we still didn't find an offset, the hover texture should have its own offset baked in
+            // Apply the offset we found (or zero if not found)
+            _spriteSystem.LayerSetOffset((spriteEntity, sprite), layerIndex, highlightOffset);
+            
+            // Set color - try different approaches
+            // Color constructor is (R, G, B, A) with values 0-255
+            // If red shows as grey, try: BGR format, or the texture might be white/grey and needs different handling
+            // Try pure red first with full opacity
+            var redColor = new Color(255, 0, 0, 255);
+            _spriteSystem.LayerSetColor((spriteEntity, sprite), layerIndex, redColor);
+            _highlightLayerIds[part] = layerId;
+        }
+        catch
+        {
+            // If hover texture doesn't exist, skip highlighting for this part
         }
     }
 
     private void UpdateBodyPartButtons()
     {
-        foreach (var (part, button) in _bodyPartControls)
+        if (!_selectedBodyPart.HasValue)
         {
-            button.Pressed = part == _selectedBodyPart;
+            foreach (var (_, button) in _bodyPartControls)
+            {
+                button.Pressed = false;
+            }
+            return;
+        }
+        
+        var part = _selectedBodyPart.Value;
+        
+        // Determine which parts should be highlighted/pressed
+        HashSet<TargetBodyPart> partsToPress = new();
+        
+        if (part == TargetBodyPart.LeftArm || part == TargetBodyPart.RightArm || 
+            part == TargetBodyPart.LeftHand || part == TargetBodyPart.RightHand)
+        {
+            // Highlight all arms and hands
+            partsToPress.Add(TargetBodyPart.LeftArm);
+            partsToPress.Add(TargetBodyPart.LeftHand);
+            partsToPress.Add(TargetBodyPart.RightArm);
+            partsToPress.Add(TargetBodyPart.RightHand);
+        }
+        else if (part == TargetBodyPart.LeftLeg || part == TargetBodyPart.RightLeg || 
+                 part == TargetBodyPart.LeftFoot || part == TargetBodyPart.RightFoot)
+        {
+            // Highlight all legs and feet
+            partsToPress.Add(TargetBodyPart.LeftLeg);
+            partsToPress.Add(TargetBodyPart.LeftFoot);
+            partsToPress.Add(TargetBodyPart.RightLeg);
+            partsToPress.Add(TargetBodyPart.RightFoot);
+        }
+        else
+        {
+            // Highlight just the selected part
+            partsToPress.Add(part);
+        }
+        
+        foreach (var (partKey, button) in _bodyPartControls)
+        {
+            button.Pressed = partsToPress.Contains(partKey);
         }
     }
 

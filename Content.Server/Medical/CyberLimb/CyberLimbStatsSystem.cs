@@ -7,7 +7,7 @@ using Content.Shared.Body.Part;
 using Content.Shared.Body.Systems;
 using Content.Shared.Medical.CyberLimb;
 using Content.Shared.Medical.CyberLimb.Modules;
-using Content.Shared.Medical.Integrity;
+using Content.Shared.Medical.Surgery.Integrity;
 using Content.Shared._Shitmed.Cybernetics;
 using Content.Shared.Storage;
 using Content.Shared.Implants.Components;

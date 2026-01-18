@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-using Content.Shared.Medical.Integrity;
+using Content.Shared.Medical.Surgery.Integrity;
 
 namespace Content.Shared.Medical.Chemistry;
 

@@ -9,7 +9,7 @@ using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.Chemistry.Reagent;
 using Content.Shared.FixedPoint;
 using Content.Shared.Medical.Chemistry;
-using Content.Shared.Medical.Integrity;
+using Content.Shared.Medical.Surgery.Integrity;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
 

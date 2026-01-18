@@ -34,7 +34,7 @@ public sealed partial class DefaultGameScreen : InGameScreen
         SetAnchorAndMarginPreset(Hotbar, LayoutPreset.BottomWide, margin: 5);
         SetAnchorAndMarginPreset(Chat, LayoutPreset.TopRight, margin: 10);
         SetAnchorAndMarginPreset(Alerts, LayoutPreset.TopRight, margin: 10);
-        SetAnchorAndMarginPreset(Targeting, LayoutPreset.BottomRight, margin: 5); // Shitmed Change
+        SetAnchorAndMarginPreset(Targeting, LayoutPreset.BottomRight, margin: 5);
 
         Chat.OnResized += ChatOnResized;
         Chat.OnChatResizeFinish += ChatOnResizeFinish;
@@ -51,7 +51,7 @@ public sealed partial class DefaultGameScreen : InGameScreen
 
     private void ResizeAlertsContainer()
     {
-        float indent = Chat.Size.Y + Targeting.Size.Y + 120;
+        float indent = Chat.Size.Y + 120;
         Alerts.AlertContainer.MaxGridHeight = Math.Max(MainViewport.Size.Y - indent, 1);
     }
 

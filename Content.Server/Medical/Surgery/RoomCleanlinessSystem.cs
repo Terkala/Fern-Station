@@ -12,7 +12,7 @@ using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.FixedPoint;
 using Content.Shared.Fluids.Components;
 using Content.Shared.Forensics.Components;
-using Content.Shared.Medical.Integrity;
+using Content.Shared.Medical.Surgery.Integrity;
 using Content.Shared.Medical.Surgery;
 using Content.Shared.Medical.Surgery.Equipment;
 using Robust.Server.GameObjects;

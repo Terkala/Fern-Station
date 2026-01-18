@@ -8,7 +8,7 @@ using Content.Shared.DoAfter;
 using Content.Shared.FixedPoint;
 using Content.Shared.Medical.Surgery.Skill;
 using Content.Shared.Medical.Surgery.Equipment;
-using Content.Shared.Medical.Integrity;
+using Content.Shared.Medical.Surgery.Integrity;
 using Content.Shared.Medical.Compatibility;
 using Content.Shared.Medical.Biosynthetic;
 using Content.Shared.Tag;

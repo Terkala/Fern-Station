@@ -1,34 +1,29 @@
-// SPDX-FileCopyrightText: 2024 BombasterDS <115770678+BombasterDS@users.noreply.github.com>
-// SPDX-FileCopyrightText: 2024 Tadeo <td12233a@gmail.com>
-// SPDX-FileCopyrightText: 2025 taydeo <td12233a@gmail.com>
+// SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
 //
-// SPDX-License-Identifier: AGPL-3.0-or-later AND MIT
+// SPDX-License-Identifier: MIT
 
 using Content.Shared._Shitmed.Targeting;
 using Robust.Shared.Serialization;
 
 namespace Content.Shared._Shitmed.Targeting.Events;
 
-[Serializable, NetSerializable]
-public sealed class TargetChangeEvent : EntityEventArgs
-{
-    public NetEntity Uid { get; }
-    public TargetBodyPart BodyPart { get; }
-    public TargetChangeEvent(NetEntity uid, TargetBodyPart bodyPart)
-    {
-        Uid = uid;
-        BodyPart = bodyPart;
-    }
-}
+/// <summary>
+/// Stub events for targeting - kept for compatibility with _Shitmed files.
+/// The actual targeting system has been removed and replaced with the new system.
+/// </summary>
+[ByRefEvent]
+public record struct TargetChangedEvent(TargetBodyPart? OldTarget, TargetBodyPart? NewTarget);
 
+/// <summary>
+/// Stub event for target integrity changes.
+/// </summary>
 [Serializable, NetSerializable]
 public sealed class TargetIntegrityChangeEvent : EntityEventArgs
 {
-    public NetEntity Uid { get; }
-    public bool RefreshUi { get; }
-    public TargetIntegrityChangeEvent(NetEntity uid, bool refreshUi = true)
+    public NetEntity BodyEntity { get; }
+
+    public TargetIntegrityChangeEvent(NetEntity bodyEntity)
     {
-        Uid = uid;
-        RefreshUi = refreshUi;
+        BodyEntity = bodyEntity;
     }
 }

@@ -59,9 +59,9 @@ using Content.Shared.Stacks;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Random;
 
-// Shitmed Change
-using Content.Shared._Shitmed.Targeting;
+using Content.Shared.Medical.Limb.Targeting;
 using Content.Shared.Body.Components;
+using Content.Shared.Body.Part;
 using System.Linq;
 
 namespace Content.Server.Medical;
@@ -71,7 +71,6 @@ public sealed class HealingSystem : EntitySystem
     [Dependency] private readonly SharedAudioSystem _audio = default!;
     [Dependency] private readonly IAdminLogManager _adminLogger = default!;
     [Dependency] private readonly DamageableSystem _damageable = default!;
-    [Dependency] private readonly SharedTargetingSystem _targetingSystem = default!; // Shitmed Change
     [Dependency] private readonly BloodstreamSystem _bloodstreamSystem = default!;
     [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
     [Dependency] private readonly IRobustRandom _random = default!;
@@ -80,7 +79,7 @@ public sealed class HealingSystem : EntitySystem
     [Dependency] private readonly MobThresholdSystem _mobThresholdSystem = default!;
     [Dependency] private readonly PopupSystem _popupSystem = default!;
     [Dependency] private readonly SharedSolutionContainerSystem _solutionContainerSystem = default!;
-    [Dependency] private readonly SharedBodySystem _bodySystem = default!; // Shitmed Change
+    [Dependency] private readonly SharedBodySystem _bodySystem = default!;
 
     public override void Initialize()
     {
@@ -200,22 +199,55 @@ public sealed class HealingSystem : EntitySystem
         return false;
     }
 
-    // Shitmed Change Start
     private bool IsPartDamaged(EntityUid user, EntityUid target)
     {
-        if (!TryComp(user, out TargetingComponent? targeting))
+        if (!TryComp(user, out LimbTargetingComponent? targeting))
             return false;
 
-        var (targetType, targetSymmetry) = _bodySystem.ConvertTargetBodyPart(targeting.Target);
-        foreach (var part in _bodySystem.GetBodyChildrenOfType(target, targetType, symmetry: targetSymmetry))
-            if (TryComp<DamageableComponent>(part.Id, out var damageable)
-                && damageable.TotalDamage > part.Component.MinIntegrity)
-                return true;
+        var targetBodyPart = targeting.SelectedTarget;
+        // If target is invalid, default to Torso
+        if (!SharedTargetingSystem.IsValidTarget(targetBodyPart))
+            targetBodyPart = TargetBodyPart.Torso;
+
+        // Convert simplified TargetBodyPart to BodyPartType and check for damage
+        BodyPartType? partType = targetBodyPart switch
+        {
+            TargetBodyPart.Head => BodyPartType.Head,
+            TargetBodyPart.Torso => BodyPartType.Torso,
+            TargetBodyPart.Arms => BodyPartType.Arm,
+            TargetBodyPart.Legs => BodyPartType.Leg,
+            _ => null
+        };
+
+        if (partType == null)
+            return false;
+
+        // For Arms and Legs, check both left and right
+        if (targetBodyPart == TargetBodyPart.Arms || targetBodyPart == TargetBodyPart.Legs)
+        {
+            var leftParts = _bodySystem.GetBodyChildrenOfType(target, partType.Value, symmetry: BodyPartSymmetry.Left);
+            var rightParts = _bodySystem.GetBodyChildrenOfType(target, partType.Value, symmetry: BodyPartSymmetry.Right);
+
+            foreach (var part in leftParts.Concat(rightParts))
+            {
+                if (TryComp<DamageableComponent>(part.Id, out var damageable)
+                    && damageable.TotalDamage > FixedPoint2.Zero)
+                    return true;
+            }
+        }
+        else
+        {
+            // For Head and Torso, check all parts of that type
+            foreach (var part in _bodySystem.GetBodyChildrenOfType(target, partType.Value))
+            {
+                if (TryComp<DamageableComponent>(part.Id, out var damageable)
+                    && damageable.TotalDamage > FixedPoint2.Zero)
+                    return true;
+            }
+        }
 
         return false;
     }
-
-    // Shitmed Change End
 
     private void OnHealingUse(Entity<HealingComponent> entity, ref UseInHandEvent args)
     {

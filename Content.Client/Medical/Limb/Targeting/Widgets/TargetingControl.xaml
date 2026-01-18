@@ -1,0 +1,76 @@
+<!--
+SPDX-FileCopyrightText: 2025 terkala <appleorange64@gmail.com>
+
+SPDX-License-Identifier: MIT
+-->
+
+<widgets:TargetingControl xmlns="https://spacestation14.io"
+                         xmlns:widgets="clr-namespace:Content.Client.Medical.Limb.Targeting.Widgets"
+                         MinSize="64 128"
+                         MaxSize="96 192">
+    <PanelContainer Name="TargetingPanel" VerticalExpand="True" HorizontalExpand="True">
+        <PanelContainer.PanelOverride>
+            <graphics:StyleBoxFlat BackgroundColor="#00000040" />
+        </PanelContainer.PanelOverride>
+        
+        <BoxContainer Orientation="Vertical" VerticalExpand="True" HorizontalExpand="True">
+            <!-- Paper-doll sprite view -->
+            <PanelContainer HorizontalAlignment="Center" VerticalAlignment="Center" SetSize="64 128">
+                <SpriteView OverrideDirection="South"
+                           Scale="1.0 1.0"
+                           Name="SpriteView"
+                           Access="Public"
+                           SetSize="64 128"/>
+                
+                <!-- Clickable body part regions -->
+                <!-- Head -->
+                <TextureButton Name="HeadButton"
+                              StyleClasses="TargetDollButtonHead"
+                              SetSize="20 20"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Top"
+                              Margin="0 8 0 0"/>
+                
+                <!-- Torso -->
+                <TextureButton Name="TorsoButton"
+                              StyleClasses="TargetDollButtonChest"
+                              SetSize="24 36"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Margin="0 -20 0 0"/>
+                
+                <!-- Left Arm -->
+                <TextureButton Name="LeftArmButton"
+                              StyleClasses="TargetDollButtonLeftArm"
+                              SetSize="12 30"
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Center"
+                              Margin="8 0 0 0"/>
+                
+                <!-- Right Arm -->
+                <TextureButton Name="RightArmButton"
+                              StyleClasses="TargetDollButtonRightArm"
+                              SetSize="12 30"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Center"
+                              Margin="0 0 8 0"/>
+                
+                <!-- Left Leg -->
+                <TextureButton Name="LeftLegButton"
+                              StyleClasses="TargetDollButtonLeftLeg"
+                              SetSize="14 32"
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Bottom"
+                              Margin="10 -40 0 8"/>
+                
+                <!-- Right Leg -->
+                <TextureButton Name="RightLegButton"
+                              StyleClasses="TargetDollButtonRightLeg"
+                              SetSize="14 32"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Bottom"
+                              Margin="0 -40 10 8"/>
+            </PanelContainer>
+        </BoxContainer>
+    </PanelContainer>
+</widgets:TargetingControl>

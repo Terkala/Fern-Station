@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: MIT
 
 using Content.Shared.Medical.Surgery.Components;
-using Content.Shared.Medical.Integrity;
 using Content.Shared.FixedPoint;
 using Robust.Shared.GameStates;
 
