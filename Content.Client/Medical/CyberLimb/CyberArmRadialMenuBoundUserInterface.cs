@@ -8,6 +8,7 @@ using JetBrains.Annotations;
 using Robust.Client.Graphics;
 using Robust.Client.Input;
 using Robust.Client.UserInterface;
+using Robust.Shared.IoC;
 
 namespace Content.Client.Medical.CyberLimb;
 
@@ -21,7 +22,7 @@ public sealed class CyberArmRadialMenuBoundUserInterface : BoundUserInterface
 
     public CyberArmRadialMenuBoundUserInterface(EntityUid owner, Enum uiKey) : base(owner, uiKey)
     {
-        IoCManager.InjectDependencies(this);
+        IoCManager.Instance!.InjectDependencies(this);
     }
 
     protected override void Open()
@@ -56,7 +57,7 @@ public sealed class CyberArmRadialMenuBoundUserInterface : BoundUserInterface
         {
             _menu.ItemSelected -= OnItemSelected;
             _menu.OpenHandSelected -= OnOpenHandSelected;
-            _menu.Dispose();
+            _menu.Close();
             _menu = null;
         }
     }

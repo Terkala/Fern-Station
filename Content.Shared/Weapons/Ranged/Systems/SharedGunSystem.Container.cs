@@ -39,6 +39,9 @@ public partial class SharedGunSystem
 
             if (_netManager.IsServer)
                 Containers.Remove(ent, container);
+            else if (IsClientSide(ent))
+                // On client during prediction, remove client-side entities from container to prevent container insertion issues
+                Containers.Remove(ent, container);
 
             args.Ammo.Add((ent, EnsureShootable(ent)));
         }

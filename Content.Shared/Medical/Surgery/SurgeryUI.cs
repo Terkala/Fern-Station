@@ -133,12 +133,17 @@ public sealed class SurgeryStepSelectedMessage : BoundUserInterfaceMessage
     public NetEntity Step;
     public SurgeryLayer Layer;
     public NetEntity? User;
+    /// <summary>
+    /// The selected body part for this surgery operation.
+    /// </summary>
+    public TargetBodyPart? SelectedBodyPart;
 
-    public SurgeryStepSelectedMessage(NetEntity step, SurgeryLayer layer, NetEntity? user = null)
+    public SurgeryStepSelectedMessage(NetEntity step, SurgeryLayer layer, NetEntity? user = null, TargetBodyPart? selectedBodyPart = null)
     {
         Step = step;
         Layer = layer;
         User = user;
+        SelectedBodyPart = selectedBodyPart;
     }
 }
 
@@ -192,16 +197,23 @@ public sealed class SurgeryStepOperationInfo
     public bool IsRepairOperation { get; init; }
 
     /// <summary>
+    /// For repair operations: whether the repair can be performed (improvised damage exists).
+    /// For regular operations: always true (not applicable).
+    /// </summary>
+    public bool IsRepairAvailable { get; init; }
+
+    /// <summary>
     /// Operation name for display.
     /// </summary>
     public string OperationName { get; init; } = string.Empty;
 
-    public SurgeryStepOperationInfo(bool hasPrimaryTools, bool hasSecondaryMethod, bool isRepairOperation, string operationName)
+    public SurgeryStepOperationInfo(bool hasPrimaryTools, bool hasSecondaryMethod, bool isRepairOperation, string operationName, bool isRepairAvailable = true)
     {
         HasPrimaryTools = hasPrimaryTools;
         HasSecondaryMethod = hasSecondaryMethod;
         IsRepairOperation = isRepairOperation;
         OperationName = operationName;
+        IsRepairAvailable = isRepairAvailable;
     }
 }
 

@@ -22,8 +22,23 @@ public sealed class SurgeryOperationEvaluatorSystem : EntitySystem
     [Dependency] private readonly SharedHandsSystem _hands = default!;
 
     /// <summary>
-    /// Evaluates a secondary method for a surgery operation.
+    /// Evaluates a secondary/improvised method for a surgery operation.
+    /// 
+    /// This method checks if the user has tools/methods available for an improvised surgery operation.
+    /// Returns a result indicating whether the method can be used and what speed modifier to apply.
+    /// 
+    /// Supported evaluators:
+    /// - "CheckBluntDamage": Checks for melee weapons with blunt damage (for bone removal)
+    /// - "CheckSlashDamage": Checks for melee weapons with slash damage (for tissue cutting)
+    /// - "CheckHeatDamage": Checks for melee weapons with heat damage (for cauterization)
+    /// - "CheckToolList": Checks for specific tool components in hands
+    /// 
+    /// Speed modifiers are calculated based on damage values or tool quality.
     /// </summary>
+    /// <param name="user">The user performing the surgery operation</param>
+    /// <param name="evaluatorName">Name of the evaluator to use (e.g., "CheckBluntDamage")</param>
+    /// <param name="tools">Optional list of tool component registries for ToolList evaluator</param>
+    /// <returns>Evaluation result indicating validity and speed modifier</returns>
     public SurgeryOperationEvaluationResult EvaluateSecondaryMethod(
         EntityUid user,
         string evaluatorName,
@@ -41,7 +56,16 @@ public sealed class SurgeryOperationEvaluatorSystem : EntitySystem
 
     /// <summary>
     /// Evaluates multiple evaluators with OR logic.
+    /// 
+    /// This method checks multiple evaluators and returns the first valid result.
+    /// Used for operations that can be performed with multiple different improvised methods.
+    /// For example, clamping bleeders can be done with either hemostats OR heat damage.
+    /// 
+    /// Returns Invalid if none of the evaluators pass.
     /// </summary>
+    /// <param name="user">The user performing the surgery operation</param>
+    /// <param name="evaluators">List of evaluator configurations to check</param>
+    /// <returns>First valid evaluation result, or Invalid if none pass</returns>
     public SurgeryOperationEvaluationResult EvaluateMultiEvaluator(
         EntityUid user,
         List<SurgeryOperationEvaluatorConfig> evaluators)
@@ -57,9 +81,18 @@ public sealed class SurgeryOperationEvaluatorSystem : EntitySystem
     }
 
     /// <summary>
-    /// Checks if user has a melee weapon with blunt damage.
-    /// Speed modifier is based on blunt damage (10 blunt = 1.0 speed).
+    /// Checks if user has a melee weapon with blunt damage suitable for improvised bone removal.
+    /// 
+    /// Speed modifier calculation:
+    /// - 10 blunt damage = 1.0x speed (normal speed)
+    /// - Higher blunt damage = faster operation
+    /// - Lower blunt damage = slower operation
+    /// - Speed is clamped between 0.1x and 3.0x
+    /// 
+    /// Used for operations like bone removal via bashing instead of using a bone saw.
     /// </summary>
+    /// <param name="user">The user to check for blunt damage weapons</param>
+    /// <returns>Evaluation result with speed modifier, or Invalid if no suitable weapon found</returns>
     private SurgeryOperationEvaluationResult EvaluateBluntDamage(EntityUid user)
     {
         if (!TryComp<HandsComponent>(user, out var hands))
@@ -85,9 +118,19 @@ public sealed class SurgeryOperationEvaluatorSystem : EntitySystem
     }
 
     /// <summary>
-    /// Checks if user has a melee weapon with slash damage.
-    /// Speed modifier is based on slash damage (10 slash = 1.0 speed).
+    /// Checks if user has a melee weapon with slash damage suitable for improvised tissue cutting.
+    /// 
+    /// Speed modifier calculation:
+    /// - 10 slash damage = 1.0x speed (normal speed)
+    /// - Higher slash damage = faster operation
+    /// - Lower slash damage = slower operation
+    /// - Speed is clamped between 0.1x and 3.0x
+    /// 
+    /// Used for operations like cutting tissue or severing blood vessels with a slashing weapon
+    /// instead of using a scalpel.
     /// </summary>
+    /// <param name="user">The user to check for slash damage weapons</param>
+    /// <returns>Evaluation result with speed modifier, or Invalid if no suitable weapon found</returns>
     private SurgeryOperationEvaluationResult EvaluateSlashDamage(EntityUid user)
     {
         if (!TryComp<HandsComponent>(user, out var hands))
@@ -113,9 +156,19 @@ public sealed class SurgeryOperationEvaluatorSystem : EntitySystem
     }
 
     /// <summary>
-    /// Checks if user has a melee weapon with heat damage.
-    /// Speed modifier is based on heat damage (5 heat = 1.0 speed).
+    /// Checks if user has a melee weapon with heat damage suitable for improvised cauterization.
+    /// 
+    /// Speed modifier calculation:
+    /// - 5 heat damage = 1.0x speed (normal speed)
+    /// - Higher heat damage = faster operation
+    /// - Lower heat damage = slower operation
+    /// - Speed is clamped between 0.1x and 3.0x
+    /// 
+    /// Used for operations like cauterizing wounds or clamping bleeders with heat
+    /// instead of using a cautery tool.
     /// </summary>
+    /// <param name="user">The user to check for heat damage weapons</param>
+    /// <returns>Evaluation result with speed modifier, or Invalid if no suitable weapon found</returns>
     private SurgeryOperationEvaluationResult EvaluateHeatDamage(EntityUid user)
     {
         if (!TryComp<HandsComponent>(user, out var hands))
@@ -141,8 +194,17 @@ public sealed class SurgeryOperationEvaluatorSystem : EntitySystem
     }
 
     /// <summary>
-    /// Checks if user has any of the specified tool components.
+    /// Checks if user has any of the specified tool components in their hands.
+    /// 
+    /// This evaluator checks for specific component types rather than damage types.
+    /// Used for operations that can be performed with specific tools that aren't primary surgical tools.
+    /// For example, clamping bleeders can be done with hemostats (primary) or wirecutters (improvised).
+    /// 
+    /// Returns normal speed (1.0x) if any of the specified tools are found.
     /// </summary>
+    /// <param name="user">The user to check for tool components</param>
+    /// <param name="tools">List of tool component registries to check for</param>
+    /// <returns>Evaluation result with normal speed if tool found, or Invalid if not found</returns>
     private SurgeryOperationEvaluationResult EvaluateToolList(EntityUid user, List<Robust.Shared.Prototypes.ComponentRegistry>? tools)
     {
         if (tools == null || tools.Count == 0)

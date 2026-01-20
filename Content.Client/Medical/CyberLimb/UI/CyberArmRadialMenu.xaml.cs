@@ -12,6 +12,7 @@ using Robust.Client.UserInterface;
 using Robust.Client.UserInterface.Controls;
 using Robust.Client.UserInterface.XAML;
 using Robust.Shared.GameObjects;
+using Robust.Shared.IoC;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
 using System.Collections.Generic;
@@ -36,7 +37,7 @@ public sealed partial class CyberArmRadialMenu : RadialMenu
 
     public CyberArmRadialMenu()
     {
-        IoCManager.InjectDependencies(this);
+        IoCManager.Instance!.InjectDependencies(this);
         RobustXamlLoader.Load(this);
     }
 
@@ -58,15 +59,7 @@ public sealed partial class CyberArmRadialMenu : RadialMenu
             return;
 
         // Clear existing buttons
-        var childrenList = new List<Control>();
-        foreach (var child in main.Children)
-        {
-            childrenList.Add(child);
-        }
-        foreach (var child in childrenList)
-        {
-            child.Dispose();
-        }
+        main.RemoveAllChildren();
 
         // Add "Open Hand" button in center (if there are items or if there's an active item)
         if (items.Count > 0 || _activeItem != null)

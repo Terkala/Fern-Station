@@ -47,7 +47,7 @@ public sealed class CyberneticsSelectionBoundUserInterface : BoundUserInterface
         if (_window != null)
         {
             _window.OnCyberneticSelected -= OnCyberneticSelected;
-            _window.Dispose();
+            _window.Close();
             _window = null;
         }
     }

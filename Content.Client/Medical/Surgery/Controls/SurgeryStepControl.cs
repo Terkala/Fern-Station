@@ -89,11 +89,27 @@ public sealed class SurgeryStepControl : BoxContainer
     private string GetStepName()
     {
         var stepEntity = _entMan.GetEntity(_stepNetEntity);
+        string name = "Unknown Step";
+        
         if (_entMan.TryGetComponent<MetaDataComponent>(stepEntity, out var meta))
         {
-            return meta.EntityName;
+            name = meta.EntityName;
         }
-        return "Unknown Step";
+        
+        // Add repair indicator if this is a repair operation
+        if (_operationInfo?.IsRepairOperation == true)
+        {
+            if (_operationInfo.IsRepairAvailable)
+            {
+                name = $"🔧 {name}"; // Available repair
+            }
+            else
+            {
+                name = $"⚙️ {name} (No Damage)"; // Repair not needed
+            }
+        }
+        
+        return name;
     }
 
     private bool HasToolOptions()
@@ -116,7 +132,7 @@ public sealed class SurgeryStepControl : BoxContainer
         {
             var properToolButton = new Button
             {
-                Text = "Use Proper Tool",
+                Text = "✓ Use Proper Tool (No Penalty)",
                 HorizontalExpand = true,
                 StyleClasses = { "OpenLeft" }
             };
@@ -134,7 +150,7 @@ public sealed class SurgeryStepControl : BoxContainer
         {
             var improvisedToolButton = new Button
             {
-                Text = "Use Improvised Tool",
+                Text = "⚠ Use Improvised Tool (+Integrity Cost)",
                 HorizontalExpand = true,
                 StyleClasses = { "OpenRight" }
             };
@@ -145,6 +161,17 @@ public sealed class SurgeryStepControl : BoxContainer
             };
 
             _toolOptionsContainer.AddChild(improvisedToolButton);
+        }
+        
+        // If this is a repair operation, add indicator
+        if (_operationInfo?.IsRepairOperation == true && _operationInfo.IsRepairAvailable)
+        {
+            var repairLabel = new Label
+            {
+                Text = "   Repairs improvised damage",
+                Margin = new Thickness(0, 5, 0, 0)
+            };
+            _toolOptionsContainer.AddChild(repairLabel);
         }
 
         // If no tool options available after expanding, just select the step

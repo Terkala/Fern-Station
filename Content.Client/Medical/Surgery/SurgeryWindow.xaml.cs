@@ -16,6 +16,7 @@ using Robust.Client.UserInterface.XAML;
 using Robust.Client.GameObjects;
 using Robust.Client.UserInterface.Controls;
 using Robust.Client.Graphics;
+using Robust.Shared.Graphics.RSI;
 using Robust.Shared.Utility;
 using System.Numerics;
 using System.Linq;
@@ -36,7 +37,7 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
     private readonly SpriteSystem _spriteSystem;
     private readonly SharedBodySystem _bodySystem;
     private readonly Dictionary<TargetBodyPart, TextureButton> _bodyPartControls;
-    private TargetBodyPart? _selectedBodyPart;
+    internal TargetBodyPart? _selectedBodyPart; // Internal so SurgeryBui can access it
     private TargetBodyPart? _pendingSelection; // Track selection we just sent to server
     private EntityUid? _spriteViewEntity;
     private EntityUid? _lastBodyEntity;
@@ -49,6 +50,7 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
         _spriteSystem = _entMan.System<SpriteSystem>();
         _bodySystem = _entMan.System<SharedBodySystem>();
 
+        // Map buttons to TargetBodyPart - sprite is standing up, so buttons map directly to body parts
         _bodyPartControls = new Dictionary<TargetBodyPart, TextureButton>
         {
             { TargetBodyPart.Head, HeadButton },
@@ -113,94 +115,86 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
             string partName = enumName.ToLowerInvariant();
             string layerId = $"surgery-highlight-{partName}";
             
-            // Map part names to texture names
-            partName = partName switch
+            // Find the corresponding body part layer to copy its texture and position
+            HumanoidVisualLayers? bodyPartLayer = part switch
             {
-                "torso" => "torso",
-                "head" => "head",
-                "leftarm" => "leftarm",
-                "lefthand" => "lefthand",
-                "rightarm" => "rightarm",
-                "righthand" => "righthand",
-                "leftleg" => "leftleg",
-                "leftfoot" => "leftfoot",
-                "rightleg" => "rightleg",
-                "rightfoot" => "rightfoot",
-                _ => "torso"
+                TargetBodyPart.Head => HumanoidVisualLayers.Head,
+                TargetBodyPart.Torso => HumanoidVisualLayers.Chest,
+                TargetBodyPart.LeftArm => HumanoidVisualLayers.LArm,
+                TargetBodyPart.LeftHand => HumanoidVisualLayers.LHand,
+                TargetBodyPart.RightArm => HumanoidVisualLayers.RArm,
+                TargetBodyPart.RightHand => HumanoidVisualLayers.RHand,
+                TargetBodyPart.LeftLeg => HumanoidVisualLayers.LLeg,
+                TargetBodyPart.LeftFoot => HumanoidVisualLayers.LFoot,
+                TargetBodyPart.RightLeg => HumanoidVisualLayers.RLeg,
+                TargetBodyPart.RightFoot => HumanoidVisualLayers.RFoot,
+                _ => null
             };
             
-            // Create highlight layer using hover texture with red tint
-            var highlightPath = new ResPath($"/Textures/_Shitmed/Interface/Targeting/Doll/{partName}_hover.png");
-            var highlightSpec = new SpriteSpecifier.Texture(highlightPath);
+            if (!bodyPartLayer.HasValue)
+                return;
             
             try
             {
-                var highlightTexture = _spriteSystem.Frame0(highlightSpec);
-                var layerIndex = _spriteSystem.AddTextureLayer((spriteEntity, sprite), highlightTexture);
-                _spriteSystem.LayerMapSet((spriteEntity, sprite), layerId, layerIndex);
-                
-                // Get the offset from the corresponding body part layer to position highlight correctly
-                Vector2 highlightOffset = Vector2.Zero;
-                HumanoidVisualLayers? bodyPartLayer = part switch
+                // Try to find the body part layer
+                if (!_spriteSystem.TryGetLayer((spriteEntity, sprite), bodyPartLayer.Value, out var bodyPartLayerData, false))
                 {
-                    TargetBodyPart.Head => HumanoidVisualLayers.Head,
-                    TargetBodyPart.Torso => HumanoidVisualLayers.Chest,
-                    TargetBodyPart.LeftArm => HumanoidVisualLayers.LArm,
-                    TargetBodyPart.LeftHand => HumanoidVisualLayers.LHand,
-                    TargetBodyPart.RightArm => HumanoidVisualLayers.RArm,
-                    TargetBodyPart.RightHand => HumanoidVisualLayers.RHand,
-                    TargetBodyPart.LeftLeg => HumanoidVisualLayers.LLeg,
-                    TargetBodyPart.LeftFoot => HumanoidVisualLayers.LFoot,
-                    TargetBodyPart.RightLeg => HumanoidVisualLayers.RLeg,
-                    TargetBodyPart.RightFoot => HumanoidVisualLayers.RFoot,
-                    _ => null
-                };
-                
-                // Find the body part layer and get its offset
-                // Try multiple approaches to find the correct layer offset
-                bool foundOffset = false;
-                if (bodyPartLayer.HasValue)
-                {
-                    // First try: Look up by HumanoidVisualLayers enum
-                    if (_spriteSystem.LayerMapTryGet((spriteEntity, sprite), bodyPartLayer.Value, out var bodyPartLayerIndex, false))
+                    // Try by string name as fallback
+                    var layerName = bodyPartLayer.Value.ToString();
+                    if (!_spriteSystem.LayerMapTryGet((spriteEntity, sprite), layerName, out var namedLayerIndex, false) ||
+                        !_spriteSystem.TryGetLayer((spriteEntity, sprite), namedLayerIndex, out bodyPartLayerData, false))
                     {
-                        if (_spriteSystem.TryGetLayer((spriteEntity, sprite), bodyPartLayerIndex, out var bodyPartLayerData, false))
-                        {
-                            highlightOffset = bodyPartLayerData.Offset;
-                            foundOffset = true;
-                        }
-                    }
-                    
-                    // Second try: If enum lookup failed, try finding by layer name string
-                    if (!foundOffset)
-                    {
-                        var layerName = bodyPartLayer.Value.ToString();
-                        if (_spriteSystem.LayerMapTryGet((spriteEntity, sprite), layerName, out var namedLayerIndex, false))
-                        {
-                            if (_spriteSystem.TryGetLayer((spriteEntity, sprite), namedLayerIndex, out var namedLayerData, false))
-                            {
-                                highlightOffset = namedLayerData.Offset;
-                                foundOffset = true;
-                            }
-                        }
+                        return; // Can't find the layer, skip highlighting
                     }
                 }
                 
-                // If we still didn't find an offset, the hover texture should have its own offset baked in
-                // Apply the offset we found (or zero if not found)
-                _spriteSystem.LayerSetOffset((spriteEntity, sprite), layerIndex, highlightOffset);
+                // Get the texture from the body part layer
+                var bodyPartTexture = bodyPartLayerData.Texture;
+                if (bodyPartTexture == null)
+                {
+                    // Try to get texture from RSI state if available
+                    if (bodyPartLayerData.RSI != null && bodyPartLayerData.State != null)
+                    {
+                        var rsiState = bodyPartLayerData.RSI[bodyPartLayerData.State];
+                        if (rsiState != null)
+                        {
+                            // Get frame 0 of the current direction
+                            bodyPartTexture = rsiState.GetFrame(RsiDirection.South, 0);
+                        }
+                    }
+                    
+                    if (bodyPartTexture == null)
+                        return; // No texture available
+                }
                 
-                // Set color - try different approaches
-                // Color constructor is (R, G, B, A) with values 0-255
-                // If red shows as grey, try: BGR format, or the texture might be white/grey and needs different handling
-                // Try pure red first with full opacity
-                var redColor = new Color(255, 0, 0, 255);
-                _spriteSystem.LayerSetColor((spriteEntity, sprite), layerIndex, redColor);
+                // Create a new layer with the same texture as the body part, positioned at the same offset
+                // This layer will render on top since it's added last to the sprite component
+                // This layer will render on top since it's added last
+                var layerIndex = _spriteSystem.AddTextureLayer((spriteEntity, sprite), bodyPartTexture);
+                _spriteSystem.LayerMapSet((spriteEntity, sprite), layerId, layerIndex);
+                
+                // Copy the offset from the original layer
+                _spriteSystem.LayerSetOffset((spriteEntity, sprite), layerIndex, bodyPartLayerData.Offset);
+                
+                // Copy other transform properties to match the original layer
+                _spriteSystem.LayerSetRotation((spriteEntity, sprite), layerIndex, bodyPartLayerData.Rotation);
+                _spriteSystem.LayerSetScale((spriteEntity, sprite), layerIndex, bodyPartLayerData.Scale);
+                
+                // Set color to solid red - this will make the entire texture appear as pure red
+                // Since sprite base color is white (1,1,1,1) and layer color is (1,0,0,1),
+                // the result will be (1,0,0,1) which is pure red
+                var solidRed = new Color(1.0f, 0.0f, 0.0f, 1.0f);
+                _spriteSystem.LayerSetColor((spriteEntity, sprite), layerIndex, solidRed);
+                
+                // Make sure the layer is visible
+                _spriteSystem.LayerSetVisible((spriteEntity, sprite), layerIndex, true);
+                
                 _highlightLayerIds[part] = layerId;
             }
             catch
             {
-                // If hover texture doesn't exist, skip highlighting for this part
+                // If anything fails, skip highlighting for this part
+                return;
             }
         }
     }
@@ -262,6 +256,8 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
             }
 
             SpriteView.SetEntity(_spriteViewEntity.Value);
+            // Force sprite to stand up (South direction) to match button layout
+            SpriteView.OverrideDirection = Robust.Shared.Maths.Direction.South;
             SpriteView.Visible = true;
             PartView.Visible = true;
         }

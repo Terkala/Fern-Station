@@ -12,6 +12,7 @@ using Content.Shared.Chemistry.EntitySystems;
 using Content.Shared.FixedPoint;
 using Content.Shared.Fluids.Components;
 using Content.Shared.Forensics.Components;
+using Content.Server.Medical.Integrity;
 using Content.Shared.Medical.Integrity;
 using Content.Shared.Medical.Surgery;
 using Content.Shared.Medical.Surgery.Equipment;
@@ -34,6 +35,7 @@ public sealed class RoomCleanlinessSystem : EntitySystem
     [Dependency] private readonly SharedSolutionContainerSystem _solutionContainer = default!;
     [Dependency] private readonly TransformSystem _transform = default!;
     [Dependency] private readonly SharedIntegritySystem _integrity = default!;
+    [Dependency] private readonly IntegritySystem _integritySystem = default!;
 
     private const float CheckRadius = 3.0f; // 3 tile radius
     private static readonly FixedPoint2 PatientBloodAllowance = FixedPoint2.New(20); // 20 units of patient's own blood allowed
@@ -259,11 +261,15 @@ public sealed class RoomCleanlinessSystem : EntitySystem
         unsanitary.PenaltyApplied = true;
         Dirty(patient, unsanitary);
 
-        // Add to integrity system as bio-rejection
+        // The unsanitary penalty is included in bio-rejection via IntegritySystem.UpdateCachedSurgeryPenalty(),
+        // which queries UnsanitaryConditionsComponent and adds it to the cached surgery penalty total.
+        // The cached penalty is then included in bio-rejection calculation via GetTotalSurgeryPenalty().
+        // No additional action needed here - the integration is complete.
         if (TryComp<IntegrityComponent>(patient, out var integrity))
         {
-            // The penalty contributes directly to bio-rejection
-            // We'll handle this in the integrity system by adding it to the surgery penalty
+            // Trigger update of cached surgery penalty to include the new unsanitary penalty
+            _integritySystem.UpdateCachedSurgeryPenalty(patient, integrity);
+            _integritySystem.RecalculateTargetBioRejection(patient, integrity);
         }
     }
 

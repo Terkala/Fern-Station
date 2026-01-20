@@ -21,6 +21,7 @@
 
 # Adjust bolts (can be done in any order) - Skin layer
 # Can be done after panel is open (but order with wiring doesn't matter)
+# Requires skilled technician to perform properly
 - type: entity
   parent: SurgeryStepBase
   id: SurgeryStepAdjustCyberneticsBolts
@@ -30,6 +31,7 @@
   - type: SurgeryStep
     layer: Skin
     duration: 3.0
+    requiresSkilledTechnician: true
 
 # Close maintenance panel (screw closed) - Skin layer
 # Requires bolts adjusted and wiring replaced (checked in code)
@@ -47,6 +49,7 @@
 
 # Replace wiring (moved to tissue layer, can be done in any order)
 # Can be done in parallel with adjust bolts
+# Requires skilled technician to perform properly
 - type: entity
   parent: SurgeryStepBase
   id: SurgeryStepReplaceCyberneticsWiring
@@ -56,4 +59,5 @@
   - type: SurgeryStep
     layer: Tissue
     duration: 4.0
+    requiresSkilledTechnician: true
 

@@ -40,6 +40,19 @@ public abstract partial class SharedSurgerySystem : EntitySystem
     /// Calculates the final integrity cost for an organ/limb/cybernetic installation.
     /// Takes into account base cost, tool quality, equipment quality, and compatibility.
     /// Compatible donors (same species as recipient) have 0 integrity cost.
+    /// 
+    /// Calculation order:
+    /// 1. Donor species compatibility check (returns 0 if same species)
+    /// 2. Base cost from integrity component (first found: Organ, Limb, or Cybernetic)
+    /// 3. Improvised tool tag (1.5x multiplier if present)
+    /// 4. Quality multipliers (tool * table, multiplicative stacking)
+    /// 5. Compatibility multiplier (if incompatible species)
+    /// 6. Biosynthetic multiplier (if matching species)
+    /// 
+    /// Edge cases:
+    /// - Multiple integrity components: Uses first found (Organ > Limb > Cybernetic)
+    /// - Compatibility and Biosynthetic: Compatibility checked first, can coexist (compatibility has priority for zero cost)
+    /// - Quality multipliers: Both tool and table multipliers apply multiplicatively (toolQuality * tableQuality)
     /// </summary>
     public FixedPoint2 CalculateIntegrityCost(
         EntityUid item,
@@ -60,13 +73,20 @@ public abstract partial class SharedSurgerySystem : EntitySystem
 
         FixedPoint2 baseCost = FixedPoint2.Zero;
 
-        // Get base cost from item
-        if (TryComp<OrganIntegrityComponent>(item, out var organIntegrity))
+        // Get base cost from item (check in priority order: Organ > Limb > Cybernetic)
+        // Edge case: If item has multiple integrity components, use first found
+        if (TryComp<OrganIntegrityComponent>(item, out var organIntegrity) && organIntegrity != null)
+        {
             baseCost = organIntegrity.BaseIntegrityCost;
-        else if (TryComp<LimbIntegrityComponent>(item, out var limbIntegrity))
+        }
+        else if (TryComp<LimbIntegrityComponent>(item, out var limbIntegrity) && limbIntegrity != null)
+        {
             baseCost = limbIntegrity.BaseIntegrityCost;
-        else if (TryComp<CyberneticIntegrityComponent>(item, out var cyberIntegrity))
+        }
+        else if (TryComp<CyberneticIntegrityComponent>(item, out var cyberIntegrity) && cyberIntegrity != null)
+        {
             baseCost = cyberIntegrity.BaseIntegrityCost;
+        }
         else
         {
             // Failsafe: If there's a compatibility component but no integrity component,
@@ -84,15 +104,18 @@ public abstract partial class SharedSurgerySystem : EntitySystem
             multiplier *= 1.5f; // Configurable
 
         // Apply surgical quality from all items being used
+        // Quality multipliers stack multiplicatively: toolQuality * tableQuality
         // Check tool quality
-        if (tool != null && TryComp<SurgicalQualityComponent>(tool.Value, out var toolQuality))
+        if (tool != null && TryComp<SurgicalQualityComponent>(tool.Value, out var toolQuality) && toolQuality != null)
             multiplier *= toolQuality.QualityMultiplier;
 
         // Check operating table quality
-        if (operatingTable != null && TryComp<SurgicalQualityComponent>(operatingTable, out var tableQuality))
+        if (operatingTable != null && TryComp<SurgicalQualityComponent>(operatingTable, out var tableQuality) && tableQuality != null)
             multiplier *= tableQuality.QualityMultiplier;
 
         // Apply compatibility modifier
+        // Note: Compatibility and Biosynthetic can coexist - compatibility is checked first
+        // If compatible (same species), returns early with 0 cost before reaching here
         if (TryComp<OrganCompatibilityComponent>(item, out var compatibility))
         {
             // Check if body's species is compatible
@@ -101,6 +124,7 @@ public abstract partial class SharedSurgerySystem : EntitySystem
         }
 
         // Apply biosynthetic modifier
+        // Only applies if compatibility check didn't already return 0 cost
         if (TryComp<BiosyntheticOrganComponent>(item, out var biosynthetic))
         {
             if (bodySpecies != null && (biosynthetic.TargetSpecies == null || biosynthetic.TargetSpecies == bodySpecies))

@@ -55,12 +55,11 @@ public abstract class SharedIntegritySystem : EntitySystem
 
     /// <summary>
     /// Gets the total surgery penalty from all body parts (as bio-rejection damage).
+    /// This method is abstract because it requires server-side components (BodyComponent, SurgeryPenaltyComponent)
+    /// to query body parts, which are not available in the shared system.
+    /// The server implementation iterates through all body parts and sums their penalties.
     /// </summary>
-    protected FixedPoint2 GetTotalSurgeryPenalty(EntityUid body)
-    {
-        // This will be implemented in the server system to query body parts
-        return FixedPoint2.Zero;
-    }
+    protected abstract FixedPoint2 GetTotalSurgeryPenalty(EntityUid body);
 
     /// <summary>
     /// Adds integrity usage and recalculates target bio-rejection.

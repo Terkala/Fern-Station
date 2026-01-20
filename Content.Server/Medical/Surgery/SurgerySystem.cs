@@ -56,6 +56,7 @@ using Robust.Shared.Utility;
 using Robust.Shared.Map;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Audio.Systems;
+using Robust.Shared.Log;
 using System.Linq;
 
 namespace Content.Server.Medical.Surgery;
@@ -87,6 +88,20 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     [Dependency] private readonly MetaDataSystem _metaData = default!;
     [Dependency] private readonly SharedAudioSystem _audio = default!;
     [Dependency] private readonly RotateToFaceSystem _rotateToFace = default!;
+    
+    /// <summary>
+    /// Maps surgery operation IDs to their corresponding improvised component types.
+    /// Used to track which improvised operations have been performed and to clean them up during repair.
+    /// </summary>
+    private static readonly Dictionary<ProtoId<SurgeryOperationPrototype>, Type> ImprovisedComponentMap = new()
+    {
+        { new ProtoId<SurgeryOperationPrototype>("BoneRemoval"), typeof(ImprovisedBoneRemovalComponent) },
+        { new ProtoId<SurgeryOperationPrototype>("CutTissue"), typeof(ImprovisedTissueCutComponent) },
+        { new ProtoId<SurgeryOperationPrototype>("ClampBloodVessels"), typeof(ImprovisedBleederClampingComponent) },
+        { new ProtoId<SurgeryOperationPrototype>("RetractTissue"), typeof(ImprovisedRetractTissueComponent) },
+        { new ProtoId<SurgeryOperationPrototype>("CauterizeWounds"), typeof(ImprovisedCauterizationComponent) },
+        { new ProtoId<SurgeryOperationPrototype>("SeverBloodVessels"), typeof(ImprovisedSeverBloodVesselsComponent) }
+    };
     
     /// <summary>
     /// Tracks which method (primary/improvised) was selected for each step.
@@ -140,7 +155,26 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     /// </summary>
     private readonly Dictionary<EntityUid, List<(NetEntity Item, bool IsImplant, bool IsOrgan, string Name)>> _userHandItems = new();
 
+    /// <summary>
+    /// Caches the last sent UI state per body entity to avoid sending duplicate updates.
+    /// Key: Body entity, Value: Last sent state
+    /// </summary>
+    private readonly Dictionary<EntityUid, SurgeryBoundUserInterfaceState> _lastSentUIState = new();
+
+    /// <summary>
+    /// Range for material scanning around surgery UI (in units).
+    /// </summary>
     private const float MaterialScanRange = 1.5f;
+    
+    /// <summary>
+    /// Interval for material scanning in seconds.
+    /// Performance note: Scanning runs every 0.5s per open surgery UI.
+    /// This should scale well with multiple surgeons as each scan is independent.
+    /// If performance issues occur, consider:
+    /// - Increasing interval to 1.0s if acceptable
+    /// - Using events to trigger scans instead of polling
+    /// - Caching results until hand contents change
+    /// </summary>
     private const float MaterialScanInterval = 0.5f;
 
     public override void Initialize()
@@ -492,11 +526,13 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         // Clean up layer tracking for this body part
         _bodyPartCurrentLayer.Remove(ent);
         
-        // Clean up selected body part tracking
+        // Clean up selected body part tracking and cached UI state
         if (TryComp<BodyPartComponent>(ent, out var part) && part.Body != null)
         {
             _selectedBodyParts.Remove(part.Body.Value);
             _selectedTargetBodyParts.Remove(part.Body.Value);
+            // Clear cached UI state for this body entity
+            _lastSentUIState.Remove(part.Body.Value);
         }
         
         // Clean up hand items tracking for the user who closed the UI
@@ -585,6 +621,26 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
 
     private void OnStepSelected(Entity<SurgeryLayerComponent> ent, ref SurgeryStepSelectedMessage msg)
     {
+        // If a body part was selected in the message, update the selection before executing the step
+        if (msg.SelectedBodyPart.HasValue)
+        {
+            // Get the body from the body part
+            if (TryComp<BodyPartComponent>(ent, out var part) && part.Body != null)
+            {
+                var body = part.Body.Value;
+                var (targetType, targetSymmetry) = _body.ConvertTargetBodyPart(msg.SelectedBodyPart.Value);
+                var bodyParts = _body.GetBodyChildrenOfType(body, targetType, symmetry: targetSymmetry);
+                var foundPart = bodyParts.FirstOrDefault();
+                
+                if (foundPart.Id != default)
+                {
+                    // Store the selected body part for this UI
+                    _selectedBodyParts[body] = foundPart.Id;
+                    _selectedTargetBodyParts[body] = msg.SelectedBodyPart.Value;
+                }
+            }
+        }
+
         var stepEntity = GetEntity(msg.Step);
         if (!TryComp<SurgeryStepComponent>(stepEntity, out var step))
             return;
@@ -677,7 +733,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             return;
 
         var user = args.User;
-        if (user == null)
+        if (user == EntityUid.Invalid)
             return;
 
         // Get body part from args.Target (passed as target in DoAfterArgs)
@@ -983,7 +1039,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         if (operation.SecondaryMethod == null)
             return false;
 
-        var evaluator = EntitySystem.Get<SurgeryOperationEvaluatorSystem>();
+        var evaluator = EntityManager.System<SurgeryOperationEvaluatorSystem>();
 
         // Handle MultiEvaluator type
         if (operation.SecondaryMethod.Type == "MultiEvaluator" && operation.SecondaryMethod.Evaluators != null)
@@ -1006,25 +1062,10 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     /// </summary>
     private bool HasImprovisedComponentForOperation(EntityUid bodyPart, ProtoId<SurgeryOperationPrototype> operationId)
     {
-        // Map operation IDs to component types
-        // Use local variables for ProtoId (cannot use const or static readonly in method scope)
-        var boneRemoval = new ProtoId<SurgeryOperationPrototype>("BoneRemoval");
-        var cutTissue = new ProtoId<SurgeryOperationPrototype>("CutTissue");
-        var clampBloodVessels = new ProtoId<SurgeryOperationPrototype>("ClampBloodVessels");
-        var retractTissue = new ProtoId<SurgeryOperationPrototype>("RetractTissue");
-        var cauterizeWounds = new ProtoId<SurgeryOperationPrototype>("CauterizeWounds");
-        var severBloodVessels = new ProtoId<SurgeryOperationPrototype>("SeverBloodVessels");
+        if (!ImprovisedComponentMap.TryGetValue(operationId, out var componentType))
+            return false;
         
-        return operationId switch
-        {
-            _ when operationId == boneRemoval => HasComp<ImprovisedBoneRemovalComponent>(bodyPart),
-            _ when operationId == cutTissue => HasComp<ImprovisedTissueCutComponent>(bodyPart),
-            _ when operationId == clampBloodVessels => HasComp<ImprovisedBleederClampingComponent>(bodyPart),
-            _ when operationId == retractTissue => HasComp<ImprovisedRetractTissueComponent>(bodyPart),
-            _ when operationId == cauterizeWounds => HasComp<ImprovisedCauterizationComponent>(bodyPart),
-            _ when operationId == severBloodVessels => HasComp<ImprovisedSeverBloodVesselsComponent>(bodyPart),
-            _ => false
-        };
+        return HasComp(bodyPart, componentType);
     }
 
     /// <summary>
@@ -1037,30 +1078,23 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             return;
 
         // Add tracking component based on operation type
-        // Use local variables for ProtoId (cannot use const or static readonly in method scope)
-        var boneRemoval = new ProtoId<SurgeryOperationPrototype>("BoneRemoval");
-        var cutTissue = new ProtoId<SurgeryOperationPrototype>("CutTissue");
-        var clampBloodVessels = new ProtoId<SurgeryOperationPrototype>("ClampBloodVessels");
-        var retractTissue = new ProtoId<SurgeryOperationPrototype>("RetractTissue");
-        var cauterizeWounds = new ProtoId<SurgeryOperationPrototype>("CauterizeWounds");
-        var severBloodVessels = new ProtoId<SurgeryOperationPrototype>("SeverBloodVessels");
+        if (!ImprovisedComponentMap.TryGetValue(operation.ID, out var componentType))
+            return;
         
-        ImprovisedSurgeryComponent? improvisedComp = operation.ID switch
+        // Ensure component exists using EntityManager
+        if (!EntityManager.HasComponent(bodyPart, componentType))
         {
-            _ when operation.ID == boneRemoval => EnsureComp<ImprovisedBoneRemovalComponent>(bodyPart),
-            _ when operation.ID == cutTissue => EnsureComp<ImprovisedTissueCutComponent>(bodyPart),
-            _ when operation.ID == clampBloodVessels => EnsureComp<ImprovisedBleederClampingComponent>(bodyPart),
-            _ when operation.ID == retractTissue => EnsureComp<ImprovisedRetractTissueComponent>(bodyPart),
-            _ when operation.ID == cauterizeWounds => EnsureComp<ImprovisedCauterizationComponent>(bodyPart),
-            _ when operation.ID == severBloodVessels => EnsureComp<ImprovisedSeverBloodVesselsComponent>(bodyPart),
-            _ => null
-        };
-
-        if (improvisedComp != null)
+            var component = _componentFactory.GetComponent(componentType);
+            EntityManager.AddComponent(bodyPart, component);
+        }
+        
+        // Get the component and set its properties
+        if (EntityManager.TryGetComponent(bodyPart, componentType, out var comp) && 
+            comp is ImprovisedSurgeryComponent typedComp)
         {
-            improvisedComp.IntegrityCost = cost;
-            improvisedComp.OperationId = operation.ID;
-            Dirty(bodyPart, improvisedComp);
+            typedComp.IntegrityCost = cost;
+            typedComp.OperationId = operation.ID;
+            Dirty(bodyPart, typedComp);
 
             // Apply as a visible surgery penalty that can be scanned by health analyzer
             ApplySurgeryPenalty(bodyPart, cost);
@@ -1070,6 +1104,17 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     /// <summary>
     /// Handles repair operation execution - removes the penalty by removing the improvised component.
     /// The component removal triggers penalty removal automatically.
+    /// 
+    /// Workflow:
+    /// 1. Verify repair operation has a target operation to repair
+    /// 2. Find the improvised component corresponding to the operation
+    /// 3. Get the penalty amount stored in the component
+    /// 4. Remove the improvised component
+    /// 5. Remove the surgery penalty that was added by the improvised surgery
+    /// 6. Update cached surgery penalty and bio-rejection
+    /// 
+    /// This ensures complete cleanup: both the tracking component and the penalty are removed.
+    /// Multiple improvised surgeries on the same body part are tracked separately by component type.
     /// </summary>
     private void HandleRepairOperation(EntityUid bodyPart, SurgeryOperationPrototype repairOperation)
     {
@@ -1078,38 +1123,55 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
 
         // Find and remove the improvised component
         // The component stores the penalty amount, so removing it will remove the penalty
-        // Use local variables for ProtoId (cannot use const or static readonly in method scope)
-        var boneRemoval = new ProtoId<SurgeryOperationPrototype>("BoneRemoval");
-        var cutTissue = new ProtoId<SurgeryOperationPrototype>("CutTissue");
-        var clampBloodVessels = new ProtoId<SurgeryOperationPrototype>("ClampBloodVessels");
-        var retractTissue = new ProtoId<SurgeryOperationPrototype>("RetractTissue");
-        var cauterizeWounds = new ProtoId<SurgeryOperationPrototype>("CauterizeWounds");
-        var severBloodVessels = new ProtoId<SurgeryOperationPrototype>("SeverBloodVessels");
-        
-        ImprovisedSurgeryComponent? improvisedComp = repairOperation.RepairOperationFor.Value switch
+        if (!ImprovisedComponentMap.TryGetValue(repairOperation.RepairOperationFor.Value, out var componentType))
         {
-            _ when repairOperation.RepairOperationFor.Value == boneRemoval => CompOrNull<ImprovisedBoneRemovalComponent>(bodyPart),
-            _ when repairOperation.RepairOperationFor.Value == cutTissue => CompOrNull<ImprovisedTissueCutComponent>(bodyPart),
-            _ when repairOperation.RepairOperationFor.Value == clampBloodVessels => CompOrNull<ImprovisedBleederClampingComponent>(bodyPart),
-            _ when repairOperation.RepairOperationFor.Value == retractTissue => CompOrNull<ImprovisedRetractTissueComponent>(bodyPart),
-            _ when repairOperation.RepairOperationFor.Value == cauterizeWounds => CompOrNull<ImprovisedCauterizationComponent>(bodyPart),
-            _ when repairOperation.RepairOperationFor.Value == severBloodVessels => CompOrNull<ImprovisedSeverBloodVesselsComponent>(bodyPart),
-            _ => null
-        };
-
-        if (improvisedComp == null)
+            // No mapping found - this operation type doesn't have an improvised component
+            // This is expected for operations without secondary methods
             return;
+        }
+        
+        // Use EntityManager.TryGetComponent with Type since we have a dynamic Type variable
+        if (!EntityManager.TryGetComponent(bodyPart, componentType, out var improvisedCompRaw))
+        {
+            // No improvised component found - either already repaired or never performed improvised
+            // This is expected and not an error
+            return;
+        }
+        
+        if (improvisedCompRaw is not ImprovisedSurgeryComponent typedComp)
+        {
+            // Component type mismatch - this should not happen
+            return;
+        }
 
-        // Get the penalty amount from the component
-        var penaltyAmount = improvisedComp.IntegrityCost;
+        // Get the penalty amount from the component before removing it
+        var penaltyAmount = typedComp.IntegrityCost;
 
         // Remove the improvised component first
-        RemComp(bodyPart, improvisedComp.GetType());
+        // This ensures we track what was removed for cleanup verification
+        RemComp(bodyPart, componentType);
+
+        // Verify component was removed
+        if (HasComp(bodyPart, componentType))
+        {
+            // Component removal failed - this should not happen
+            Log.Error($"Failed to remove improvised component {componentType.Name} from body part {ToPrettyString(bodyPart)}");
+        }
 
         // Remove the penalty that was added by this improvised surgery
         if (penaltyAmount > FixedPoint2.Zero)
         {
             RemoveSurgeryPenalty(bodyPart, penaltyAmount);
+            
+            // Verify cleanup: Update cached surgery penalty and bio-rejection
+            if (TryComp<BodyPartComponent>(bodyPart, out var part) && part.Body != null)
+            {
+                if (TryComp<IntegrityComponent>(part.Body.Value, out var integrity))
+                {
+                    _vitality.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
+                    _integrity.RecalculateTargetBioRejection(part.Body.Value, integrity);
+                }
+            }
         }
     }
 
@@ -1155,7 +1217,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                     }
                     
                     // Get speed modifier from evaluator
-                    var evaluator = EntitySystem.Get<SurgeryOperationEvaluatorSystem>();
+                    var evaluator = EntityManager.System<SurgeryOperationEvaluatorSystem>();
                     SurgeryOperationEvaluationResult evalResult;
                     
                     if (operation.SecondaryMethod.Type == "MultiEvaluator" && operation.SecondaryMethod.Evaluators != null)
@@ -1217,23 +1279,14 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             }
         }
         
-        // Check for cyberlimb maintenance steps that require skilled technician
-        // Specifically: "Adjust Bolts" (Tissue layer) and "Replace Wiring" (Organ layer)
-        var stepMeta = MetaData(stepEntity);
-        var stepId = stepMeta.EntityPrototype?.ID ?? "";
-        var stepName = stepMeta.EntityName ?? "";
-        
+        // Check for steps that require skilled technician
         // Check if this is a cyberlimb (has CyberLimbMaintenanceComponent)
         bool isCyberlimb = HasComp<CyberLimbMaintenanceComponent>(bodyPart);
         
-        // Check if this is one of the two maintenance steps that require skilled technician
-        bool isAdjustBoltsStep = (stepId.Contains("Adjust") && stepId.Contains("Bolt")) ||
-                                  (stepName.Contains("Adjust") && stepName.Contains("Bolt"));
-        bool isReplaceWiringStep = (stepId.Contains("Replace") && stepId.Contains("Wiring")) ||
-                                    (stepName.Contains("Replace") && stepName.Contains("Wiring"));
-        bool isCyberlimbMaintenanceStep = isAdjustBoltsStep || isReplaceWiringStep;
+        // Check if this step requires a skilled technician
+        bool requiresSkilledTechnician = step.RequiresSkilledTechnician;
         
-        if (isCyberlimbMaintenanceStep && isCyberlimb && user != null)
+        if (requiresSkilledTechnician && isCyberlimb && user != null)
         {
             bool hasSkilledTechnician = HasComp<SkilledTechnicianComponent>(user.Value);
             
@@ -1366,7 +1419,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                 // Handle unsanitary conditions penalty
                 if (step.TriggersUnsanitaryPenalty && TryComp<BodyPartComponent>(bodyPart, out var part) && part.Body != null)
                 {
-                    var cleanlinessSystem = EntitySystem.Get<RoomCleanlinessSystem>();
+                    var cleanlinessSystem = EntityManager.System<RoomCleanlinessSystem>();
                     cleanlinessSystem.ApplyUnsanitaryPenalty(part.Body.Value);
                 }
             }
@@ -1522,21 +1575,42 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         var retractProgress = progress.SequenceProgress.GetValueOrDefault("RetractSkinSequence", -1);
         var closeProgress = progress.SequenceProgress.GetValueOrDefault("CloseSkinSequence", -1);
         
+        // Synchronize progress with actual layer state if progress is unknown
+        // If skin is already retracted but progress doesn't reflect it, initialize progress to show Close steps
+        if (retractProgress < 0 && closeProgress < 0)
+        {
+            if (selectedLayer.SkinRetracted)
+            {
+                // Skin is retracted - initialize progress to show we can close it
+                retractProgress = 2; // Mark as complete (2 steps in sequence)
+                progress.SequenceProgress["RetractSkinSequence"] = 2;
+                Dirty(selectedPart, progress);
+            }
+        }
+        
         // Get available steps for bidirectional sequence
         var retractSteps = GetAvailableStepsForSequence("RetractSkinSequence", "CloseSkinSequence", retractProgress, closeProgress, 2);
         foreach (var step in retractSteps)
         {
-            skinSteps.Add(GetNetEntity(step));
+            // Filter steps by ValidPartTypes if specified - use IsStepValidForPart helper
+            if (IsStepValidForPart(step, selectedLayer))
+            {
+                skinSteps.Add(GetNetEntity(step));
+            }
+            else
+            {
+                Del(step);
+            }
         }
 
         // Mend Brute Damage - repeatable healing step
-        if (TrySpawnStep("SurgeryStepTreatBruteWounds", out var bruteStep))
+        if (TrySpawnStep("SurgeryStepTreatBruteWounds", out var bruteStep) && IsStepValidForPart(bruteStep, selectedLayer))
         {
             skinSteps.Add(GetNetEntity(bruteStep));
         }
 
         // Mend Burn Damage - repeatable healing step
-        if (TrySpawnStep("SurgeryStepTreatBurnWounds", out var burnStep))
+        if (TrySpawnStep("SurgeryStepTreatBurnWounds", out var burnStep) && IsStepValidForPart(burnStep, selectedLayer))
         {
             skinSteps.Add(GetNetEntity(burnStep));
         }
@@ -1544,7 +1618,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         // Add Durathread Weave - only if component doesn't exist
         if (!HasComp<DermalPlasteelWeaveComponent>(selectedPart))
         {
-            if (TrySpawnStep("SurgeryStepAddDurathreadWeave", out var durathreadStep))
+            if (TrySpawnStep("SurgeryStepAddDurathreadWeave", out var durathreadStep) && IsStepValidForPart(durathreadStep, selectedLayer))
             {
                 skinSteps.Add(GetNetEntity(durathreadStep));
             }
@@ -1553,7 +1627,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         // Add Plasteel Weave - only if component doesn't exist
         if (!HasComp<DermalPlasteelWeaveComponent>(selectedPart))
         {
-            if (TrySpawnStep("SurgeryStepAddPlasteelWeave", out var plasteelStep))
+            if (TrySpawnStep("SurgeryStepAddPlasteelWeave", out var plasteelStep) && IsStepValidForPart(plasteelStep, selectedLayer))
             {
                 skinSteps.Add(GetNetEntity(plasteelStep));
             }
@@ -1562,7 +1636,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         // Remove Dermal Reinforcement - only if component exists
         if (HasComp<DermalPlasteelWeaveComponent>(selectedPart))
         {
-            if (TrySpawnStep("SurgeryStepRemoveDermalReinforcement", out var removeStep))
+            if (TrySpawnStep("SurgeryStepRemoveDermalReinforcement", out var removeStep) && IsStepValidForPart(removeStep, selectedLayer))
             {
                 skinSteps.Add(GetNetEntity(removeStep));
             }
@@ -1586,7 +1660,15 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         var tissueSequenceSteps = GetAvailableStepsForSequence("RetractTissueSequence", "MendTissueSequence", retractTissueProgress, mendProgress, 3);
         foreach (var step in tissueSequenceSteps)
         {
-            tissueSteps.Add(GetNetEntity(step));
+            // Filter steps by ValidPartTypes if specified
+            if (IsStepValidForPart(step, selectedLayer))
+            {
+                tissueSteps.Add(GetNetEntity(step));
+            }
+            else
+            {
+                Del(step);
+            }
         }
 
         // Remove Implant steps - one for each tissue layer implant
@@ -1594,7 +1676,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         foreach (var (implant, name, _) in implants)
         {
             // Spawn a "Remove Implant" step for each implant
-            if (TrySpawnStep("SurgeryStepRemoveImplant", out var removeStep))
+            if (TrySpawnStep("SurgeryStepRemoveImplant", out var removeStep) && IsStepValidForPart(removeStep, selectedLayer))
             {
                 // Update step name to include implant name
                 var meta = MetaData(removeStep);
@@ -1608,7 +1690,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         {
             if (isImplant && !isOrgan) // Tissue layer implant (no Organ tag)
             {
-                if (TrySpawnStep("SurgeryStepAddImplant", out var addStep))
+                if (TrySpawnStep("SurgeryStepAddImplant", out var addStep) && IsStepValidForPart(addStep, selectedLayer))
                 {
                     // Update step name to include implant name
                     var meta = MetaData(addStep);
@@ -1634,7 +1716,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         foreach (var (organ, slotId, name) in organs)
         {
             // Spawn step and set target organ slot
-            if (TrySpawnStep("SurgeryStepRemoveOrgan", out var removeStep))
+            if (TrySpawnStep("SurgeryStepRemoveOrgan", out var removeStep) && IsStepValidForPart(removeStep, selectedLayer))
             {
                 // Set the target organ slot on the step component
                 if (TryComp<SurgeryStepComponent>(removeStep, out var stepComp))
@@ -1672,7 +1754,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
 
             // Show step even without organ in hand (as per requirements)
             // Spawn step and set target organ slot
-            if (TrySpawnStep("NewSurgeryStepInsertOrgan", out var addStep))
+            if (TrySpawnStep("NewSurgeryStepInsertOrgan", out var addStep) && IsStepValidForPart(addStep, selectedLayer))
             {
                 // Set the target organ slot on the step component
                 if (TryComp<SurgeryStepComponent>(addStep, out var stepComp))
@@ -1692,7 +1774,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         var organImplants = GetImplantsInBodyPart(selectedPart, SurgeryLayer.Organ);
         foreach (var (implant, name, _) in organImplants)
         {
-            if (TrySpawnStep("SurgeryStepRemoveOrganImplant", out var removeStep))
+            if (TrySpawnStep("SurgeryStepRemoveOrganImplant", out var removeStep) && IsStepValidForPart(removeStep, selectedLayer))
             {
                 // Update step name to include implant name
                 var meta = MetaData(removeStep);
@@ -1706,7 +1788,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         {
             if (isImplant && isOrgan) // Organ layer implant (has Organ tag)
             {
-                if (TrySpawnStep("SurgeryStepAddOrganImplant", out var addStep))
+                if (TrySpawnStep("SurgeryStepAddOrganImplant", out var addStep) && IsStepValidForPart(addStep, selectedLayer))
                 {
                     // Update step name to include implant name
                     var meta = MetaData(addStep);
@@ -1865,6 +1947,24 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
     }
 
     /// <summary>
+    /// Checks if a step is valid for the given body part type.
+    /// </summary>
+    private bool IsStepValidForPart(EntityUid stepEntity, SurgeryLayerComponent layer)
+    {
+        if (!TryComp<SurgeryStepComponent>(stepEntity, out var step))
+            return false;
+
+        // If step has ValidPartTypes specified, check if layer's PartType is in the list
+        if (step.ValidPartTypes.Count > 0 && layer.PartType != null)
+        {
+            return step.ValidPartTypes.Contains(layer.PartType.Value);
+        }
+
+        // If no ValidPartTypes specified, step is valid for all parts
+        return true;
+    }
+
+    /// <summary>
     /// Tries to spawn a step by prototype ID.
     /// </summary>
     private bool TrySpawnStep(string stepId, out EntityUid stepEntity)
@@ -1881,6 +1981,62 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         }
     }
 
+
+    /// <summary>
+    /// Compares two SurgeryBoundUserInterfaceState objects to check if they are equal.
+    /// Returns true if states are identical, false otherwise.
+    /// </summary>
+    private bool StatesAreEqual(SurgeryBoundUserInterfaceState state1, SurgeryBoundUserInterfaceState state2)
+    {
+        if (state1.BodyPart != state2.BodyPart)
+            return false;
+        if (state1.PartType != state2.PartType)
+            return false;
+        if (state1.SkinRetracted != state2.SkinRetracted)
+            return false;
+        if (state1.TissueRetracted != state2.TissueRetracted)
+            return false;
+        if (state1.BonesSawed != state2.BonesSawed)
+            return false;
+        if (state1.BonesSmashed != state2.BonesSmashed)
+            return false;
+        if (state1.SelectedBodyPart != state2.SelectedBodyPart)
+            return false;
+        if (state1.SelectedTargetBodyPart != state2.SelectedTargetBodyPart)
+            return false;
+        if (state1.CanAccessTissueLayer != state2.CanAccessTissueLayer)
+            return false;
+        if (state1.CanAccessOrganLayer != state2.CanAccessOrganLayer)
+            return false;
+
+        // Compare step lists
+        if (!state1.SkinSteps.SequenceEqual(state2.SkinSteps))
+            return false;
+        if (!state1.TissueSteps.SequenceEqual(state2.TissueSteps))
+            return false;
+        if (!state1.OrganSteps.SequenceEqual(state2.OrganSteps))
+            return false;
+
+        // Compare operation info dictionaries
+        if (state1.StepOperationInfo.Count != state2.StepOperationInfo.Count)
+            return false;
+        
+        foreach (var kvp in state1.StepOperationInfo)
+        {
+            if (!state2.StepOperationInfo.TryGetValue(kvp.Key, out var info2))
+                return false;
+            
+            var info1 = kvp.Value;
+            if (info1.HasPrimaryTools != info2.HasPrimaryTools ||
+                info1.HasSecondaryMethod != info2.HasSecondaryMethod ||
+                info1.IsRepairOperation != info2.IsRepairOperation ||
+                info1.IsRepairAvailable != info2.IsRepairAvailable ||
+                info1.OperationName != info2.OperationName)
+                return false;
+        }
+
+        return true;
+    }
 
     public void UpdateUI(Entity<SurgeryLayerComponent> ent)
     {
@@ -1916,15 +2072,69 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         // Use selected part's layer if available, otherwise use original part's layer for layer state
         // But always use selected part for filtering steps (part type, organ slots, etc.)
         SurgeryLayerComponent selectedLayer;
+        BodyPartType? selectedPartType = null;
+        
+        // First, get the PartType from the selected body part
+        if (TryComp<BodyPartComponent>(selectedPart, out var selectedPartCompForType))
+        {
+            selectedPartType = selectedPartCompForType.PartType;
+        }
+        
         if (!TryComp<SurgeryLayerComponent>(selectedPart, out var selectedLayerComp))
         {
             // Selected part doesn't have layer component - use original part's layer for layer state
-            // But keep selectedPart for filtering steps
-            selectedLayer = layer;
+            // But use the selected part's PartType for filtering
+            selectedLayer = new SurgeryLayerComponent
+            {
+                SkinRetracted = layer.SkinRetracted,
+                TissueRetracted = layer.TissueRetracted,
+                BonesSawed = layer.BonesSawed,
+                BonesSmashed = layer.BonesSmashed,
+                PartType = selectedPartType ?? layer.PartType
+            };
         }
         else
         {
             selectedLayer = selectedLayerComp;
+            
+            // Ensure PartType is set correctly for step filtering (use selected part's type if available)
+            // Only create a new instance if PartType needs to be corrected
+            if (selectedPartType != null && selectedLayer.PartType != selectedPartType)
+            {
+                // PartType mismatch - create new instance with correct PartType for filtering
+                selectedLayer = new SurgeryLayerComponent
+                {
+                    SkinRetracted = selectedLayerComp.SkinRetracted,
+                    TissueRetracted = selectedLayerComp.TissueRetracted,
+                    BonesSawed = selectedLayerComp.BonesSawed,
+                    BonesSmashed = selectedLayerComp.BonesSmashed,
+                    PartType = selectedPartType
+                };
+            }
+            else if (selectedLayer.PartType == null && selectedPartType != null)
+            {
+                // PartType is null but we have it from the body part - create new instance
+                selectedLayer = new SurgeryLayerComponent
+                {
+                    SkinRetracted = selectedLayerComp.SkinRetracted,
+                    TissueRetracted = selectedLayerComp.TissueRetracted,
+                    BonesSawed = selectedLayerComp.BonesSawed,
+                    BonesSmashed = selectedLayerComp.BonesSmashed,
+                    PartType = selectedPartType
+                };
+            }
+            else if (selectedLayer.PartType == null)
+            {
+                // Fallback: use original layer's PartType if both are null
+                selectedLayer = new SurgeryLayerComponent
+                {
+                    SkinRetracted = selectedLayerComp.SkinRetracted,
+                    TissueRetracted = selectedLayerComp.TissueRetracted,
+                    BonesSawed = selectedLayerComp.BonesSawed,
+                    BonesSmashed = selectedLayerComp.BonesSmashed,
+                    PartType = layer.PartType
+                };
+            }
         }
 
         // Get user for dynamic step generation
@@ -1979,12 +2189,8 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
         // Use cached step data for maintenance steps only
         if (hasCybernetics)
         {
-            BodyPartType? selectedPartType = null;
-            if (TryComp<BodyPartComponent>(selectedPart, out var partTypeComp))
-            {
-                selectedPartType = partTypeComp.PartType;
-            }
-            else if (selectedLayer.PartType != null)
+            // Ensure we have selectedPartType - use selectedLayer.PartType as fallback if needed
+            if (selectedPartType == null && selectedLayer.PartType != null)
             {
                 selectedPartType = selectedLayer.PartType;
             }
@@ -2045,18 +2251,30 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
                 bool hasPrimary = HasPrimaryToolsForOperation(evalUser.Value, operation);
                 bool hasSecondary = operation.SecondaryMethod != null && HasSecondaryMethodForOperation(evalUser.Value, operation);
                 bool isRepair = operation.RepairOperationFor != null;
+                bool isRepairAvailable = false;
                 
-                // For repair operations, only show if corresponding improvised component exists
-                if (isRepair && !HasImprovisedComponentForOperation(selectedPart, operation.RepairOperationFor!.Value))
+                // For repair operations, check if corresponding improvised component exists
+                if (isRepair && operation.RepairOperationFor != null)
                 {
-                    hasPrimary = false; // Don't show repair if not needed
+                    isRepairAvailable = HasImprovisedComponentForOperation(selectedPart, operation.RepairOperationFor.Value);
+                    // Only show repair if improvised damage exists
+                    if (!isRepairAvailable)
+                    {
+                        hasPrimary = false; // Don't show repair if not needed
+                    }
+                }
+                else
+                {
+                    // Not a repair operation - availability doesn't apply
+                    isRepairAvailable = true;
                 }
 
                 stepOperationInfo[stepNetEntity] = new SurgeryStepOperationInfo(
                     hasPrimary,
                     hasSecondary,
                     isRepair,
-                    operation.Name
+                    operation.Name,
+                    isRepairAvailable
                 );
             }
         }
@@ -2105,7 +2323,12 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             canAccessOrganLayer
         );
 
-        _ui.SetUiState(bodyEntity.Value, Content.Shared.Medical.Surgery.SurgeryUIKey.Key, state);
+        // Only send state if it has changed from the last sent state
+        if (!_lastSentUIState.TryGetValue(bodyEntity.Value, out var lastState) || !StatesAreEqual(state, lastState))
+        {
+            _ui.SetUiState(bodyEntity.Value, Content.Shared.Medical.Surgery.SurgeryUIKey.Key, state);
+            _lastSentUIState[bodyEntity.Value] = state;
+        }
     }
 
     /// <summary>
@@ -2389,7 +2612,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             if (TryComp<IntegrityComponent>(part.Body.Value, out var integrity))
             {
                 // Update cached surgery penalty using the server system
-                var serverIntegrity = EntitySystem.Get<IntegritySystem>();
+                var serverIntegrity = EntityManager.System<IntegritySystem>();
                 serverIntegrity.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
                 _integrity.RecalculateTargetBioRejection(part.Body.Value, integrity);
             }
@@ -2425,7 +2648,7 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             if (TryComp<IntegrityComponent>(part.Body.Value, out var integrity))
             {
                 // Update cached surgery penalty using the server system
-                var serverIntegrity = EntitySystem.Get<IntegritySystem>();
+                var serverIntegrity = EntityManager.System<IntegritySystem>();
                 serverIntegrity.UpdateCachedSurgeryPenalty(part.Body.Value, integrity);
                 _integrity.RecalculateTargetBioRejection(part.Body.Value, integrity);
             }
@@ -2945,16 +3168,8 @@ public sealed class SurgerySystem : SSSharedSurgerySystem
             return;
 
         // Find and consume DurathreadWovenSkin or PlasteelReinforcedSkin item
-        string? consumedItem = null;
-        if (TryConsumeSurgicalItem(args.Part, "DurathreadWovenSkin", args.User))
-        {
-            consumedItem = "DurathreadWovenSkin";
-        }
-        else if (TryConsumeSurgicalItem(args.Part, "PlasteelReinforcedSkin", args.User))
-        {
-            consumedItem = "PlasteelReinforcedSkin";
-        }
-        else
+        if (!TryConsumeSurgicalItem(args.Part, "DurathreadWovenSkin", args.User) &&
+            !TryConsumeSurgicalItem(args.Part, "PlasteelReinforcedSkin", args.User))
         {
             _popup.PopupEntity("No Durathread Woven Skin or Plasteel Reinforced Skin item nearby.", args.Part, args.User, PopupType.Medium);
             return;

@@ -11,6 +11,7 @@ using Robust.Client.GameObjects;
 using Robust.Client.UserInterface;
 using Robust.Client.Player;
 using Robust.Shared.Timing;
+using System.Linq;
 
 namespace Content.Client.Medical.Surgery;
 
@@ -22,7 +23,8 @@ public sealed class SurgeryBui : BoundUserInterface
 
     private SurgeryWindow? _window;
     private TimeSpan _lastHandScan = TimeSpan.Zero;
-    private const float HandScanInterval = 0.5f; // Scan hands every 0.5 seconds
+    private List<(NetEntity, bool, bool, string)> _lastHandItems = new();
+    private const float HandScanInterval = 2.0f; // Scan hands every 2 seconds, and only send if changed
 
     public SurgeryBui(EntityUid owner, Enum uiKey) : base(owner, uiKey)
     {
@@ -34,11 +36,18 @@ public sealed class SurgeryBui : BoundUserInterface
 
         _window = new SurgeryWindow(_entMan);
         _window.OnClose += Close;
-        _window.OnLayerChanged += OnLayerChanged;
+        // Layer changes are client-side only - no need to sync with server
         _window.OnStepSelected += OnStepSelected;
         _window.OnToolMethodSelected += OnToolMethodSelected;
-        _window.OnBodyPartSelected += OnBodyPartSelected;
+        // Body part selection is client-side only - server will use selected part when step is executed
         _window.OpenCentered();
+        
+        // Send initial body part selection (torso by default) so server knows what steps to generate
+        // This is the only body part selection message sent - subsequent selections are client-side only
+        if (_window._selectedBodyPart.HasValue)
+        {
+            SendMessage(new SurgeryBodyPartSelectedMessage(_window._selectedBodyPart.Value));
+        }
         
         // Initial hand scan
         ScanAndSendHandItems();
@@ -53,7 +62,7 @@ public sealed class SurgeryBui : BoundUserInterface
             _window.UpdateState(surgeryState);
         }
         
-        // Periodically scan hands and send updates
+        // Periodically scan hands and send updates only if items changed
         if (_timing.CurTime - _lastHandScan > TimeSpan.FromSeconds(HandScanInterval))
         {
             ScanAndSendHandItems();
@@ -69,16 +78,13 @@ public sealed class SurgeryBui : BoundUserInterface
         }
     }
 
-    private void OnLayerChanged(SurgeryLayer layer)
-    {
-        SendMessage(new SurgeryLayerChangedMessage(layer));
-    }
-
     private void OnStepSelected(NetEntity step)
     {
         // Get the local player entity to pass as user (for bone smashing which needs held item)
         var player = _playerManager.LocalEntity;
-        SendMessage(new SurgeryStepSelectedMessage(step, _window?.CurrentLayer ?? SurgeryLayer.Skin, player != null ? _entMan.GetNetEntity(player.Value) : null));
+        // Include current layer and selected body part in step selection message
+        var selectedBodyPart = _window?._selectedBodyPart;
+        SendMessage(new SurgeryStepSelectedMessage(step, _window?.CurrentLayer ?? SurgeryLayer.Skin, player != null ? _entMan.GetNetEntity(player.Value) : null, selectedBodyPart));
     }
 
     private void OnToolMethodSelected(NetEntity step, bool isImprovised)
@@ -88,11 +94,6 @@ public sealed class SurgeryBui : BoundUserInterface
         
         // Then select the step to execute it
         OnStepSelected(step);
-    }
-
-    private void OnBodyPartSelected(Content.Shared._Shitmed.Targeting.TargetBodyPart? targetBodyPart)
-    {
-        SendMessage(new SurgeryBodyPartSelectedMessage(targetBodyPart));
     }
 
     /// <summary>
@@ -123,7 +124,12 @@ public sealed class SurgeryBui : BoundUserInterface
             }
         }
 
-        SendMessage(new SurgeryHandItemsMessage(handItems));
+        // Only send if hand items changed
+        if (!handItems.SequenceEqual(_lastHandItems))
+        {
+            SendMessage(new SurgeryHandItemsMessage(handItems));
+            _lastHandItems = handItems;
+        }
         _lastHandScan = _timing.CurTime;
     }
 }

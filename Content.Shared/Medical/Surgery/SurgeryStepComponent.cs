@@ -121,6 +121,14 @@ public sealed partial class SurgeryStepComponent : Component
     public string? TargetImplantSlot;
 
     /// <summary>
+    /// Whether this step requires a skilled technician to perform properly.
+    /// If true and performed by a non-skilled technician, applies an unskilled technician penalty.
+    /// Used for cybernetics maintenance steps like adjusting bolts and replacing wiring.
+    /// </summary>
+    [DataField]
+    public bool RequiresSkilledTechnician = false;
+
+    /// <summary>
     /// Integrity penalty to apply when this step completes.
     /// Only applied if this is the final step in a sequence (or if not part of a sequence).
     /// </summary>

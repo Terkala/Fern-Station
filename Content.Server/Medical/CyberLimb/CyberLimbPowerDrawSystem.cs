@@ -13,6 +13,7 @@ using Content.Shared.Storage;
 using Content.Shared.Tag;
 using Content.Shared._Shitmed.Cybernetics;
 using Robust.Shared.Containers;
+using Robust.Shared.Prototypes;
 
 namespace Content.Server.Medical.CyberLimb;
 
@@ -24,6 +25,9 @@ public sealed class CyberLimbPowerDrawSystem : EntitySystem
 {
     [Dependency] private readonly SharedBodySystem _body = default!;
     [Dependency] private readonly TagSystem _tag = default!;
+    
+    private static readonly ProtoId<TagPrototype> DrawsPowerTag = "DrawsPower";
+    private static readonly ProtoId<TagPrototype> PowerDepletedTag = "PowerDepleted";
 
     public override void Initialize()
     {
@@ -62,7 +66,7 @@ public sealed class CyberLimbPowerDrawSystem : EntitySystem
             {
                 foreach (var moduleEntity in storage.Container.ContainedEntities)
                 {
-                    if (_tag.HasTag(moduleEntity, "DrawsPower"))
+                    if (_tag.HasTag(moduleEntity, DrawsPowerTag))
                     {
                         if (TryComp<CyberLimbPowerDrawModuleComponent>(moduleEntity, out var powerDraw))
                         {
@@ -113,7 +117,7 @@ public sealed class CyberLimbPowerDrawSystem : EntitySystem
 
         foreach (var moduleEntity in storage.Container.ContainedEntities)
         {
-            if (!_tag.HasTag(moduleEntity, "DrawsPower"))
+            if (!_tag.HasTag(moduleEntity, DrawsPowerTag))
                 continue;
 
             // Oscillation Prevention Logic:
@@ -144,11 +148,11 @@ public sealed class CyberLimbPowerDrawSystem : EntitySystem
             // Apply PowerDepleted tag based on disabled state
             if (shouldBeDisabled)
             {
-                _tag.AddTag(moduleEntity, "PowerDepleted");
+                _tag.AddTag(moduleEntity, PowerDepletedTag);
             }
             else
             {
-                _tag.RemoveTag(moduleEntity, "PowerDepleted");
+                _tag.RemoveTag(moduleEntity, PowerDepletedTag);
             }
         }
     }
