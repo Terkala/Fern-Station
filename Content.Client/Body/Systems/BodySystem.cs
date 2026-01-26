@@ -14,6 +14,8 @@ using Content.Shared.Humanoid.Markings;
 using Robust.Client.GameObjects;
 using Robust.Shared.Utility;
 using Content.Shared.Body.Components;
+using Content.Shared.Body.Part;
+using Content.Shared.BloodCult;
 // Shitmed Change End
 
 namespace Content.Client.Body.Systems;
@@ -22,6 +24,13 @@ public sealed class BodySystem : SharedBodySystem
 {
     // Shitmed Change Start
     [Dependency] private readonly MarkingManager _markingManager = default!;
+    [Dependency] private readonly AppearanceSystem _appearance = default!;
+
+    public override void Initialize()
+    {
+        base.Initialize();
+        SubscribeLocalEvent<BodyComponent, AppearanceChangeEvent>(OnBodyAppearanceChange);
+    }
 
     private void ApplyMarkingToPart(MarkingPrototype markingPrototype,
         IReadOnlyList<Color>? colors,
@@ -79,6 +88,76 @@ public sealed class BodySystem : SharedBodySystem
     protected override void RemoveBodyMarkings(EntityUid target, BodyPartAppearanceComponent partAppearance, HumanoidAppearanceComponent bodyAppearance)
     {
         return;
+    }
+
+    private void OnBodyAppearanceChange(EntityUid uid, BodyComponent body, ref AppearanceChangeEvent args)
+    {
+        if (!_appearance.TryGetData<bool>(uid, CultEyesVisuals.CultEyes, out var hasEyes, args.Component))
+            hasEyes = false;
+        if (!_appearance.TryGetData<bool>(uid, CultHaloVisuals.CultHalo, out var hasHalo, args.Component))
+            hasHalo = false;
+
+        var headParts = GetBodyChildrenOfType(uid, BodyPartType.Head, body);
+        foreach (var (partId, _) in headParts)
+        {
+            if (!TryComp<SpriteComponent>(partId, out var sprite))
+                continue;
+
+            ApplyCultEyes(partId, sprite, hasEyes);
+            ApplyCultHalo(partId, sprite, hasHalo);
+        }
+    }
+
+    private void ApplyCultEyes(EntityUid partId, SpriteComponent sprite, bool visible)
+    {
+        const string layerId = "culteyes";
+        if (!sprite.LayerMapTryGet(layerId, out _))
+        {
+            var rsi = new SpriteSpecifier.Rsi(
+                new ResPath("_Funkystation/BloodCult/Effects/culteyes.rsi"),
+                "human"
+            );
+            var layer = sprite.AddLayer(rsi);
+            sprite.LayerMapSet(layerId, layer);
+            sprite.LayerSetShader(layerId, "unshaded");
+        }
+        sprite.LayerSetVisible(layerId, visible);
+    }
+
+    private void ApplyCultHalo(EntityUid partId, SpriteComponent sprite, bool visible)
+    {
+        const string layerId = "culthalo";
+        if (!sprite.LayerMapTryGet(layerId, out _))
+        {
+            var rsi = new SpriteSpecifier.Rsi(
+                new ResPath("_Funkystation/BloodCult/Effects/halo.rsi"),
+                "halo"
+            );
+            var layer = sprite.AddLayer(rsi);
+            sprite.LayerMapSet(layerId, layer);
+            sprite.LayerSetShader(layerId, "unshaded");
+        }
+        sprite.LayerSetVisible(layerId, visible);
+    }
+
+    protected override void OnPartAttachedToBody(EntityUid uid, BodyComponent component, ref BodyPartAddedEvent args)
+    {
+        base.OnPartAttachedToBody(uid, component, ref args);
+
+        if (!TryComp<BodyPartComponent>(args.Part, out var part) || part.PartType != BodyPartType.Head)
+            return;
+
+        if (!TryComp<AppearanceComponent>(uid, out var appearance))
+            return;
+
+        if (!TryComp<SpriteComponent>(args.Part, out var sprite))
+            return;
+
+        if (_appearance.TryGetData<bool>(uid, CultEyesVisuals.CultEyes, out var hasEyes, appearance))
+            ApplyCultEyes(args.Part, sprite, hasEyes);
+
+        if (_appearance.TryGetData<bool>(uid, CultHaloVisuals.CultHalo, out var hasHalo, appearance))
+            ApplyCultHalo(args.Part, sprite, hasHalo);
     }
     // Shitmed Change End
 }

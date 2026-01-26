@@ -25,7 +25,8 @@ SPDX-License-Identifier: MIT
                     SetSize="171 288"
                     Margin="54 0 0 0"
                     VerticalAlignment="Center"
-                    HorizontalAlignment="Left">
+                    HorizontalAlignment="Left"
+                    Visible="False">
                     <PanelContainer
                         SetSize="45 99"
                         Margin="12 0 0 0"

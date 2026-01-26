@@ -16,8 +16,13 @@ using Robust.Client.UserInterface.XAML;
 using Robust.Client.GameObjects;
 using Robust.Client.UserInterface.Controls;
 using Robust.Client.Graphics;
+using Content.Client.Clickable;
+using Robust.Client.Input;
+using Robust.Client.Utility;
 using Robust.Shared.Graphics.RSI;
 using Robust.Shared.Utility;
+using Robust.Shared.Input;
+using Robust.Shared.Maths;
 using System.Numerics;
 using System.Linq;
 using System;
@@ -36,12 +41,28 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
     private readonly IEntityManager _entMan;
     private readonly SpriteSystem _spriteSystem;
     private readonly SharedBodySystem _bodySystem;
+    private readonly IClickMapManager _clickMapManager;
     private readonly Dictionary<TargetBodyPart, TextureButton> _bodyPartControls;
     internal TargetBodyPart? _selectedBodyPart; // Internal so SurgeryBui can access it
     private TargetBodyPart? _pendingSelection; // Track selection we just sent to server
     private EntityUid? _spriteViewEntity;
     private EntityUid? _lastBodyEntity;
     private readonly Dictionary<TargetBodyPart, string> _highlightLayerIds = new();
+    
+    // Mapping from HumanoidVisualLayers to TargetBodyPart
+    private static readonly Dictionary<HumanoidVisualLayers, TargetBodyPart> LayerToBodyPartMap = new()
+    {
+        { HumanoidVisualLayers.Head, TargetBodyPart.Head },
+        { HumanoidVisualLayers.Chest, TargetBodyPart.Torso },
+        { HumanoidVisualLayers.LArm, TargetBodyPart.LeftArm },
+        { HumanoidVisualLayers.LHand, TargetBodyPart.LeftHand },
+        { HumanoidVisualLayers.RArm, TargetBodyPart.RightArm },
+        { HumanoidVisualLayers.RHand, TargetBodyPart.RightHand },
+        { HumanoidVisualLayers.LLeg, TargetBodyPart.LeftLeg },
+        { HumanoidVisualLayers.LFoot, TargetBodyPart.LeftFoot },
+        { HumanoidVisualLayers.RLeg, TargetBodyPart.RightLeg },
+        { HumanoidVisualLayers.RFoot, TargetBodyPart.RightFoot },
+    };
 
     public SurgeryWindow(IEntityManager entMan)
     {
@@ -49,8 +70,10 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
         _entMan = entMan;
         _spriteSystem = _entMan.System<SpriteSystem>();
         _bodySystem = _entMan.System<SharedBodySystem>();
+        _clickMapManager = IoCManager.Resolve<IClickMapManager>();
 
         // Map buttons to TargetBodyPart - sprite is standing up, so buttons map directly to body parts
+        // Note: Buttons are now hidden but kept for backward compatibility
         _bodyPartControls = new Dictionary<TargetBodyPart, TextureButton>
         {
             { TargetBodyPart.Head, HeadButton },
@@ -71,6 +94,10 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
             bodyPartButton.Value.OnPressed += _ => SetActiveBodyPart(bodyPartButton.Key);
         }
 
+        // Subscribe to SpriteView clicks for body part selection
+        SpriteView.OnKeyBindDown += OnSpriteViewClick;
+        SpriteView.MouseFilter = MouseFilterMode.Stop; // Enable mouse events
+
         SkinTabButton.OnPressed += _ => SetLayer(SurgeryLayer.Skin);
         TissueTabButton.OnPressed += _ => SetLayer(SurgeryLayer.Tissue);
         OrganTabButton.OnPressed += _ => SetLayer(SurgeryLayer.Organ);
@@ -87,6 +114,176 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
         UpdateBodyPartButtons();
         UpdateBodyPartHighlight();
         OnBodyPartSelected?.Invoke(part);
+    }
+
+    private void OnSpriteViewClick(GUIBoundKeyEventArgs args)
+    {
+        // Only handle mouse clicks
+        if (args.Function != EngineKeyFunctions.Use)
+            return;
+
+        // Check if sprite entity is ready
+        if (_spriteViewEntity == null || !_entMan.TryGetComponent<SpriteComponent>(_spriteViewEntity, out var sprite))
+            return;
+
+        var spriteEntity = _spriteViewEntity.Value;
+
+        // Get click position relative to SpriteView control
+        // args.RelativePosition is relative to control's top-left in UI pixel coordinates
+        var clickPosUI = args.RelativePosition;
+        
+        // Get all transformation values from SpriteView instance
+        var spriteViewScale = SpriteView.Scale;
+        var spriteViewUIScale = SpriteView.UIScale;
+        var spriteViewSize = SpriteView.Size;
+        var spriteViewPixelSize = SpriteView.PixelSize;
+        var spriteViewStretch = SpriteView.Stretch;
+        var spriteViewOverrideDirection = SpriteView.OverrideDirection;
+        
+        // Calculate stretch factor (mirroring SpriteView.Draw logic)
+        // _spriteSize is calculated in MeasureOverride and is in UI pixels
+        // We need to get the actual sprite size to calculate stretch
+        var spriteBoundsMeters = _spriteSystem.GetLocalBounds((spriteEntity, sprite));
+        // Convert sprite bounds to UI pixels: meters -> world pixels -> UI pixels
+        var spriteSizeWorldPixels = spriteBoundsMeters.Size * EyeManager.PixelsPerMeter;
+        var spriteSizeUIPixels = spriteSizeWorldPixels * spriteViewScale;
+        
+        var stretchVec = spriteViewStretch switch
+        {
+            SpriteView.StretchMode.Fit => Vector2.Min(spriteViewSize / spriteSizeUIPixels, Vector2.One),
+            SpriteView.StretchMode.Fill => spriteViewSize / spriteSizeUIPixels,
+            _ => Vector2.One,
+        };
+        var stretch = MathF.Min(stretchVec.X, stretchVec.Y);
+        
+        // Calculate sprite offset (mirroring SpriteView.Draw logic)
+        var spriteOffset = SpriteView.SpriteOffset
+            ? Vector2.Zero
+            : -(-SpriteView.EyeRotation).RotateVec(sprite.Offset * spriteViewScale) * new Vector2(1, -1) * EyeManager.PixelsPerMeter;
+        
+        // Convert UI click position to sprite-local coordinates
+        // SpriteView.Draw() positions sprite at: PixelSize/2 + offset*stretch*UIScale
+        // And scales by: Scale * UIScale * stretch
+        
+        // Step 1: Convert from UI pixel coordinates (top-left origin, Y+ down) to centered coordinates
+        var controlCenter = spriteViewPixelSize / 2f;
+        var clickRelativeToCenter = clickPosUI - controlCenter;
+        
+        // Step 2: Flip Y axis (UI Y+ is down, sprite Y+ is up)
+        clickRelativeToCenter = new Vector2(clickRelativeToCenter.X, -clickRelativeToCenter.Y);
+        
+        // Step 3: Remove sprite offset (if not using SpriteOffset)
+        // Offset is applied as: offset * stretch * UIScale, so we need to divide by that
+        if (!SpriteView.SpriteOffset)
+        {
+            var offsetScale = stretch * spriteViewUIScale;
+            clickRelativeToCenter -= spriteOffset / offsetScale;
+        }
+        
+        // Step 4: Apply inverse of total scale (Scale * UIScale * stretch)
+        var totalScale = spriteViewScale * spriteViewUIScale * stretch;
+        var clickInWorldPixels = clickRelativeToCenter / totalScale;
+        
+        // Step 5: Rotate coordinates 90 degrees counter-clockwise to match sprite orientation
+        // The sprite is displayed rotated 90 degrees clockwise (laying down), so we need to
+        // rotate the click coordinates counter-clockwise to align with sprite-local coordinates
+        // 90 degrees counter-clockwise rotation: (x, y) -> (y, -x)
+        var clickRotated = new Vector2(clickInWorldPixels.Y, -clickInWorldPixels.X);
+        
+        // Step 6: Convert from world pixels to meters (sprite-local coordinates are in meters)
+        var clickInMeters = clickRotated / EyeManager.PixelsPerMeter;
+        
+        // First, check if the click is within the sprite's bounds
+        // Note: sprite bounds are in sprite-local coordinates, which are unrotated
+        var spriteBounds = spriteBoundsMeters;
+        if (!spriteBounds.Contains(clickInMeters))
+        {
+            // Click is outside sprite bounds - don't select anything
+            return;
+        }
+        
+        // Check each body part layer to see which one was clicked
+        // Layers are rendered in order (higher index = rendered later = on top)
+        // So we'll check all relevant layers and pick the one with highest index that was hit
+        
+        var hitLayers = new List<(TargetBodyPart bodyPart, int layerIndex)>();
+        
+        foreach (var (humanoidLayer, targetBodyPart) in LayerToBodyPartMap)
+        {
+            // Try to find this layer in the sprite
+            if (!_spriteSystem.LayerMapTryGet((spriteEntity, sprite), humanoidLayer, out var layerIndex, false))
+                continue;
+            
+            if (!_spriteSystem.TryGetLayer((spriteEntity, sprite), layerIndex, out var layer, false))
+                continue;
+            
+            if (!_spriteSystem.IsVisible(layer))
+                continue;
+            
+            // Convert click position to layer-local coordinates
+            var layerClickPos = clickInMeters - layer.Offset;
+            
+            // Check if this layer's texture is at the click position
+            bool isHit = false;
+            
+            if (layer.Texture != null)
+            {
+                // Convert to image coordinates (texture pixel coordinates)
+                // Sprite coordinate system: Y+ is up, texture coordinate system: Y+ is down
+                var imagePos = (Vector2i)(layerClickPos * EyeManager.PixelsPerMeter * new Vector2(1, -1) + layer.Texture.Size / 2f);
+                
+                // Check bounds first
+                if (imagePos.X >= 0 && imagePos.X < layer.Texture.Size.X &&
+                    imagePos.Y >= 0 && imagePos.Y < layer.Texture.Size.Y)
+                {
+                    // Check if the click hits this texture
+                    isHit = _clickMapManager.IsOccluding(layer.Texture, imagePos);
+                }
+            }
+            else if (layer.RSI != null && layer.State != null)
+            {
+                // RSI-based layer
+                var rsiState = layer.RSI[layer.State];
+                if (rsiState != null)
+                {
+                    // Get the direction - use OverrideDirection if set, otherwise default to South
+                    var direction = RsiDirection.South; // Default to South (standing up)
+                    if (spriteViewOverrideDirection.HasValue)
+                    {
+                        // Convert Direction to RsiDirection - need RsiDirectionType from the state
+                        var dirType = rsiState.RsiDirections;
+                        direction = spriteViewOverrideDirection.Value.Convert(dirType);
+                    }
+                    var frame = 0; // Use frame 0 for click detection
+                    
+                    // Convert to image coordinates
+                    var imagePos = (Vector2i)(layerClickPos * EyeManager.PixelsPerMeter * new Vector2(1, -1) + rsiState.Size / 2f);
+                    
+                    // Check bounds first
+                    if (imagePos.X >= 0 && imagePos.X < rsiState.Size.X &&
+                        imagePos.Y >= 0 && imagePos.Y < rsiState.Size.Y)
+                    {
+                        // Check if the click hits this RSI state
+                        isHit = _clickMapManager.IsOccluding(layer.RSI, layer.State, direction, frame, imagePos);
+                    }
+                }
+            }
+            
+            if (isHit)
+            {
+                // Store this hit with its layer index (higher index = rendered later = on top)
+                hitLayers.Add((targetBodyPart, layerIndex));
+            }
+        }
+        
+        if (hitLayers.Count > 0)
+        {
+            // Pick the layer with the highest index (topmost, rendered last)
+            var topmostHit = hitLayers.OrderByDescending(x => x.layerIndex).First();
+            SetActiveBodyPart(topmostHit.bodyPart);
+        }
+        
+        // No body part was hit at this click location - don't change selection
     }
 
     private void UpdateBodyPartHighlight()
@@ -259,7 +456,7 @@ public sealed partial class SurgeryWindow : Content.Client.UserInterface.Control
             // Force sprite to stand up (South direction) to match button layout
             SpriteView.OverrideDirection = Robust.Shared.Maths.Direction.South;
             SpriteView.Visible = true;
-            PartView.Visible = true;
+            PartView.Visible = false; // Hidden - using sprite-based clicking instead
         }
         else
         {

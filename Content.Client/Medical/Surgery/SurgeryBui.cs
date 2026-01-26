@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 using Content.Shared.Medical.Surgery;
+using Content.Shared._Shitmed.Targeting;
 using Content.Shared.Implants.Components;
 using Content.Shared.Body.Organ;
 using Content.Shared.Hands.Components;
@@ -39,11 +40,11 @@ public sealed class SurgeryBui : BoundUserInterface
         // Layer changes are client-side only - no need to sync with server
         _window.OnStepSelected += OnStepSelected;
         _window.OnToolMethodSelected += OnToolMethodSelected;
-        // Body part selection is client-side only - server will use selected part when step is executed
+        // Subscribe to body part selection to notify server so it can filter steps
+        _window.OnBodyPartSelected += OnBodyPartSelected;
         _window.OpenCentered();
         
         // Send initial body part selection (torso by default) so server knows what steps to generate
-        // This is the only body part selection message sent - subsequent selections are client-side only
         if (_window._selectedBodyPart.HasValue)
         {
             SendMessage(new SurgeryBodyPartSelectedMessage(_window._selectedBodyPart.Value));
@@ -94,6 +95,12 @@ public sealed class SurgeryBui : BoundUserInterface
         
         // Then select the step to execute it
         OnStepSelected(step);
+    }
+
+    private void OnBodyPartSelected(TargetBodyPart? bodyPart)
+    {
+        // Notify server of body part selection so it can filter steps accordingly
+        SendMessage(new SurgeryBodyPartSelectedMessage(bodyPart));
     }
 
     /// <summary>
