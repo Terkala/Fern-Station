@@ -1,0 +1,13 @@
+- type: entity
+  parent: BaseItem
+  id: PoolCue
+  name: pool cue
+  description: A cue stick for striking pool balls.
+  components:
+  - type: Sprite
+    sprite: Objects/Fun/Tabletop/generic_pieces.rsi
+    state: black
+  - type: Item
+    size: Normal
+    sprite: Objects/Fun/Tabletop/generic_pieces.rsi
+  - type: PoolCue

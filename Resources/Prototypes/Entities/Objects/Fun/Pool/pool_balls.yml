@@ -1,0 +1,36 @@
+- type: entity
+  id: BasePoolBall
+  name: pool ball
+  abstract: true
+  description: A ball for the pool minigame.
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Sprite
+    sprite: Objects/Fun/Tabletop/generic_pieces.rsi
+    state: white
+    scale: 0.5, 0.5
+  - type: Fixtures
+    fixtures:
+      ball:
+        shape:
+          !type:PhysShapeCircle
+          radius: 0.05
+        density: 50
+        restitution: 0.9
+        friction: 0.1
+        mask:
+        - PoolBallMask
+        layer:
+        - PoolBallLayer
+  - type: Physics
+    bodyType: Dynamic
+    canCollide: true
+  - type: Item
+    size: Tiny
+    sprite: Objects/Fun/Tabletop/generic_pieces.rsi
+  - type: PoolBall
+
+- type: entity
+  parent: BasePoolBall
+  id: PoolBall
+  name: pool ball

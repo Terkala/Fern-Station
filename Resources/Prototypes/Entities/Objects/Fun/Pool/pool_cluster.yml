@@ -1,0 +1,13 @@
+- type: entity
+  id: PoolClusterEntity
+  name: pool cluster
+  description: Invisible entity that holds pool table boundaries and pockets.
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: Transform
+    anchored: true
+  - type: Physics
+    bodyType: Static
+    canCollide: true
+  - type: Fixtures
+  - type: PoolCluster

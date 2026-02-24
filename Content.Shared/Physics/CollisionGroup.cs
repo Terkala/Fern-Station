@@ -53,6 +53,11 @@ public enum CollisionGroup
     DoorPassable       = 1 << 8, // 256 Allows door to close over top, Like blast doors over conveyors for disposals rooms/cargo.
     BlobImpassable     = 1 << 9, // 512 Blob Tiles Goobstation - Blob
 
+    // Pool minigame - isolated from normal physics
+    PoolBallLayer         = 1 << 10, // 1024
+    PoolTableBoundaryLayer = 1 << 11, // 2048
+    PoolPocketLayer       = 1 << 12, // 4096
+
     MapGrid = MapGridHelpers.CollisionGroup, // Map grids, like shuttles. This is the actual grid itself, not the walls or other entities connected to the grid.
 
     // 32 possible groups
@@ -122,6 +127,11 @@ public enum CollisionGroup
     FlyingBlobMobMask = Impassable | HighImpassable,
     FlyingBlobMobLayer = Opaque | BulletImpassable,
 
-    BlobTileLayer = Opaque | BlobImpassable | BulletImpassable
+    BlobTileLayer = Opaque | BlobImpassable | BulletImpassable,
     // end-goobstation: blob
+
+    // Pool minigame collision matrix
+    PoolBallMask = PoolBallLayer | PoolTableBoundaryLayer | PoolPocketLayer,
+    PoolTableBoundaryMask = PoolBallLayer,
+    PoolPocketMask = PoolBallLayer,
 }

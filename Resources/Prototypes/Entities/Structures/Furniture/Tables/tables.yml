@@ -610,9 +610,11 @@
   - type: Construction
     graph: Table
     node: TableCarpet
+  - type: GamingTable
   - type: Tag
     tags:
     - Wooden
+    - GamingTable
   - type: FootstepModifier
     footstepSoundCollection:
       collection: FootstepCarpet
@@ -693,6 +695,11 @@
   name: fancy table
   description: Expensive and rich.
   components:
+  - type: GamingTable
+  - type: Tag
+    tags:
+    - GamingTable
+    - Wooden
   - type: Damageable
     damageModifierSet: Wood
   - type: Destructible
@@ -716,9 +723,6 @@
         acts: [ "Destruction" ]
   - type: IconSmooth
     key: fancytable
-  - type: Tag
-    tags:
-    - Wooden
   - type: FootstepModifier
     footstepSoundCollection:
       collection: FootstepCarpet
