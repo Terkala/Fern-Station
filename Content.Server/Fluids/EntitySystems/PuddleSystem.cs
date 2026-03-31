@@ -514,6 +514,8 @@ public sealed partial class PuddleSystem : SharedPuddleSystem
         if (args.SolutionId != entity.Comp.SolutionName)
             return;
 
+        UpdateFishingSilhouette(entity, args.Solution);
+
         if (args.Solution.Volume <= 0)
         {
             _deletionQueue.Add(entity);
