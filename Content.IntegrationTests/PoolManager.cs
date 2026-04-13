@@ -28,6 +28,7 @@ using Content.Client.Parallax.Managers;
 using Content.IntegrationTests.Pair;
 using Content.IntegrationTests.Tests;
 using Content.IntegrationTests.Tests.Destructible;
+using Content.IntegrationTests.Tests._EE.Supermatter;
 using Content.IntegrationTests.Tests.DeviceNetwork;
 using Content.IntegrationTests.Tests.Interaction.Click;
 using Robust.Client;
@@ -85,6 +86,7 @@ public static partial class PoolManager
             var entSysMan = IoCManager.Resolve<IEntitySystemManager>();
             entSysMan.LoadExtraSystemType<DeviceNetworkTestSystem>();
             entSysMan.LoadExtraSystemType<TestDestructibleListenerSystem>();
+            entSysMan.LoadExtraSystemType<SupermatterLinkTestListenerSystem>();
 
             IoCManager.Resolve<ILogManager>().GetSawmill("loc").Level = LogLevel.Error;
             IoCManager.Resolve<IConfigurationManager>()
